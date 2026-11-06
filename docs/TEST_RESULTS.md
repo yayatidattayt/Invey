@@ -143,3 +143,7 @@ For each gate, append a dated entry with: Windows build and architecture; proces
 - **Evidence:** scripts/validate-spec.mjs; scripts/render-spec-diagrams.mjs; actual generated `artifacts/spec-diagrams/` images; command outputs in session; documentation details in SPECIFICATION_REVIEW Part M.
 - **Runtime gate status:** A1 build BLOCKED/NOT RUN; all native/camera/UIA/performance/packaging compatibility still NOT RUN. Static audit defects recorded for future A1 repair.
 
+
+## Execution 15 — 2026-11-07
+
+The pinned Debug and Release builds passed 82 core cases each, and the worker suite passed all 15 including the Media Foundation file reader. The final isolated Windows suite passed 36 cases, with zero failures and one blocked Explorer case. This includes 30 dual-target Workspace trials with native fixture mouse input and a separate logical Ghost stream. The camera diagnostic scope failure, retained attempts, and remaining physical gates are documented separately. [Execution 15 report](EXECUTION_15_REPORT.md)

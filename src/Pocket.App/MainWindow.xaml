@@ -1,17 +1,31 @@
 <Window x:Class="Pocket.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Title="Invey" Width="580" Height="460" MinWidth="420" MinHeight="360" WindowStartupLocation="CenterScreen">
+ Title="Invey" Width="560" Height="480" MinWidth="400" MinHeight="320" WindowStartupLocation="CenterScreen">
  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24">
  <TextBlock Text="invey." FontSize="24" FontWeight="SemiBold" AutomationProperties.Name="Invey"/>
- <Button Content="_Pocket · capture and references" Click="OpenPocket" HorizontalAlignment="Left" Margin="0,14,0,0"/>
- <TextBlock Margin="0,8,0,20" Text="Native input replay · Camera controls in Tracking lab" />
- <TextBlock TextWrapping="Wrap" Text="Start a replay, then focus another window during the five-second countdown. Ghost moves its own Pocket panel while your physical mouse stays available."/>
- <WrapPanel Margin="0,20,0,0">
- <Button Content="_Show overlay" Click="ShowOverlay"/><Button Content="_Hide overlay" Click="HideOverlay"/>
- <Button x:Name="StartButton" Content="_Start timed replay" Click="StartReplay"/><Button x:Name="StopButton" Content="S_top replay" Click="StopReplay" IsEnabled="False"/>
+ <TextBlock Margin="0,8,0,20" Text="Capture and keep screen references. Use Pocket with the camera off." TextWrapping="Wrap"/>
+ <WrapPanel>
+  <Button Content="_Capture region" Click="CaptureClick"/>
+  <Button Content="_Pocket shelf" Click="OpenPocket"/>
+  <Button Content="_Workspace" Click="WorkspaceClick"/>
  </WrapPanel>
- <WrapPanel><Button Content="_Open test fixture" Click="OpenFixture"/><Button Content="Se_ttings" Click="OpenSettings"/><Button Content="_Export evidence" Click="ExportEvidence"/><Button Content="Track_ing lab" Click="OpenTrackingLab"/></WrapPanel>
- <TextBlock x:Name="Status" Text="Ready. Gate A1 is not yet certified." TextWrapping="Wrap" Margin="0,12,0,16" AutomationProperties.LiveSetting="Polite"/>
- <TextBlock TextWrapping="Wrap" Text="Closing this controller leaves the tray available. Exit stops replay and removes all app windows."/>
- <Button Content="E_xit" Click="ExitApp" HorizontalAlignment="Left" Margin="0,20,0,0"/>
+ <TextBlock x:Name="GhostState" Text="Ghost · Camera off" FontWeight="SemiBold" Margin="0,12,0,8" AutomationProperties.LiveSetting="Polite"/>
+ <WrapPanel>
+  <Button Content="_Tracking and calibration" Click="OpenTrackingLab"/>
+  <Button Content="Pa_use Ghost" Click="PauseClick"/>
+  <Button Content="_Settings" Click="OpenSettings"/>
+ </WrapPanel>
+ <Expander Header="_Diagnostics" Margin="0,12,0,0">
+  <StackPanel Margin="0,8,0,0">
+   <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Text="Run a timed replay in the passive overlay or inspect a controlled test fixture."/>
+   <WrapPanel>
+    <Button Content="S_how overlay" Click="ShowOverlay"/><Button Content="H_ide overlay" Click="HideOverlay"/>
+    <Button x:Name="StartButton" Content="Sta_rt timed replay" Click="StartReplay"/>
+    <Button x:Name="StopButton" Content="Sto_p replay" Click="StopReplay" IsEnabled="False"/>
+    <Button Content="_Open test fixture" Click="OpenFixture"/><Button Content="_Export evidence" Click="ExportEvidence"/>
+   </WrapPanel>
+  </StackPanel>
+ </Expander>
+ <TextBlock x:Name="Status" TextWrapping="Wrap" Margin="0,12,0,12" AutomationProperties.LiveSetting="Polite"/>
+ <Button Content="E_xit" Click="ExitApp" HorizontalAlignment="Left"/>
  </StackPanel></ScrollViewer>
 </Window>

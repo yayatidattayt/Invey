@@ -54,6 +54,7 @@ internal sealed class RecordedTrackingWindow : Window
         MinWidth = 360;
         SizeToContent = SizeToContent.Height;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        SourceInitialized += (_, _) => References.ScreenSnapshot.DisableNativeTransitions(this);
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
         AutomationProperties.SetLiveSetting(_inventoryStatus, AutomationLiveSetting.Polite);
         AutomationProperties.SetName(_devices, "Camera device");
@@ -252,7 +253,11 @@ internal sealed class RecordedTrackingWindow : Window
         _live.IsEnabled = _recorded.IsEnabled = _find.IsEnabled = available;
         _devices.IsEnabled = available;
         _deviceOptions.Visibility = live ? Visibility.Visible : Visibility.Collapsed;
-        _start.IsEnabled = available && (!live || _devices.SelectedItem is CameraDevice);
+        bool budgetAvailable = !live || _fixtureFile is not null || _fixtureCameraFault is not null ||
+            _controller.DiagnosticBudgetAvailable;
+        _start.IsEnabled = available && budgetAvailable && (!live || _devices.SelectedItem is CameraDevice);
+        if (!budgetAvailable) _start.ToolTip = "The three-session diagnostic camera limit has been reached.";
+        else _start.ToolTip = null;
         _stop.IsEnabled = !_stopping && _visible.SessionId.HasValue;
         bool canCalibrate = _visible.State is TrackingState.Ready or TrackingState.Observing
             or TrackingState.Lost or TrackingState.Stale or TrackingState.Partial or TrackingState.Ambiguous;

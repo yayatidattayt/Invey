@@ -290,7 +290,8 @@ internal sealed class CalibrationPanel : StackPanel
         string? directory = RecordedTrackingController.DiagnosticDirectory;
         if (_diagnosticSession is not { } session || !Directory.Exists(directory)) return;
         try { File.WriteAllText(System.IO.Path.Combine(directory!, session + ".calibration.json"),
-            JsonSerializer.Serialize(new { Session = session, EndReason = _endReason, UiObserved = Counts() })); }
+            JsonSerializer.Serialize(new { Session = session, EndReason = _endReason,
+                Mirror = _mirror.IsChecked == true, HandSelection = _hand.SelectedIndex, UiObserved = Counts() })); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { System.Diagnostics.Trace.TraceWarning("Calibration diagnostic write failed: 0x{0:X8}", ex.HResult); }
     }

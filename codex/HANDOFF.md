@@ -1,5 +1,9 @@
 # Invey — Current handoff
 
+## Execution 15 — Pocket shelf, shortcuts and Workspace
+
+The normal Invey window offers camera-off Capture, Pocket and Workspace. Pocket uses its existing library and independent pinned cards. Settings validates and persists global Windows shortcuts. Workspace has two local snapshot targets and an isolated logical test stream. Review the [Execution 15 report](../docs/EXECUTION_15_REPORT.md) for the diagnostic budget failure and containment, capture reproduction and acceptance evidence.
+
 ## Execution 14 — Invey desktop identity and Pocket cards
 
 Build and launch from the current checkout with `Invey.sln` and `Invey.exe`. Invey resolves the verified local profile at `%LOCALAPPDATA%\Invey`. Pocket can open independent cards, persist pinned placement and manage the library with Rename, ordering, Delete and Undo. Consult the [Execution 14 report](../docs/EXECUTION_14_REPORT.md) for the migration policy, exact verification and remaining gates.

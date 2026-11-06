@@ -78,6 +78,14 @@ internal static class ScreenSnapshot
         int value = cloaked ? 1 : 0;
         return DwmSetWindowAttribute(new WindowInteropHelper(window).Handle, 13, ref value, sizeof(int)) >= 0;
     }
+    public static void DisableNativeTransitions(Window window)
+    {
+        // DWM can retain a closing title bar in a desktop GDI sample while the HWND is already gone.
+        int enabled = 1;
+        if (DwmSetWindowAttribute(new WindowInteropHelper(window).Handle, 3, ref enabled, sizeof(int)) < 0)
+            System.Diagnostics.Trace.TraceWarning("Windows could not disable capture-window transitions.");
+    }
+
     public static void Synchronize()
     {
         if (DwmFlush() < 0) throw new IOException("Windows could not synchronize the display. Try again.");

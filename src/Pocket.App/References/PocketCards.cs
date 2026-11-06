@@ -20,6 +20,7 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
     private readonly Dictionary<Guid, Card> _cards = new();
     private readonly SemaphoreSlim _opening = new(1);
     private Task _writes = Task.CompletedTask;
+    private readonly Dictionary<Guid, (Card Card, CardPlacement Placement)> _pending = [];
     private bool _exiting;
     private Guid? _last;
     private Card? Last => _last is { } id && _cards.TryGetValue(id, out var card) ? card : null;
@@ -27,6 +28,7 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
     public BitmapSource? LastImage => Last?.Image;
     public int? LastZoom => Last?.ZoomPercent;
     public int Count => _cards.Count;
+    internal int PlacementFailures { get; private set; }
 
     public async Task RestoreAsync()
     {
@@ -68,6 +70,22 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
         finally { _opening.Release(); }
     }
 
+    internal Task BlockOpeningAsync() => _opening.WaitAsync();
+    internal void ResumeOpening() => _opening.Release();
+
+    internal void ExerciseFixture(int cycle)
+    {
+        foreach (var card in _cards.Values)
+        {
+            double size = cycle % 2 == 0 ? 0 : 24;
+            card.Window.Left = 48 + size;
+            card.Window.Top = 48 + size;
+            card.Window.Width = 460 + size;
+            card.Window.Height = 360 + size;
+            card.SetFixtureControls(cycle % 2 == 0);
+        }
+    }
+
     public void UpdateTitle(Guid id, string title)
     {
         if (_cards.TryGetValue(id, out var card)) card.Window.Title = $"Invey · {title}";
@@ -101,13 +119,25 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
     private void Persist(Card card, CardPlacement placement)
     {
         if (!writable) return;
-        _writes = WriteAfterAsync(_writes);
-        async Task WriteAfterAsync(Task previous)
+        _pending[card.Id] = (card, placement);
+        if (_writes.IsCompleted) _writes = DrainAsync();
+    }
+
+    private async Task DrainAsync()
+    {
+        while (_pending.Count > 0)
         {
-            await previous;
-            try { await Task.Run(() => store.Place(card.Id, placement)); }
+            var item = _pending.First();
+            _pending.Remove(item.Key);
+            var (card, placement) = item.Value;
+            try
+            {
+                await Task.Run(() => store.Place(card.Id, placement));
+                card.ClearPlacementError();
+            }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or NotSupportedException)
             {
+                PlacementFailures++;
                 card.Status.Text = "Could not save card placement.";
                 System.Diagnostics.Trace.TraceWarning("Pocket card placement write failed: 0x{0:X8}", error.HResult);
             }
@@ -160,6 +190,7 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
                 WindowStartupLocation = WindowStartupLocation.Manual, Topmost = _pin.IsChecked == true,
                 ShowActivated = activate
             };
+            Window.SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(Window);
             Window.Loaded += (_, _) =>
             {
                 if (_loaded) return;
@@ -173,7 +204,7 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
             };
             Window.LocationChanged += (_, _) => Schedule();
             Window.SizeChanged += (_, _) => Schedule();
-            _pin.Click += (_, _) => { Window.Topmost = _pin.IsChecked == true; Save(visible: true); };
+            _pin.Click += (_, _) => ApplyPin();
             _placementTimer.Tick += (_, _) => { _placementTimer.Stop(); Save(visible: true); };
             Window.Closed += (_, _) =>
             {
@@ -196,6 +227,19 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
 
         private void Hide() => Window.Close();
 
+        private void ApplyPin()
+        {
+            Window.Topmost = _pin.IsChecked == true;
+            Save(visible: true);
+        }
+
+        public void SetFixtureControls(bool enabled)
+        {
+            _pin.IsChecked = enabled;
+            ApplyPin();
+            SetZoom(enabled ? 125 : 0);
+        }
+
         private void DisplaysChanged(object? sender, EventArgs args) => _ = Window.Dispatcher.InvokeAsync(() =>
         {
             if (!_loaded || Window.WindowState != WindowState.Normal) return;
@@ -206,13 +250,20 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
 
         private void Zoom(int delta) => SetZoom(Math.Clamp((_zoom == 0 ? 100 : _zoom) + delta, 25, 400));
         private void SetZoom(int zoom) { _zoom = zoom; ApplyZoom(); Save(visible: true); }
+        public void ClearPlacementError()
+        {
+            if (Status.Text == "Could not save card placement.") ShowZoomStatus();
+        }
+
+        private void ShowZoomStatus() => Status.Text = _zoom == 0 ? "Fit to window" : $"{_zoom}%";
+
         private void ApplyZoom()
         {
             _display.Width = _zoom == 0 ? double.NaN : Image.PixelWidth * _zoom / 100d;
             _display.Height = _zoom == 0 ? double.NaN : Image.PixelHeight * _zoom / 100d;
             _scroll.HorizontalScrollBarVisibility = _scroll.VerticalScrollBarVisibility =
                 _zoom == 0 ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
-            Status.Text = _zoom == 0 ? "Fit to window" : $"{_zoom}%";
+            ShowZoomStatus();
         }
 
         private void ApplyPlacement(CardPlacement? placement)

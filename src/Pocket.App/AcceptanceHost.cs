@@ -33,6 +33,13 @@ internal sealed class AcceptanceHost : IDisposable
     private RecordedTrackingWindow? _tracking;
     private PocketWorkspace? _pocket;
     private Window? _capturePattern;
+    private MainWindow? _product;
+    private int _fixtureHotKeyHits;
+    private bool _fixtureHotKey;
+    private string? _shortcutResult;
+    private int _profileCycle;
+    private bool _profileStarted;
+    private bool[]? _diagnosticReservations;
     public AcceptanceHost(string pipeName,string token)
     {
         ValidateDesktop();
@@ -76,6 +83,55 @@ internal sealed class AcceptanceHost : IDisposable
         switch(command)
         {
             case "status":break;
+            case "product-diagnostic-budget":
+                _diagnosticReservations = Enumerable.Range(0, 4)
+                    .Select(_ => RecordedTrackingController.TryReserveDiagnosticStart()).ToArray();
+                break;
+            case "product-conflict":
+                var source = (HwndSource)PresentationSource.FromVisual(_fixture)!;
+                if (!RegisterHotKey(source.Handle, 0x6111, 0x4003, 0x50))
+                    throw new InvalidOperationException("Could not reserve the test shortcut.");
+                _fixtureHotKey = true;
+                source.AddHook(ObserveFixtureShortcut);
+                break;
+            case "product-start":
+                string fixtureRoot = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;
+                string profile = Path.Combine(Path.GetDirectoryName(fixtureRoot)!, "pocket-migration", "Invey");
+                if (!Directory.Exists(profile)) throw new InvalidOperationException("No migrated fixture profile.");
+                _capturePattern ??= CreatePocketPattern();
+                _product = new MainWindow(new InveyProfile(profile), _capturePattern);
+                _product.StartShortcuts();
+                _product.Show();
+                _product.Activate();
+                break;
+            case "product-remap":
+                _shortcutResult = _product!.ApplyTestShortcuts(["Ctrl+Alt+G", "Ctrl+Alt+J", "Ctrl+Alt+Space", "Ctrl+Alt+W"]);
+                break;
+            case "product-locked-remap":
+                _shortcutResult = _product!.ApplyTestShortcuts(["Ctrl+Alt+G", "Ctrl+Alt+K", "Ctrl+Alt+Space", "Ctrl+Alt+W"]);
+                break;
+            case "product-profile-start":
+                await SeedProfileImagesAsync();
+                await _product!.OpenFixtureCardsAsync();
+                _profileStarted = true;
+                break;
+            case "product-profile-cycle":
+                _product!.ExerciseFixtureCards(_profileCycle++);
+                if (_profileCycle % 2 == 0) _product.ShowPocket(toggle: true);
+                break;
+            case "product-invalid":
+                _shortcutResult = _product!.ApplyTestShortcuts(["Win+G", "Ctrl+Alt+J", "", ""]);
+                break;
+            case "product-tray-fallback":
+                _product!.ShowPocket(toggle: true);
+                break;
+            case "product-ghost-press":
+                if (!_product!.PressTestGhost()) throw new InvalidOperationException("Ghost could not claim Reference B.");
+                break;
+            case "product-ghost-move": _product!.MoveTestGhost(); break;
+            case "product-ghost-back": _product!.MoveTestGhost(-8); break;
+            case "product-close-board": _product!.CloseTestWorkspace(); break;
+            case "product-ghost-cancel": _product!.CancelTestGhost(); break;
             case "pocket-open":
                 OpenPocketFixture();
                 break;
@@ -135,6 +191,7 @@ internal sealed class AcceptanceHost : IDisposable
             case "stop":_simulation.Stop();break;
             case "focus":_fixture.Activate();break;
             case "exit":
+                if (_product is { } product) { await product.CloseAcceptanceAsync(); _product = null; }
                 if (_pocket is { } workspace) await workspace.PrepareExitAsync();
                 _simulation.Stop();if(NativeWindow.Exists(_overlay.Handle))_overlay.Hide();break;
             case "close-overlay":_overlay.Close();break;
@@ -144,7 +201,10 @@ internal sealed class AcceptanceHost : IDisposable
             OverlayHandle=_overlay.Handle.ToInt64(),_overlay.Dpi,_overlay.Monitor,Styles=NativeWindow.ReadStyles(_overlay.Handle),
             AutomationHandle=_automation is null?0:new WindowInteropHelper(_automation).Handle.ToInt64(),Automation=_automation?.Snapshot(),Recovery=_recovery?.Snapshot(),
             TrackingHandle = _tracking is null ? 0 : new WindowInteropHelper(_tracking).Handle.ToInt64(), Tracking = _tracking?.TestSnapshot(),
-            Pocket = _pocket?.TestState(),
+            Pocket = _pocket?.TestState(), Product = _product?.TestState(),
+            FixtureHotKeyHits = _fixtureHotKeyHits, ShortcutResult = _shortcutResult,
+            Resources = _profileStarted ? _product?.FixtureResources() : null,
+            DiagnosticReservations = _diagnosticReservations,
             TimerScheduled=_simulation.IsScheduled,OverlayVisible=_overlay.IsVisible,Running=_simulation.IsRunning,Events=_simulation.Observations.Count,
             GhostClaim=_overlay.Scene.Pointer(Pocket.Core.PointerOwner.Ghost).Target,Panel=_overlay.Scene.Target("panel"),
             Native=NativeWindow.Observe() });
@@ -164,27 +224,13 @@ internal sealed class AcceptanceHost : IDisposable
                     throw new InvalidOperationException("The isolated profile did not migrate.");
                 path = migrated.Root;
             }
-            var display = SnapshotDisplay.Available().FirstOrDefault(item => item.Label.EndsWith("Primary", StringComparison.Ordinal))
-                ?? throw new InvalidOperationException("No primary display for the capture fixture.");
-            var grid = new Grid();
-            foreach (var color in new[] { Color.FromRgb(192, 32, 64), Colors.Black, Colors.RoyalBlue })
-            {
-                var stripe = new Border { Background = new SolidColorBrush(color) };
-                Grid.SetColumn(stripe, grid.ColumnDefinitions.Count);
-                grid.ColumnDefinitions.Add(new());
-                grid.Children.Add(stripe);
-            }
-            _capturePattern = new Window { WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize,
-                WindowStartupLocation = WindowStartupLocation.Manual, Content = grid, ShowInTaskbar = false };
-            ScreenSnapshot.Place(_capturePattern, display.Bounds);
-            _capturePattern.Loaded += (_, _) => ScreenSnapshot.Place(_capturePattern, display.Bounds);
-            _capturePattern.Show();
+            _capturePattern = CreatePocketPattern();
             _pocket = new PocketWorkspace(new PocketStore(path), async () =>
             {
                 _simulation.Stop();
                 return _tracking is null || await _tracking.StopAsync();
             }, _capturePattern);
-            var bounds = display.Bounds;
+            var bounds = PrimaryFixtureDisplay().Bounds;
             _pocket.Loaded += (_, _) => ScreenSnapshot.Place(_pocket, new System.Drawing.Rectangle(
                 bounds.Left + 24, bounds.Top + 64, Math.Min(630, bounds.Width / 2 - 48), Math.Min(670, bounds.Height - 96)));
             _pocket.Closed += (_, _) => _pocket = null;
@@ -192,9 +238,63 @@ internal sealed class AcceptanceHost : IDisposable
         _pocket.Show();
         _pocket.Activate();
     }
+    private static async Task SeedProfileImagesAsync()
+    {
+        string fixture = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;
+        var store = new PocketStore(Path.Combine(Path.GetDirectoryName(fixture)!, "pocket-migration", "Invey"));
+        await Task.Run(() =>
+        {
+            const int width = 1600, height = 900;
+            var pixels = new byte[width * height * 4];
+            Array.Fill(pixels, (byte)72);
+            var bitmap = System.Windows.Media.Imaging.BitmapSource.Create(width, height, 96, 96,
+                PixelFormats.Bgr32, null, pixels, width * 4);
+            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+            using var output = new MemoryStream();
+            encoder.Save(output);
+            byte[] bytes = output.ToArray();
+            for (int i = 0; i < 3; i++) store.Save(Guid.NewGuid(), bytes);
+        });
+    }
+
+    private static SnapshotDisplay PrimaryFixtureDisplay() =>
+        SnapshotDisplay.Available().FirstOrDefault(item => item.Label.EndsWith("Primary", StringComparison.Ordinal))
+        ?? throw new InvalidOperationException("No primary display for the capture fixture.");
+
+    private static Window CreatePocketPattern()
+    {
+        var bounds = PrimaryFixtureDisplay().Bounds;
+        var grid = new Grid();
+        foreach (var color in new[] { Color.FromRgb(192, 32, 64), Colors.Black, Colors.RoyalBlue })
+        {
+            var stripe = new Border { Background = new SolidColorBrush(color) };
+            Grid.SetColumn(stripe, grid.ColumnDefinitions.Count);
+            grid.ColumnDefinitions.Add(new());
+            grid.Children.Add(stripe);
+        }
+        var pattern = new Window { WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.Manual, Content = grid, ShowInTaskbar = false };
+        ScreenSnapshot.Place(pattern, bounds);
+        pattern.Loaded += (_, _) => ScreenSnapshot.Place(pattern, bounds);
+        pattern.Show();
+        return pattern;
+    }
+
+    private nint ObserveFixtureShortcut(nint window, int message, nint id, nint data, ref bool handled)
+    {
+        if (message == 0x0312 && id == 0x6111) { _fixtureHotKeyHits++; handled = true; }
+        return 0;
+    }
+
     public async Task CloseFixturesAsync()
     {
-        try { if (_recovery is not null) await _recovery.ShutdownAsync(); }
+        try
+        {
+            if (_product is { } product) await product.CloseAcceptanceAsync();
+            if (_pocket is { } shelf) await shelf.PrepareExitAsync();
+            if (_recovery is not null) await _recovery.ShutdownAsync();
+        }
         finally
         {
             if (_tracking is not null && !await _tracking.CloseAsync())
@@ -212,7 +312,11 @@ internal sealed class AcceptanceHost : IDisposable
             text.Append(c[0]);if(text.Length>16384)throw new IOException("Oversized command.");
         }
     }
-    public void Dispose(){_simulation.Dispose();if(NativeWindow.Exists(_overlay.Handle))_overlay.Close();_pocket?.Close();_capturePattern?.Close();_fixture.Close();_automation?.Close();}
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool RegisterHotKey(nint hwnd, int id, uint modifiers, uint key);
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool UnregisterHotKey(nint hwnd, int id);
+    public void Dispose(){if (_fixtureHotKey) _ = UnregisterHotKey(new WindowInteropHelper(_fixture).Handle, 0x6111); _simulation.Dispose();if(NativeWindow.Exists(_overlay.Handle))_overlay.Close();_pocket?.Close();_capturePattern?.Close();_fixture.Close();_automation?.Close();}
     [DllImport("kernel32.dll")]private static extern uint GetCurrentThreadId();
     [DllImport("user32.dll")]private static extern nint GetThreadDesktop(uint thread);
     [DllImport("user32.dll",EntryPoint="GetUserObjectInformationW",CharSet=CharSet.Unicode,SetLastError=true)]private static extern bool GetUserObjectInformation(nint handle,int index,StringBuilder text,int size,out int needed);

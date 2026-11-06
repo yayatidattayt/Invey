@@ -102,6 +102,7 @@ public sealed class PocketStoreTests
     [Theory]
     [InlineData(1.0)]
     [InlineData(1.25)]
+    [InlineData(1.5)]
     public void ViewportRoundsOutwardAndClampsWithoutUsingDesktopOrigin(double scale)
     {
         var transform = new DisplayTransform(new(-1920, -1080), scale * 96);

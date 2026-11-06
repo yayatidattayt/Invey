@@ -113,6 +113,7 @@ internal sealed class CaptureWindow : Window
             Draw();
             SystemEvents.DisplaySettingsChanged += OnDisplayChange;
         };
+        SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(this);
         PreviewKeyDown += OnCaptureKey;
     }
 
@@ -281,6 +282,14 @@ internal sealed class CaptureWindow : Window
             SaveEnabled = _save.IsEnabled && _save.IsVisible,
             Width = ActualWidth, Height = ActualHeight, Origin = IsVisible ? PointToScreen(new Point(0, 0)) : default,
             SampleMatchesFixture = _crop is not null && sample[2] == 192 && sample[1] == 32 && sample[0] == 64,
+            BlackFixtureBands = _source is { } fixture ? new
+            {
+                Historical = CountFixturePixels(fixture, .42, .22, .53, .34),
+                Bottom = CountFixturePixels(fixture, .48, .87, .54, .94),
+                Large = CountFixturePixels(fixture, .38, .64, .62, .80)
+            } : null,
+            SelectedPixels = _crop is { } selected && (long)selected.PixelWidth * selected.PixelHeight <= 1_000_000
+                ? CountFixturePixels(selected, 0, 0, 1, 1) : null,
             FrozenPattern = _source is { } frozen ? new
             {
                 Left = PixelMatches(frozen, .16, .25, 192, 32, 64),
@@ -292,6 +301,30 @@ internal sealed class CaptureWindow : Window
                 CenterBottom = PixelMatches(frozen, .5, .75, 0, 0, 0)
             } : null
         };
+    }
+
+    private static object CountFixturePixels(BitmapSource source, double left, double top, double right, double bottom)
+    {
+        int x0 = (int)(left * source.PixelWidth), y0 = (int)(top * source.PixelHeight);
+        int width = (int)Math.Ceiling(right * source.PixelWidth) - x0;
+        int height = (int)Math.Ceiling(bottom * source.PixelHeight) - y0;
+        var line = new byte[width * 4];
+        int nonblack = 0, minX = width, minY = height, maxX = -1, maxY = -1;
+        for (int y = 0; y < height; y++)
+        {
+            source.CopyPixels(new Int32Rect(x0, y0 + y, width, 1), line, line.Length, 0);
+            for (int x = 0; x < width; x++)
+            {
+                if ((line[x * 4] | line[x * 4 + 1] | line[x * 4 + 2]) == 0) continue;
+                nonblack++;
+                minX = Math.Min(minX, x);
+                minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x);
+                maxY = Math.Max(maxY, y);
+            }
+        }
+        return new { Nonblack = nonblack, X = x0, Y = y0, Width = width, Height = height,
+            Bounds = nonblack == 0 ? null : new { Left = minX + x0, Top = minY + y0, Right = maxX + x0, Bottom = maxY + y0 } };
     }
 
     private static bool PixelMatches(BitmapSource source, double x, double y, byte red, byte green, byte blue)

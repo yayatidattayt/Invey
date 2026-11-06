@@ -57,3 +57,12 @@ For every tested app, add Windows build, app version, scaling and video/log evid
 
 ## 2026-11-04 — Specification audit, no compatibility promotion
 Windows NT10.0.26200.0/x64 host and installed runtime metadata were inspected; no SDK is installed. All application rows above remain NOT RUN. Source findings: focus-dependent simulator, single global owner, net8 target drift, missing imports/configuration validation. None is a measured native compatibility result. Next: A1 timed internal replay plus ordinary-user fixture/Notepad with monitor/DPI, cursor, foreground and event-counter evidence. Separate external UIA compatibility stays A2/experimental. Multi-monitor/HDR/fullscreen behavior unverified.
+
+## Execution 15 integration
+
+| Scenario | Evidence |
+| --- | --- |
+| Native shelf and shortcuts at 125% | Hidden shelf, owned-fixture conflict, remap and restart exercised on the isolated desktop |
+| Capture at 100%, 125% and 150% | Deterministic geometry at all three scales. Real WPF and GDI at the available 125% scale |
+| Physical mixed DPI and Explorer | BLOCKED in the isolated environment |
+| Camera diagnostics | ASUS FHD acquisition and shutdown observed. Cumulative test-budget failure and its containment are recorded in the [Execution 15 report](EXECUTION_15_REPORT.md) |

@@ -71,4 +71,26 @@ public sealed class InteractionState
     }
     public void Release(PointerOwner owner) => _pointers[owner] = _pointers[owner] with { Target=null, Phase=PointerPhase.Idle };
     public void Cancel(PointerOwner owner) => Release(owner);
+
+    public void SetTarget(string id, DipRect bounds)
+    {
+        if (_pointers.Values.Any(state => state.Target == id))
+            throw new InvalidOperationException("Release the target before replacing it.");
+        _targets[id] = bounds.Clamp(Bounds);
+    }
+
+    public bool Resize(PointerOwner owner, string id, DipRect bounds)
+    {
+        if (!bounds.IsValid || !_targets.ContainsKey(id) ||
+            _pointers.Any(pair => pair.Key != owner && pair.Value.Target == id)) return false;
+        _targets[id] = bounds.Clamp(Bounds);
+        return true;
+    }
+
+    public void RemoveTarget(string id)
+    {
+        foreach (var owner in Enum.GetValues<PointerOwner>())
+            if (_pointers[owner].Target == id) Cancel(owner);
+        _targets.Remove(id);
+    }
 }
