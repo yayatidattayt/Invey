@@ -8,7 +8,7 @@ Date: 2026-11-06, India Standard Time. The existing provisional branch `codex/a1
 
 ## B. Device identity and compatibility
 
-Windows reported two present USB devices, ASUS FHD webcam and ASUS IR camera. The Media Foundation camera picker exposed the ASUS FHD webcam only. The selected camera's opaque digest prefix was `cd2e0e71deb9985c`; each worker revalidated the full digest against the symbolic link in fresh enumeration. The active video stream advertised **1920 × 1080 YUY2 at nominal 30 Hz** through the reader. This is the active reader's offered mode list. Other driver configurations were outside the measurement. Windows negotiated RGB32 at the same dimensions with a 7,680-byte stride. Color capture was selected and the separate IR sensor was left idle. [Device inventory](../artifacts/execution-09/device-metadata.json)
+Windows reported two present USB devices, ASUS FHD webcam and ASUS IR camera. The Media Foundation camera picker exposed the ASUS FHD webcam only. The selected camera's opaque digest prefix was `cd2e0e71deb9985c`; each worker revalidated the full digest against the symbolic link in fresh enumeration. The active video stream advertised **1920 × 1080 YUY2 at nominal 30 Hz** through the reader. This is the active reader's offered mode list. Other driver configurations were outside the measurement. Windows negotiated RGB32 at the same dimensions with a 7,680-byte stride. Color capture was selected and the separate IR sensor was left idle. Device inventory (`artifacts/execution-09/device-metadata.json`, local only)
 
 ## C. Camera connection stages
 
@@ -27,7 +27,7 @@ Final-build session `ba557b8f…`, worker PID 16760. Times are milliseconds sinc
 | I. Stop | Diagnostic limit, native shutdown and observed process exit | Native shutdown 25166.64 → 25176.34. Host cleanup 494.92 ms |
 | J. Reacquisition | Second session opened the same digest with new PID 29064 and accepted 63 results | First usable frame 1790.69 from that worker start. First host result 2004.55 after Restart |
 
-[First worker](../artifacts/execution-09/93a9bc57-1de9-4397-a663-2637da2688a8.worker.json) · [Restart worker](../artifacts/execution-09/b987465a-79e2-4c6e-be66-6fe0827f4769.worker.json) · [Final worker](../artifacts/execution-09/ba557b8f-ec27-44b7-ac41-c9f7007753d0.worker.json)
+First worker (`artifacts/execution-09/93a9bc57-1de9-4397-a663-2637da2688a8.worker.json`, local only) · Restart worker (`artifacts/execution-09/b987465a-79e2-4c6e-be66-6fe0827f4769.worker.json`, local only) · Final worker (`artifacts/execution-09/ba557b8f-ec27-44b7-ac41-c9f7007753d0.worker.json`, local only)
 
 ## D. Windows permission results
 
@@ -63,7 +63,7 @@ The first two hardware sessions stopped through the actual lab control. Each cle
 
 Controlled tests cover missing device, classified Windows errors, terminal reader error with concurrent media-type flags, EOF, delayed results, corrupted messages, startup cancellation, forced termination, and stale generation rejection. A no-frame timer and an interrupted-stream timer report different outcomes. Physical disconnection, a closed shutter and OS denial were not induced. An internal laptop device and current privacy configuration remained intact.
 
-The injected terminal-error test failed when that check was removed in a disposable copy. The failure independently caught a second native method call after the terminal flag. The restored code passed and matched the original hash. [Faulted test](../artifacts/execution-09/negative-reader-confirmed.log) · [Restored test](../artifacts/execution-09/negative-reader-confirmed-restored.log)
+The injected terminal-error test failed when that check was removed in a disposable copy. The failure independently caught a second native method call after the terminal flag. The restored code passed and matched the original hash. Faulted test (`artifacts/execution-09/negative-reader-confirmed.log`, local only) · Restored test (`artifacts/execution-09/negative-reader-confirmed-restored.log`, local only)
 
 ## L. Performance
 
@@ -83,7 +83,7 @@ Windows 11 x64 build 26200, Intel Core i5-13450HX, Python 3.12.10, .NET 10.0.14,
 
 The final 22.70 s delivery interval averaged about **10.0 frames and 10.0 observations per second**. The driver advertised 30 Hz. Application queue depth and timestamp skips were zero. The timing is relative to delivery timestamps and excludes unknown initial sensor and driver latency. Stop was responsive to the UI actions. Actual display composition latency and long-run memory stability were outside this short test.
 
-[First host](../artifacts/execution-09/93a9bc57-1de9-4397-a663-2637da2688a8.host.json) · [Restart host](../artifacts/execution-09/b987465a-79e2-4c6e-be66-6fe0827f4769.host.json) · [Final host](../artifacts/execution-09/ba557b8f-ec27-44b7-ac41-c9f7007753d0.host.json)
+First host (`artifacts/execution-09/93a9bc57-1de9-4397-a663-2637da2688a8.host.json`, local only) · Restart host (`artifacts/execution-09/b987465a-79e2-4c6e-be66-6fe0827f4769.host.json`, local only) · Final host (`artifacts/execution-09/ba557b8f-ec27-44b7-ac41-c9f7007753d0.host.json`, local only)
 
 ## M. Test validity
 
@@ -108,7 +108,7 @@ $env:GHOST_NATIVE_VIDEO_FIXTURE = (Resolve-Path artifacts/execution-08/controlle
 
 For a separately authorized live diagnostic, launch the normal GHOST app visibly with `GHOST_CAMERA_DIAGNOSTICS` pointing to an existing local evidence directory. Choose **Live camera → Find cameras**, select the explicitly authorized device and use **Enable**. The lab displays the 25-second limit. Stop and Restart use the standard UI.
 
-[Debug TRX](../artifacts/execution-09/final-Debug.trx) · [Release TRX](../artifacts/execution-09/final-Release.trx) · [Worker tests](../artifacts/execution-09/worker-tests-final.log) · [Native regression](../artifacts/automated-acceptance/20261105T190951613-7c4125fc0c0d4975af1bb96265e3d743/results.json) · [Single-instance check](../artifacts/execution-09/single-instance.json) · [Cleanup audit](../artifacts/execution-09/final-cleanup.json)
+Debug TRX (`artifacts/execution-09/final-Debug.trx`, local only) · Release TRX (`artifacts/execution-09/final-Release.trx`, local only) · Worker tests (`artifacts/execution-09/worker-tests-final.log`, local only) · Native regression (`artifacts/automated-acceptance/20261105T190951613-7c4125fc0c0d4975af1bb96265e3d743/results.json`, local only) · Single-instance check (`artifacts/execution-09/single-instance.json`, local only) · Cleanup audit (`artifacts/execution-09/final-cleanup.json`, local only)
 
 ## O. Privacy
 

@@ -1,5 +1,13 @@
 # POCKET × DUAL × GHOST — Living Engineering Research
 
+## 2026-11-06 — Execution 12 reliability
+
+The baseline reproduced two issues through targeted assertions. A superseded ambiguity result was omitted from host counts, and duplicate mirror settings silently used the last property. The repairs distinguish worker output, host transitions and calibration UI observation. Physical Ready remains unresolved pending fresh device evidence. See `docs/EXECUTION_12_REPORT.md`.
+
+## 2026-11-06 — Execution 11 calibration
+
+The pinned SDK was available through the project-local host. The official x64 archive checksum and locked restore were verified. A latest-only observation snapshot can mask transient loss, so the host now carries continuity breaks through to calibration. Recorded WPF reached visible Ready with a real model and selected display. An original/flip still pair changed model handedness from Right to Left, independently of the presentation mirror. The prior live run's counts do not identify its precise Ready blocker. See `docs/EXECUTION_11_REPORT.md`.
+
 ## Execution 10 — Invey calibration and capture timing
 
 One authorized ASUS FHD test converted 247 frames and accepted 246 results. The last inference completed during cancellation and was withheld. Measured rate was 19.4 frames/s in this scene. Native wait, image preparation and inference all contributed. Invey added a landmark-only calibration preview with no persistent geometry. See `docs/EXECUTION_10_REPORT.md`.

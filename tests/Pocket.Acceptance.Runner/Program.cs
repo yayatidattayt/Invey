@@ -115,14 +115,8 @@ internal static partial class Program
         {
             Desktop.Guard();
             if (!TrackingOnly) await CursorScenario("CURSOR_CONTROL_GHOST_CLOSED");
-            string pipe="GhostAcceptance_"+Guid.NewGuid().ToString("N"),token=Guid.NewGuid().ToString("N");
-            var info=new ProcessStartInfo(Path.ChangeExtension(app,".exe")){UseShellExecute=false,CreateNoWindow=true};
-            info.Environment["DOTNET_ROOT"]=Path.GetDirectoryName(Environment.ProcessPath)!;
-            info.Environment["GHOST_ACCEPTANCE_DOTNET"] = Environment.ProcessPath!;
-            info.Environment["GHOST_ACCEPTANCE_WORKER"] = Path.GetFullPath("src/Pocket.Automation.Worker/bin/Release/net10.0-windows/Pocket.Automation.Worker.dll");
-            info.ArgumentList.Add("--acceptance-host");info.ArgumentList.Add(pipe);info.ArgumentList.Add(token);
-            host=Process.Start(info)??throw new InvalidOperationException("Cannot start controlled GHOST host.");
-            Input.ExpectedPid=host.Id;client=new(pipe,token);await client.Connect();
+            (host, client) = StartAcceptanceHost(app, output);
+            await client.Connect();
             var initial=await client.Command("status");fixtureHandle=initial.GetProperty("FixtureHandle").GetInt64();overlayHandle=initial.GetProperty("OverlayHandle").GetInt64();
             if (TrackingOnly)
             {
@@ -130,6 +124,7 @@ internal static partial class Program
                 await RunCalibration(client);
                 await RunNativeTrackingFixture(client);
                 await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
+                await RunCalibrationAfterRestart(app, output);
                 return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
             }
             Input.Focus(new nint(fixtureHandle));await Until(client,s=>s.GetProperty("Native").GetProperty("Foreground").GetInt64()==fixtureHandle);
@@ -242,6 +237,7 @@ internal static partial class Program
                 return new{TimerStopped=true,ClaimReleased=true,OverlayDestroyed=true};
             });
             await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
+            await RunCalibrationAfterRestart(app, output);
         }
         catch(Exception ex){Cases.Add(new("SESSION","NATIVE_SOFTWARE_TEST","Complete bounded isolated session",ex.ToString(),"FAIL",0));}
         finally
@@ -264,6 +260,21 @@ internal static partial class Program
             await File.WriteAllLinesAsync(Path.Combine(output,"results.md"),new[]{"# Invey isolated automated acceptance",""}.Concat(Cases.Select(c=>$"- {c.Id}: {c.Status} ({c.EvidenceClass})")));
         }
         return Cases.Any(c=>c.Status=="FAIL")?1:0;
+    }
+
+    private static (Process Host, Client Client) StartAcceptanceHost(string app, string output)
+    {
+        Desktop.Guard();
+        string pipe = "GhostAcceptance_" + Guid.NewGuid().ToString("N"), token = Guid.NewGuid().ToString("N");
+        var info = new ProcessStartInfo(Path.ChangeExtension(app, ".exe")) { UseShellExecute = false, CreateNoWindow = true };
+        info.Environment["DOTNET_ROOT"] = Path.GetDirectoryName(Environment.ProcessPath)!;
+        info.Environment["GHOST_ACCEPTANCE_DOTNET"] = Environment.ProcessPath!;
+        info.Environment["GHOST_ACCEPTANCE_WORKER"] = Path.GetFullPath("src/Pocket.Automation.Worker/bin/Release/net10.0-windows/Pocket.Automation.Worker.dll");
+        info.Environment["GHOST_TEST_CALIBRATION_SETTINGS"] = Path.GetFullPath(Path.Combine(output, "calibration.json"));
+        foreach (var argument in new[] { "--acceptance-host", pipe, token }) info.ArgumentList.Add(argument);
+        var host = Process.Start(info) ?? throw new InvalidOperationException("Cannot start controlled Invey host.");
+        Input.ExpectedPid = host.Id;
+        return (host, new Client(pipe, token));
     }
     private sealed class Client : IDisposable
     {

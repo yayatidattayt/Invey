@@ -1,11 +1,15 @@
 namespace Pocket.Core.Tracking;
 
 public enum TrackingSource { Simulation, Camera, Recorded }
-public enum TrackingState { Off, Starting, Ready, Observing, Lost, Stopping, Stopped, Unavailable, Stale, Partial }
+public enum TrackingState { Off, Starting, Ready, Observing, Lost, Stopping, Stopped, Unavailable, Stale, Partial, Ambiguous }
+public enum TrackingBreak { None, Loss, Partial, Ambiguous, Gap, HandChanged, Movement, Stale }
+public sealed record TrackingCounters(long Hand, long Loss, long Partial, long Ambiguous,
+    IReadOnlyDictionary<string, long> Breaks);
 
 public sealed record TrackingSnapshot(TrackingState State, Guid? SessionId, TrackingSource? Source,
     HandObservation? Observation, TimeSpan? HostObservationAge, TrackingFailure? Failure,
-    bool CleanupUnconfirmed, long AcceptedObservations, long SupersededObservations);
+    bool CleanupUnconfirmed, long AcceptedObservations, long SupersededObservations,
+    long Continuity = 0, TrackingBreak LastBreak = TrackingBreak.None, long LastSequence = -1);
 
 /// <summary>Owns a session and one latest observation. The caller owns the worker and resource teardown.</summary>
 public sealed class TrackingSession(TimeProvider? clock = null)
@@ -25,7 +29,19 @@ public sealed class TrackingSession(TimeProvider? clock = null)
     private long _stateSince, _lastContact, _receivedAt;
     private long _lastSequence = -1, _lastCapture, _lastResult;
     private long _accepted, _superseded;
+    private long _continuity;
+    private TrackingBreak _lastBreak;
     private bool _observedByConsumer;
+    private readonly long[] _breakCounts = new long[Enum.GetValues<TrackingBreak>().Length];
+    private long _hand, _loss, _partial, _ambiguous;
+
+    public TrackingCounters ReadCounters()
+    {
+        lock (_gate)
+            return new(_hand, _loss, _partial, _ambiguous,
+                Enum.GetValues<TrackingBreak>().Where(reason => reason != TrackingBreak.None)
+                    .ToDictionary(reason => reason.ToString(), reason => _breakCounts[(int)reason]));
+    }
 
     public Guid? Enable(TrackingSource source)
     {
@@ -40,6 +56,10 @@ public sealed class TrackingSession(TimeProvider? clock = null)
             _failure = null;
             _lastSequence = -1;
             _lastCapture = _lastResult = _accepted = _superseded = 0;
+            _continuity = 0;
+            _lastBreak = TrackingBreak.None;
+            _hand = _loss = _partial = _ambiguous = 0;
+            Array.Clear(_breakCounts);
             return _session;
         }
     }
@@ -126,7 +146,7 @@ public sealed class TrackingSession(TimeProvider? clock = null)
             return new(_state, _session, _source, _latest,
                 _latest is null ? null : _clock.GetElapsedTime(_receivedAt, now), _failure,
                 _state == TrackingState.Stopping && _clock.GetElapsedTime(_stateSince, now) >= StopDeadline,
-                _accepted, _superseded);
+                _accepted, _superseded, _continuity, _lastBreak, _lastSequence);
         }
     }
 
@@ -137,15 +157,33 @@ public sealed class TrackingSession(TimeProvider? clock = null)
             observation.ResultMonoMs - observation.CaptureMonoMs >= ObservationLifetime.TotalMilliseconds)
             return false;
 
+        if (_latest is { } prior)
+        {
+            var reason = observation switch
+            {
+                { Ambiguous: true } => TrackingBreak.Ambiguous,
+                { Partial: true } => TrackingBreak.Partial,
+                { Tracked: false } => TrackingBreak.Loss,
+                _ when observation.FrameSize != prior.FrameSize || observation.Handedness != prior.Handedness => TrackingBreak.HandChanged,
+                _ when observation.CaptureMonoMs - prior.CaptureMonoMs is <= 0 or > 220 => TrackingBreak.Gap,
+                _ when Jumped(prior, observation, 0) || Jumped(prior, observation, 8) => TrackingBreak.Movement,
+                _ => TrackingBreak.None
+            };
+            if (reason != TrackingBreak.None) Break(reason);
+        }
+        if (_lastSequence >= 0 && !_observedByConsumer) _superseded++;
         _lastSequence = observation.Sequence;
         _lastCapture = observation.CaptureMonoMs;
         _lastResult = observation.ResultMonoMs;
         _receivedAt = _lastContact = now;
         _accepted++;
-        if (_latest is not null && !_observedByConsumer) _superseded++;
+        if (observation.Tracked) _hand++;
+        else if (observation.Ambiguous) _ambiguous++;
+        else if (observation.Partial) _partial++;
+        else _loss++;
         _latest = observation.Tracked ? observation : null;
         _observedByConsumer = false;
-        _state = observation.Partial ? TrackingState.Partial :
+        _state = observation.Ambiguous ? TrackingState.Ambiguous : observation.Partial ? TrackingState.Partial :
             observation.Tracked ? TrackingState.Observing : TrackingState.Lost;
         return true;
     }
@@ -161,6 +199,7 @@ public sealed class TrackingSession(TimeProvider? clock = null)
                     _accepted == 0 ? TrackingFailure.NoFrames : TrackingFailure.StreamInterrupted);
             else if (_clock.GetElapsedTime(_receivedAt, now) >= ObservationLifetime)
             {
+                if (_latest is not null) Break(TrackingBreak.Stale);
                 _latest = null;
                 _state = TrackingState.Stale;
             }
@@ -168,7 +207,18 @@ public sealed class TrackingSession(TimeProvider? clock = null)
     }
 
     private bool IsReceiving => _state is TrackingState.Ready or TrackingState.Observing or
-        TrackingState.Lost or TrackingState.Stale or TrackingState.Partial;
+        TrackingState.Lost or TrackingState.Stale or TrackingState.Partial or TrackingState.Ambiguous;
+
+    private void Break(TrackingBreak reason)
+    {
+        _continuity++;
+        _lastBreak = reason;
+        _breakCounts[(int)reason]++;
+    }
+
+    private static bool Jumped(HandObservation prior, HandObservation current, int index) =>
+        Math.Abs(prior.Landmarks[index].X - current.Landmarks[index].X) > .14 ||
+        Math.Abs(prior.Landmarks[index].Y - current.Landmarks[index].Y) > .14;
 
     private void BeginStop(long now, TrackingFailure? failure)
     {

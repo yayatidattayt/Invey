@@ -4,6 +4,7 @@ using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using Microsoft.Win32;
 using Pocket.Core.Tracking;
 
 namespace Pocket.App.Tracking;
@@ -41,7 +42,8 @@ internal sealed class RecordedTrackingWindow : Window
     private string _cameraStatus = "Camera off";
     public event Action<string>? CameraStatusChanged;
 
-    public RecordedTrackingWindow(string? fixtureFile = null, string? fixtureCameraFault = null)
+    public RecordedTrackingWindow(string? fixtureFile = null, string? fixtureCameraFault = null,
+        string? testSettingsPath = null, bool acceptanceHost = false)
     {
         _fixtureFile = fixtureFile;
         _fixtureCameraFault = fixtureCameraFault;
@@ -60,8 +62,29 @@ internal sealed class RecordedTrackingWindow : Window
         _devices.SelectionChanged += (_, _) => Render();
         _start.Click += (_, _) => Start();
         _stop.Click += async (_, _) => await StopAsync();
-        _calibration = new CalibrationPanel(async () => { _calibration!.End(); await StopAsync(); });
-        _calibrate.Click += (_, _) => { _calibration.Begin(); Render(); };
+        string? settings = acceptanceHost ? testSettingsPath : Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PocketDualGhost", "calibration.json");
+        _calibration = new CalibrationPanel(async () =>
+        {
+            await StopAsync();
+            _start.Focus();
+        }, settings is null ? null : new CalibrationPreferencesStore(settings));
+        _calibrate.Click += (_, _) =>
+        {
+            var snapshot = _controller.Read();
+            _calibration.Begin(_controller.HasDiagnostics && snapshot.Source == TrackingSource.Camera &&
+                _fixtureCameraFault is null ? snapshot.SessionId : null);
+            _refresh.Interval = TimeSpan.FromMilliseconds(25);
+            Render();
+        };
+        DpiChanged += (_, _) => RefreshCalibrationDisplays();
+        SystemEvents.DisplaySettingsChanged += DisplaySettingsChanged;
+        SystemEvents.UserPreferenceChanged += UserPreferenceChanged;
+        Closed += (_, _) =>
+        {
+            SystemEvents.DisplaySettingsChanged -= DisplaySettingsChanged;
+            SystemEvents.UserPreferenceChanged -= UserPreferenceChanged;
+        };
         var actions = new WrapPanel { Children = { _start, _stop, _calibrate } };
         var sources = new WrapPanel { Margin = new Thickness(0, 12, 0, 0), Children = { _recorded, _live } };
         _deviceOptions.Children.Add(_find);
@@ -94,6 +117,28 @@ internal sealed class RecordedTrackingWindow : Window
         Render();
         _refresh.Tick += (_, _) => Render();
         _refresh.Start();
+    }
+
+    private void DisplaySettingsChanged(object? sender, EventArgs args) =>
+        _ = Dispatcher.InvokeAsync(RefreshCalibrationDisplays);
+
+    private void UserPreferenceChanged(object sender, UserPreferenceChangedEventArgs args)
+    {
+        if (args.Category is UserPreferenceCategory.Window or UserPreferenceCategory.General)
+            _ = Dispatcher.InvokeAsync(RefreshCalibrationDisplays);
+    }
+
+    private void RefreshCalibrationDisplays()
+    {
+        if (_allowClose || _closing || _calibration.Visibility != Visibility.Visible) return;
+        _calibration.RefreshDisplays();
+        Render();
+    }
+
+    internal void SimulateDisplayDisconnect()
+    {
+        _calibration.ApplyDisplays([]);
+        Render();
     }
 
     public bool Start(string? fixtureFault = null)
@@ -209,10 +254,14 @@ internal sealed class RecordedTrackingWindow : Window
         _deviceOptions.Visibility = live ? Visibility.Visible : Visibility.Collapsed;
         _start.IsEnabled = available && (!live || _devices.SelectedItem is CameraDevice);
         _stop.IsEnabled = !_stopping && _visible.SessionId.HasValue;
-        _calibrate.IsEnabled = _visible.State is TrackingState.Ready or TrackingState.Observing
-            or TrackingState.Lost or TrackingState.Stale or TrackingState.Partial;
-        if (!_calibrate.IsEnabled && _calibration.Visibility == Visibility.Visible)
+        bool canCalibrate = _visible.State is TrackingState.Ready or TrackingState.Observing
+            or TrackingState.Lost or TrackingState.Stale or TrackingState.Partial or TrackingState.Ambiguous;
+        _calibrate.IsEnabled = canCalibrate && _calibration.Visibility != Visibility.Visible;
+        if (!canCalibrate && _calibration.Visibility == Visibility.Visible)
+        {
             _calibration.End();
+            _refresh.Interval = TimeSpan.FromMilliseconds(80);
+        }
         _calibration.Update(_visible);
         string source = !live ? "recorded tracking" : _fixtureFile is not null ? "test video" : "live camera";
         _start.Content = (_startedInMode ? "_Restart " : "_Enable ") + source;
@@ -236,7 +285,8 @@ internal sealed class RecordedTrackingWindow : Window
             TrackingState.Ready => "Waiting for a hand observation.",
             TrackingState.Observing => "Hand detected · 21 landmarks",
             TrackingState.Lost => "No hand detected. The current observation is clear.",
-            TrackingState.Partial => "Hand partly outside the frame or ambiguous. Move one hand into view.",
+            TrackingState.Partial => "Hand partly outside the frame. Move your hand into view.",
+            TrackingState.Ambiguous => "Multiple hands detected. Show one hand to continue.",
             TrackingState.Stale => "No recent tracking result. The current observation is clear.",
             TrackingState.Stopping when _visible.CleanupUnconfirmed => "Worker exit is unconfirmed. Restart is held until cleanup completes.",
             TrackingState.Stopping => "Stopping. The current observation is clear.",

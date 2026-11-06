@@ -8,20 +8,27 @@
 
 GHOST was the former product name; the public product name is now Invey. Open **Tracking lab** to select a source, explicitly enable tracking, and inspect the provisional calibration preview.
 
-## Current status — Execution 10
+## Current status
 
-The ASUS FHD laptop webcam has delivered real frames through Tracking lab; explicit Enable, Stop, and same-device Restart were verified. The latest visible calibration check verified live acquisition and status transitions, but did not reach a Ready calibration state. Calibration remains provisional: display mapping, numeric preferences, rectangle routing, multi-hand behavior, and Move/Pinch/Release practice are not yet accepted.
+The Tracking lab includes a landmark-only calibration preview, selected-display mapping, local numeric preferences and a Move/Pinch/Release practice target. The camera starts off and requires explicit Enable. Execution 10 verified webcam acquisition and release. Live Ready, physical rectangle routing and physical two-hand behavior remain open.
 
 The isolated acceptance runner and Debug/Release builds pass their current deterministic checks. A1 physical acceptance remains blocked; A2 is fixture-only and provisional, with no general external control; B1 and full F07 acceptance remain open. This is a development snapshot, not release-ready.
 
-See the [Execution 10 report](docs/EXECUTION_10_REPORT.md), [hardware evidence](docs/EXECUTION_09_REPORT.md), [automated acceptance evidence](docs/AUTOMATED_ACCEPTANCE.md), and [current handoff](codex/HANDOFF.md).
+See [verification and evidence availability](VERIFICATION.md), the [Execution 11 report](docs/EXECUTION_11_REPORT.md) and the [current handoff](codex/HANDOFF.md).
 
 ## Build and development
 
-1. Install the pinned .NET SDK described by `global.json`.
-2. Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Run-AutomatedAcceptance.ps1 -Build` for deterministic acceptance checks.
-3. Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dotnet.ps1 -Arguments @('build','Pocket.Dual.Ghost.sln','-c','Debug')` for a normal build.
-4. Launch the app from `src/Pocket.App` and open **Tracking lab**. The camera is off at startup and requires explicit selection and enablement.
+From the repository root on Windows x64, run these commands in PowerShell.
+
+```powershell
+& ./scripts/Install-Dotnet.ps1
+& ./scripts/dotnet.ps1 -Arguments @('restore','Pocket.Dual.Ghost.sln','--locked-mode','-p:Platform=x64')
+& ./scripts/dotnet.ps1 -Arguments @('build','Pocket.Dual.Ghost.sln','-c','Debug','-p:Platform=x64','--no-restore')
+& ./scripts/dotnet.ps1 -Arguments @('test','tests/Pocket.Core.Tests','-c','Debug','--no-build')
+& ./scripts/dotnet.ps1 -Arguments @('run','--project','src/Pocket.App','-c','Debug','--no-build')
+```
+
+The [developer scripts](scripts/README.md) describe local tracking runtime and native test prerequisites.
 
 The source includes the Windows application, local tracking and automation workers, tests, design references, architecture documents, and engineering reports. It does not require a cloud service or paid AI API, and camera frames are not uploaded.
 

@@ -21,7 +21,7 @@ This is a controlled fixture resolver, not a universal obscured-control adapter.
 
 ## C. Provider-hang recovery
 
-[Final native results](../artifacts/automated-acceptance/20261105T022024024-0e7c9ffb23d94a3bb30d9700ac6caf54/results.json), [provider cleanup](../artifacts/automated-acceptance/20261105T022024024-0e7c9ffb23d94a3bb30d9700ac6caf54/adverse-provider/cleanup.json).
+Final native results (`artifacts/automated-acceptance/20261105T022024024-0e7c9ffb23d94a3bb30d9700ac6caf54/results.json`, local only), provider cleanup (`artifacts/automated-acceptance/20261105T022024024-0e7c9ffb23d94a3bb30d9700ac6caf54/adverse-provider/cleanup.json`, local only).
 
 A separate guarded Pocket.App process exposes a custom WPF AutomationPeer. It writes an entry marker from GetAutomationIdCore, then blocks the real provider callback until an external release marker or a30-second fixture safety limit. GHOST's primary acceptance process is separate and serves independent status requests.
 
@@ -49,10 +49,10 @@ All four Execution03 runs preserved below passed exact seeded per-chunk and batc
 
 | Profile | Seed | Cycles | Characters | Matches / mismatches / recoveries | Evidence |
 |---|---|---|---|---|---|
-| short | 73021 | 20 | 744 | 20 / 0 / 0 | [JSON](../artifacts/automated-acceptance/20261105T021101703-c62ffc7bfd8549ec95e34db0f7964f9e/results.json) |
-| standard | 99173 | 60 | 2141 | 60 / 0 / 0 | [JSON](../artifacts/automated-acceptance/20261105T021406895-9bb7faac4f5d40e087e7fb07fe3b3f82/results.json) |
-| extended | 41007 | 100 | 3523 | 100 / 0 / 0 | [JSON](../artifacts/automated-acceptance/20261105T021655335-e4bd8a304114423e9eb0fbc00667fed7/results.json) |
-| short (final) | 73021 | 20 | 744 | 20 / 0 / 0 | [JSON](../artifacts/automated-acceptance/20261105T022024024-0e7c9ffb23d94a3bb30d9700ac6caf54/results.json) |
+| short | 73021 | 20 | 744 | 20 / 0 / 0 | JSON (`artifacts/automated-acceptance/20261105T021101703-c62ffc7bfd8549ec95e34db0f7964f9e/results.json`, local only) |
+| standard | 99173 | 60 | 2141 | 60 / 0 / 0 | JSON (`artifacts/automated-acceptance/20261105T021406895-9bb7faac4f5d40e087e7fb07fe3b3f82/results.json`, local only) |
+| extended | 41007 | 100 | 3523 | 100 / 0 / 0 | JSON (`artifacts/automated-acceptance/20261105T021655335-e4bd8a304114423e9eb0fbc00667fed7/results.json`, local only) |
+| short (final) | 73021 | 20 | 744 | 20 / 0 / 0 | JSON (`artifacts/automated-acceptance/20261105T022024024-0e7c9ffb23d94a3bb30d9700ac6caf54/results.json`, local only) |
 
 Total: **200 cycles,7152 characters,200 exact chunk matches,0 observed mismatches,0 recoveries** across three seeds and incremental code versions. The final short run validates the final product changes; standard/extended evidence belongs to the immediately preceding versions, not silently relabelled final binaries. Final results include app, worker, client and runner hashes.
 
@@ -110,7 +110,7 @@ Executed from GHOST_CODEX_PROJECT_READY using the project-local wrapper:
 & .\scripts\Run-AutomatedAcceptance.ps1 -Profile extended -Seed 41007
 ```
 
-Locked restore passed. Final Debug/Release builds:0 warnings,0 errors.22 deterministic tests per configuration passed,0 failures/skips. TRX and binlogs are in [Execution03 evidence](../artifacts/execution-03/). Core/contracts test code was unchanged by the final worker readback refinement; its final native regression passed.
+Locked restore passed. Final Debug/Release builds:0 warnings,0 errors.22 deterministic tests per configuration passed,0 failures/skips. TRX and binlogs are in Execution03 evidence (`artifacts/execution-03/`, local only). Core/contracts test code was unchanged by the final worker readback refinement; its final native regression passed.
 
 Final native suite:20 cases,19 PASS and1 BLOCKED (shell Alt+Tab/tray). Overall PASS WITH EXPLICIT ENVIRONMENT GAPS. Four preserved Execution03 run directories have zero FAIL cases. One intermediate compilation failed because the new harness file lacked a System.IO import; fixed before execution. No failures suppressed or gates lowered. Documentation validators are separate from Windows acceptance.
 
@@ -120,7 +120,7 @@ Final21-probe spot sample: cold182.84ms;20 warm queries mean27.95ms, p9531.12ms.
 
 Final cursor controls:120 samples each with GHOST closed/idle/active, no generated input during sampling; no coordinate changes. Final input checks:100/100 panel clicks,100/100 drag starts/ends with0 canceled,20 held drags while GHOST progresses. Stop/restart and close-during-press cancel timer/claim; exit0 and HWND disappearance verified.
 
-[Post-run cleanup audit](../artifacts/execution-03/cleanup.json): input desktop Default, zero remaining project acceptance host/provider/worker processes. Provider cleanup markers also prove worker/provider exit. The parent job owns only the disposable acceptance tree. Abrupt supervisor death/power-loss desktop restoration and long-duration resource trends are not certified.
+Post-run cleanup audit (`artifacts/execution-03/cleanup.json`, local only): input desktop Default, zero remaining project acceptance host/provider/worker processes. Provider cleanup markers also prove worker/provider exit. The parent job owns only the disposable acceptance tree. Abrupt supervisor death/power-loss desktop restoration and long-duration resource trends are not certified.
 
 ## J. Code changes
 
