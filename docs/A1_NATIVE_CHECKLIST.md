@@ -3,8 +3,8 @@
 Run from GHOST_CODEX_PROJECT_READY with dummy fixture content. No injected input can substitute for physical acceptance.
 
 ```powershell
-& .\scripts\dotnet.ps1 -Arguments @('restore','Pocket.Dual.Ghost.sln')
-& .\scripts\dotnet.ps1 -Arguments @('build','Pocket.Dual.Ghost.sln','-c','Debug','--no-restore','-p:Platform=x64','-bl:artifacts/build-debug.binlog')
+& .\scripts\dotnet.ps1 -Arguments @('restore','Invey.sln','--locked-mode')
+& .\scripts\dotnet.ps1 -Arguments @('build','Invey.sln','-c','Debug','--no-restore','-p:Platform=x64','-bl:artifacts/build-debug.binlog')
 & .\scripts\dotnet.ps1 -Arguments @('test','tests/Pocket.Core.Tests/Pocket.Core.Tests.csproj','-c','Debug','--no-build','--no-restore','--logger','trx;LogFileName=a1-core.trx','--results-directory','artifacts/tests')
 & .\scripts\dotnet.ps1 -Arguments @('run','--project','src/Pocket.App/Pocket.App.csproj','-c','Debug','--no-build')
 ```

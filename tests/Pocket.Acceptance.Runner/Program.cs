@@ -111,7 +111,7 @@ internal static partial class Program
     private static async Task<int> Session(string output)
     {
         Process? host=null;Client? client=null;long overlayHandle=0,fixtureHandle=0;
-        string app=Path.GetFullPath("src/Pocket.App/bin/Release/net10.0-windows/Pocket.App.dll");
+        string app=Path.GetFullPath("src/Pocket.App/bin/Release/net10.0-windows/Invey.dll");
         try
         {
             Desktop.Guard();

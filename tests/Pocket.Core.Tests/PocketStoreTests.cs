@@ -18,7 +18,7 @@ public sealed class PocketStoreTests
         Assert.Empty(store.Load().Items);
         var items = Enumerable.Range(0, 10).Select(_ => store.Save(Guid.NewGuid(), Png())).ToArray();
         var reopened = new PocketStore(folder.Path);
-        Assert.Equal(items, reopened.Load().Items);
+        Assert.Equal(items.Reverse(), reopened.Load().Items);
         Assert.All(items, item => Assert.Equal(Png(), reopened.Open(item)));
         Assert.Equal(items[^1], reopened.Save(items[^1].Id, Png()));
         Assert.Equal(10, reopened.Load().Items.Count);
@@ -45,7 +45,7 @@ public sealed class PocketStoreTests
             Assert.Contains(recoverable.Items, item => item.Id == pending);
         }
         var second = new PocketStore(folder.Path).Save(pending, Png());
-        Assert.Equal(new[] { first, second }, store.Load().Items);
+        Assert.Equal(new[] { second, first }, store.Load().Items);
         Assert.Empty(Directory.GetFiles(folder.Path, "*.tmp"));
     }
 
@@ -68,10 +68,10 @@ public sealed class PocketStoreTests
         }
         File.Delete(folder.Index);
         Assert.Equal(2, store.Load().Items.Count);
-        File.WriteAllText(folder.Index, """{"Version":2,"Items":[]}""");
+        File.WriteAllText(folder.Index, """{"Version":3,"Items":[]}""");
         Assert.Contains("newer format", store.Load().RecoveryNotice);
         Assert.Throws<NotSupportedException>(() => store.Save(Guid.NewGuid(), Png()));
-        Assert.Equal("""{"Version":2,"Items":[]}""", File.ReadAllText(folder.Index));
+        Assert.Equal("""{"Version":3,"Items":[]}""", File.ReadAllText(folder.Index));
     }
 
     [Fact]
@@ -151,6 +151,168 @@ public sealed class PocketStoreTests
         finally { Directory.Delete(folder.Asset(blocked)); }
     }
 
+    [Fact]
+    public void LibraryEditsAndTombstonesSurviveRestartAndExpiry()
+    {
+        using var folder = new StoreFolder();
+        var time = new StoreClock();
+        var store = new PocketStore(folder.Path, time);
+        var first = store.Save(Guid.NewGuid(), Png());
+        var second = store.Save(Guid.NewGuid(), Png());
+        var placement = new CardPlacement(@"\\.\DISPLAY2", -300, 80, 480, 400, true, true, 125);
+        store.Rename(first.Id, "  Working image  ");
+        Assert.Throws<InvalidDataException>(() => store.Rename(first.Id, " "));
+        store.Place(first.Id, placement);
+        store.Move(first.Id, -1);
+        var reopened = new PocketStore(folder.Path, time);
+        Assert.Equal(new[] { first.Id, second.Id }, reopened.Load().Items.Select(item => item.Id));
+        var edited = reopened.Load().Items[0];
+        Assert.Equal("Working image", edited.Title);
+        Assert.Equal(placement, edited.Placement);
+        Assert.Equal(Png(), reopened.Open(edited));
+        reopened.Delete(first.Id);
+        Assert.True(File.Exists(folder.Asset(first.Id)));
+        Assert.Equal(second.Id, Assert.Single(store.Load().Items).Id);
+        Assert.Equal(edited, store.Undo(first.Id));
+        Assert.Equal(edited, store.Load().Items[0]);
+        store.Delete(first.Id);
+        time.Now += PocketStore.UndoWindow;
+        Assert.Throws<InvalidDataException>(() => reopened.Undo(first.Id));
+        Assert.Equal(1, reopened.PurgeExpired());
+        Assert.False(File.Exists(folder.Asset(first.Id)));
+        Assert.Equal(Png(), store.Open(second));
+    }
+
+    [Fact]
+    public void RepairPreservesDamagedIndexAndPublishesOnlyVerifiedAssets()
+    {
+        using var folder = new StoreFolder();
+        var store = new PocketStore(folder.Path);
+        var item = store.Save(Guid.NewGuid(), Png());
+        File.WriteAllText(folder.Index, "{broken");
+        Assert.NotNull(store.Load().RecoveryNotice);
+        store.Repair();
+        var recovered = Assert.Single(store.Load().Items);
+        Assert.Equal(item.Id, recovered.Id);
+        Assert.Equal(Png(), store.Open(recovered));
+        Assert.Null(store.Load().RecoveryNotice);
+        Assert.Equal("{broken", File.ReadAllText(Assert.Single(Directory.GetFiles(folder.Path, "manifest.recovery-*.json"))));
+    }
+
+    [Fact]
+    public void MigrationCopiesVerifiedDataAndPreservesTheSeparateOriginal()
+    {
+        using var folder = new StoreFolder();
+        string old = Path.Combine(folder.Path, "PocketDualGhost");
+        string current = Path.Combine(folder.Path, "Invey");
+        Assert.Equal(current, InveyProfile.Resolve(folder.Path).Root);
+        var oldStore = new PocketStore(old);
+        var item = oldStore.Save(Guid.NewGuid(), Png());
+        string legacyIndex = Path.Combine(old, "manifest.json");
+        File.WriteAllText(legacyIndex, File.ReadAllText(legacyIndex).Replace("\"Version\":2", "\"Version\":1"));
+        var legacyBytes = File.ReadAllBytes(legacyIndex);
+        var settings = new Pocket.Core.Tracking.CalibrationPreferences(1, new(1, 0, 0, 1920, 1200, 120), 1, 0, 12, 100);
+        new Pocket.Core.Tracking.CalibrationPreferencesStore(Path.Combine(old, "calibration.json")).Save(settings);
+        var result = InveyProfile.Resolve(folder.Path);
+        Assert.Equal(current, result.Root);
+        Assert.Equal(item, Assert.Single(new PocketStore(current).Load().Items));
+        Assert.Equal(Png(), new PocketStore(current).Open(item));
+        Assert.Equal(settings, new Pocket.Core.Tracking.CalibrationPreferencesStore(Path.Combine(current, "calibration.json")).Load().Preferences);
+        Assert.Equal(legacyBytes, File.ReadAllBytes(legacyIndex));
+        oldStore.Save(Guid.NewGuid(), Png());
+        Assert.Equal(current, InveyProfile.Resolve(folder.Path).Root);
+        Assert.Single(new PocketStore(current).Load().Items);
+    }
+
+    [Fact]
+    public void FailedOrInterruptedMigrationKeepsLegacyFilesAndDoesNotPublish()
+    {
+        using var folder = new StoreFolder();
+        string old = Path.Combine(folder.Path, "PocketDualGhost");
+        var store = new PocketStore(old);
+        var item = store.Save(Guid.NewGuid(), Png());
+        string asset = Path.Combine(old, "assets", item.Id.ToString("N") + ".png");
+        using (File.Open(asset, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            Assert.Equal(old, InveyProfile.Resolve(folder.Path).Root);
+            Assert.False(Directory.Exists(Path.Combine(folder.Path, "Invey")));
+        }
+        string staging = Path.Combine(folder.Path, "Invey.migration");
+        Directory.CreateDirectory(staging);
+        File.WriteAllText(Path.Combine(staging, "interrupted"), "keep");
+        Assert.Equal(old, InveyProfile.Resolve(folder.Path).Root);
+        Assert.Equal("keep", File.ReadAllText(Path.Combine(staging, "interrupted")));
+        Assert.Equal(Png(), store.Open(item));
+    }
+
+    [Theory]
+    [InlineData("corrupt manifest")]
+    [InlineData("newer manifest")]
+    [InlineData("missing image")]
+    [InlineData("corrupt calibration")]
+    public void InvalidLegacyDataRemainsInPlaceWithoutPublishing(string failure)
+    {
+        using var folder = new StoreFolder();
+        string legacy = Path.Combine(folder.Path, "PocketDualGhost");
+        var item = new PocketStore(legacy).Save(Guid.NewGuid(), Png());
+        string manifest = Path.Combine(legacy, "manifest.json");
+        string image = Path.Combine(legacy, "assets", item.Id.ToString("N") + ".png");
+        string calibration = Path.Combine(legacy, "calibration.json");
+
+        switch (failure)
+        {
+            case "corrupt manifest": File.WriteAllText(manifest, "{broken"); break;
+            case "newer manifest":
+                File.WriteAllText(manifest, File.ReadAllText(manifest).Replace("\"Version\":2", "\"Version\":99"));
+                break;
+            case "missing image": File.Delete(image); break;
+            case "corrupt calibration": File.WriteAllText(calibration, "{broken"); break;
+        }
+
+        var original = File.ReadAllBytes(manifest);
+        var profile = InveyProfile.Resolve(folder.Path);
+        Assert.Equal(legacy, profile.Root);
+        Assert.False(profile.Writable);
+        Assert.False(Directory.Exists(Path.Combine(folder.Path, "Invey")));
+        Assert.False(Directory.Exists(Path.Combine(folder.Path, "Invey.migration")));
+        Assert.Equal(original, File.ReadAllBytes(manifest));
+        if (failure == "missing image") Assert.False(File.Exists(image));
+        else Assert.Equal(Png(), File.ReadAllBytes(image));
+        if (failure == "corrupt calibration") Assert.Equal("{broken", File.ReadAllText(calibration));
+    }
+
+    [Fact]
+    public void MigrationPreservesADeletedReferenceAndItsUndo()
+    {
+        using var folder = new StoreFolder();
+        var legacy = new PocketStore(Path.Combine(folder.Path, "PocketDualGhost"));
+        var item = legacy.Save(Guid.NewGuid(), Png());
+        legacy.Delete(item.Id);
+        var profile = InveyProfile.Resolve(folder.Path);
+        Assert.Equal(Path.Combine(folder.Path, "Invey"), profile.Root);
+        var current = new PocketStore(profile.Root);
+        Assert.Equal(item, Assert.Single(current.Load().Deleted!).Item);
+        current.Undo(item.Id);
+        Assert.Equal(Png(), current.Open(Assert.Single(current.Load().Items)));
+        Assert.Empty(legacy.Load().Items);
+    }
+
+    [Fact]
+    public void CardPlacementClampsNegativeOriginsAndCentersWhenDisplayIsMissing()
+    {
+        var placement = new CardPlacement("left", int.MinValue, int.MaxValue, 800, 500, true, true, 125);
+        Assert.Equal(new PixelRegion(-1920, -500, 800, 500),
+            CardPlacement.Fit(placement, "left", new(-1920, -1080, 1920, 1080)));
+        Assert.Equal(new PixelRegion(560, 350, 800, 500),
+            CardPlacement.Fit(placement, "primary", new(0, 0, 1920, 1200)));
+    }
+
+    private sealed class StoreClock : TimeProvider
+    {
+        public DateTimeOffset Now = new(2026, 11, 6, 0, 0, 0, TimeSpan.Zero);
+        public override DateTimeOffset GetUtcNow() => Now;
+    }
+
     private sealed class StoreFolder : IDisposable
     {
         private readonly DirectoryInfo _folder = Directory.CreateTempSubdirectory("invey-pocket-test-");
@@ -166,6 +328,16 @@ public sealed class PocketStoreTests
                 Directory.Delete(Assets);
             }
             foreach (var file in _folder.EnumerateFiles()) file.Delete();
+            foreach (var directory in _folder.EnumerateDirectories())
+            {
+                foreach (var assetDirectory in directory.EnumerateDirectories())
+                {
+                    foreach (var file in assetDirectory.EnumerateFiles()) file.Delete();
+                    assetDirectory.Delete();
+                }
+                foreach (var file in directory.EnumerateFiles()) file.Delete();
+                directory.Delete();
+            }
             _folder.Delete();
         }
     }

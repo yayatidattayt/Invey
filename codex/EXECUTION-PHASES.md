@@ -8,7 +8,7 @@ Read MASTER-IMPLEMENTATION-PROMPT and HANDOFF. Confirm root/tooling and inspect 
 
 ## M02 — A2, only after reviewed A1 and next assignment
 
-Implement Contracts + windowless MTA Automation.Worker and deterministic test app. Validate bounded IPC, permitted app/control identities, tokens, timeout/kill/restart and uncertain-side-effect result. Probe beneath overlay; run A06–A09 and S04 on fixture and one ordinary real app, recording focus/drag separately. Compile via `dotnet build .\Pocket.Dual.Ghost.sln -c Debug -p:Platform=x64`; add explicit worker/contract test command once project exists. Unsupported targeting remains disabled; formal deferred disposition is acceptable. Stop at A2 review.
+Implement Contracts + windowless MTA Automation.Worker and deterministic test app. Validate bounded IPC, permitted app/control identities, tokens, timeout/kill/restart and uncertain-side-effect result. Probe beneath overlay; run A06–A09 and S04 on fixture and one ordinary real app, recording focus/drag separately. Compile via `dotnet build .\Invey.sln -c Debug -p:Platform=x64`; add explicit worker/contract test command once project exists. Unsupported targeting remains disabled; formal deferred disposition is acceptable. Stop at A2 review.
 
 ## M03 — B1
 

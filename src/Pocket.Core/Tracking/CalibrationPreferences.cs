@@ -14,8 +14,9 @@ public sealed record CalibrationPreferences(
 }
 
 /// <summary>Only calibration numbers. An atomic same-directory replacement leaves the old file on failure.</summary>
-public sealed class CalibrationPreferencesStore(string path)
+public sealed class CalibrationPreferencesStore(string path, bool writable = true)
 {
+    public bool CanSave => writable;
     private const int Limit = 4096;
     private static readonly JsonSerializerOptions Schema = new()
     {
@@ -27,6 +28,7 @@ public sealed class CalibrationPreferencesStore(string path)
     {
         try
         {
+            RejectLinks(path);
             using var file = File.OpenRead(path);
             if (file.Length is <= 0 or > Limit) return (null, true);
             var bytes = new byte[(int)file.Length];
@@ -43,6 +45,8 @@ public sealed class CalibrationPreferencesStore(string path)
     public void Save(CalibrationPreferences value)
     {
         if (!value.IsValid) throw new ArgumentException("Invalid calibration settings.", nameof(value));
+        if (!writable) throw new UnauthorizedAccessException("The profile is open read-only.");
+        RejectLinks(path);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
@@ -55,5 +59,19 @@ public sealed class CalibrationPreferencesStore(string path)
             File.Move(temporary, path, overwrite: true);
         }
         finally { File.Delete(temporary); }
+    }
+
+    private static void RejectLinks(string file)
+    {
+        foreach (string candidate in new[] { file, Path.GetDirectoryName(Path.GetFullPath(file))! })
+        {
+            try
+            {
+                if ((File.GetAttributes(candidate) & FileAttributes.ReparsePoint) != 0)
+                    throw new UnauthorizedAccessException("Linked calibration paths are unsupported.");
+            }
+            catch (FileNotFoundException) { }
+            catch (DirectoryNotFoundException) { }
+        }
     }
 }

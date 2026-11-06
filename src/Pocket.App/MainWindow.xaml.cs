@@ -18,9 +18,31 @@ public partial class MainWindow : Window
     private FixtureWindow? _fixture;
     private RecordedTrackingWindow? _tracking;
     private PocketWorkspace? _pocket;
+    private readonly InveyProfile _profile;
+    private readonly PocketStore? _store;
+    private readonly PocketCards? _cards;
     private bool _exiting;
     internal event Action<string>? CameraStatusChanged;
-    public MainWindow() { InitializeComponent(); }
+    public MainWindow() : this(new(Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Invey"))) { }
+    internal MainWindow(InveyProfile profile)
+    {
+        _profile = profile;
+        if (profile.Available)
+        {
+            _store = new PocketStore(profile.Root);
+            _cards = new PocketCards(_store, profile.Writable);
+        }
+        InitializeComponent();
+        if (profile.Notice is not null) Status.Text = profile.Notice;
+        Loaded += async (_, _) =>
+        {
+            if (_cards is null) return;
+            try { await _cards.RestoreAsync(); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException)
+            { Status.Text = "Could not restore the Pocket library."; }
+        };
+    }
     private void EnsureOverlay()
     {
         if(_overlay!=null) return;
@@ -83,7 +105,8 @@ public partial class MainWindow : Window
     {
         if (_tracking is null)
         {
-            _tracking = new RecordedTrackingWindow();
+            _tracking = new RecordedTrackingWindow(profileSettingsPath: _profile.Available
+                ? Path.Combine(_profile.Root, "calibration.json") : null, profileWritable: _profile.Writable);
             _tracking.CameraStatusChanged += status => CameraStatusChanged?.Invoke(status);
             _tracking.Closed += (_, _) => _tracking = null;
         }
@@ -96,8 +119,8 @@ public partial class MainWindow : Window
     {
         if (_pocket is null)
         {
-            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PocketDualGhost");
-            _pocket = new PocketWorkspace(new PocketStore(path), PrepareCaptureAsync);
+            if (_store is null) { Status.Text = _profile.Notice; return; }
+            _pocket = new PocketWorkspace(_store, PrepareCaptureAsync, cards: _cards, writable: _profile.Writable);
             _pocket.Closed += (_, _) => _pocket = null;
         }
         if (!_pocket.IsVisible && !_pocket.CaptureInProgress) _pocket.Show();
@@ -112,9 +135,14 @@ public partial class MainWindow : Window
     public async Task ExitAsync()
     {
         if (_pocket is { } pocket) await pocket.PrepareExitAsync();
-        if (_tracking is null || await _tracking.CloseAsync()) Application.Current.Shutdown();
+        if (_tracking is null || await _tracking.CloseAsync())
+        {
+            if (_cards is not null) await _cards.CloseAsync();
+            Application.Current.Shutdown();
+        }
         else _pocket?.ResumeAfterAbortedExit();
     }
+    internal bool CaptureInProgress => _pocket?.CaptureInProgress == true;
     public async void Pause()
     {
         _simulation?.Stop();

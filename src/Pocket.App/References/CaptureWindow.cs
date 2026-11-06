@@ -26,6 +26,8 @@ internal sealed class CaptureWindow : Window
     private readonly Button _review = new() { Content = "_Preview" };
     private readonly Button _back = new() { Content = "_Back", Visibility = Visibility.Collapsed };
     private readonly Button _save = new() { Content = "_Save to Pocket", Visibility = Visibility.Collapsed };
+    private readonly CheckBox _acceptBlack = new() { Content = "Save this blac_k snapshot", Visibility = Visibility.Collapsed,
+        VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8) };
     private readonly Button _cancel = new() { Content = "_Cancel" };
     private readonly Button _keyboard = new() { Content = "_Keyboard region" };
     private readonly Border _previewBox;
@@ -76,6 +78,8 @@ internal sealed class CaptureWindow : Window
         _review.Click += async (_, _) => await PreviewAsync();
         _back.Click += (_, _) => ReturnToSelection();
         _save.Click += async (_, _) => await SaveAsync();
+        _acceptBlack.Checked += (_, _) => _save.IsEnabled = !_busy;
+        _acceptBlack.Unchecked += (_, _) => _save.IsEnabled = false;
         _cancel.Click += (_, _) => Close();
         _keyboard.Click += (_, _) =>
         {
@@ -87,6 +91,7 @@ internal sealed class CaptureWindow : Window
         var bar = new DockPanel { Background = SystemColors.WindowBrush, HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(12) };
         var buttons = new WrapPanel();
+        buttons.Children.Add(_acceptBlack);
         foreach (var button in new[] { _keyboard, _review, _back, _save, _cancel })
         {
             button.Margin = new Thickness(4);
@@ -171,14 +176,18 @@ internal sealed class CaptureWindow : Window
         _status.Text = "Preparing preview…";
         try
         {
-            var crop = await Task.Run(() => ScreenSnapshot.Crop(source, region));
+            var (crop, isBlack) = await Task.Run(() => ScreenSnapshot.Crop(source, region));
             if (_closed) return;
             _preview.Source = _crop = crop;
             _previewRegion = region;
             _previewBox.Visibility = _back.Visibility = _save.Visibility = Visibility.Visible;
             _review.Visibility = _keyboard.Visibility = _surface.Visibility = Visibility.Collapsed;
-            _status.Text = $"Preview · {crop.PixelWidth} × {crop.PixelHeight} pixels";
-            _save.Focus();
+            _acceptBlack.IsChecked = false;
+            _acceptBlack.Visibility = isBlack ? Visibility.Visible : Visibility.Collapsed;
+            _save.IsEnabled = !isBlack;
+            _status.Text = isBlack ? "This preview is black. Some content may be unavailable." :
+                $"Preview · {crop.PixelWidth} × {crop.PixelHeight} pixels";
+            if (isBlack) _acceptBlack.Focus(); else _save.Focus();
         }
         catch (Exception ex) when (ex is InvalidDataException or ArgumentException or InvalidOperationException)
         {
@@ -195,6 +204,8 @@ internal sealed class CaptureWindow : Window
     {
         _preview.Source = _crop = null;
         _previewRegion = null;
+        _acceptBlack.Visibility = Visibility.Collapsed;
+        _acceptBlack.IsChecked = false;
         _previewBox.Visibility = _back.Visibility = _save.Visibility = Visibility.Collapsed;
         _review.Visibility = _keyboard.Visibility = _surface.Visibility = Visibility.Visible;
         _surface.Focus();
@@ -203,7 +214,7 @@ internal sealed class CaptureWindow : Window
 
     private async Task SaveAsync()
     {
-        if (_busy || _crop is not { } crop) return;
+        if (_busy || !_save.IsEnabled || _crop is not { } crop) return;
         if (!DisplayValid()) { AbortDisplayChange(); return; }
         _busy = _committing = true;
         _save.IsEnabled = _cancel.IsEnabled = false;
@@ -235,7 +246,8 @@ internal sealed class CaptureWindow : Window
         finally
         {
             _busy = _committing = false;
-            _save.IsEnabled = _cancel.IsEnabled = true;
+            _cancel.IsEnabled = true;
+            _save.IsEnabled = _acceptBlack.Visibility != Visibility.Visible || _acceptBlack.IsChecked == true;
         }
         if (Saved) Close();
     }
@@ -266,6 +278,7 @@ internal sealed class CaptureWindow : Window
         return new
         {
             Preview = _crop is not null, Region = _previewRegion ?? Region(), Status = _status.Text,
+            SaveEnabled = _save.IsEnabled && _save.IsVisible,
             Width = ActualWidth, Height = ActualHeight, Origin = IsVisible ? PointToScreen(new Point(0, 0)) : default,
             SampleMatchesFixture = _crop is not null && sample[2] == 192 && sample[1] == 32 && sample[0] == 64,
             FrozenPattern = _source is { } frozen ? new

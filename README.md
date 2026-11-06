@@ -22,8 +22,8 @@ From the repository root on Windows x64, run these commands in PowerShell.
 
 ```powershell
 & ./scripts/Install-Dotnet.ps1
-& ./scripts/dotnet.ps1 -Arguments @('restore','Pocket.Dual.Ghost.sln','--locked-mode','-p:Platform=x64')
-& ./scripts/dotnet.ps1 -Arguments @('build','Pocket.Dual.Ghost.sln','-c','Debug','-p:Platform=x64','--no-restore')
+& ./scripts/dotnet.ps1 -Arguments @('restore','Invey.sln','--locked-mode','-p:Platform=x64')
+& ./scripts/dotnet.ps1 -Arguments @('build','Invey.sln','-c','Debug','-p:Platform=x64','--no-restore')
 & ./scripts/dotnet.ps1 -Arguments @('test','tests/Pocket.Core.Tests','-c','Debug','--no-build')
 & ./scripts/dotnet.ps1 -Arguments @('run','--project','src/Pocket.App','-c','Debug','--no-build')
 ```
@@ -41,6 +41,8 @@ The source includes the Windows application, local tracking and automation worke
 5. Select the saved reference and choose **Open reference**. **Hide reference** returns you to the library.
 
 Pocket works with the camera off. Confirmed crops are stored as local PNGs in your Windows profile, where account permissions apply. Screen content can be sensitive. Review the crop before saving. See the [Execution 13 report](docs/EXECUTION_13_REPORT.md) for scope and verification.
+
+The desktop executable is `Invey.exe`. Invey uses `%LOCALAPPDATA%\Invey` and preserves the legacy profile when it migrates verified references and calibration settings. Opened snapshots are independent cards. Pin a card to keep it above other windows and restore it at restart. The library supports title changes, explicit ordering, and Delete with a 10-minute Undo window. [Execution 14 report](docs/EXECUTION_14_REPORT.md)
 
 ## Key files
 

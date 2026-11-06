@@ -18,7 +18,7 @@ internal static partial class Program
             {
                 string directory = Path.Combine(output, "mutation-" + pattern + "-" + mode);
                 Directory.CreateDirectory(directory);
-                var info = new ProcessStartInfo(Path.GetFullPath("src/Pocket.App/bin/Release/net10.0-windows/Pocket.App.exe"))
+                var info = new ProcessStartInfo(Path.GetFullPath("src/Pocket.App/bin/Release/net10.0-windows/Invey.exe"))
                 {
                     UseShellExecute = false,
                     CreateNoWindow = true

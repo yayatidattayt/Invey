@@ -49,7 +49,7 @@ internal static class ScreenSnapshot
         finally { bitmap.UnlockBits(bits); }
     }
 
-    public static BitmapSource Crop(BitmapSource source, PixelRegion region)
+    public static (BitmapSource Image, bool IsBlack) Crop(BitmapSource source, PixelRegion region)
     {
         int stride = checked(region.Width * 4);
         var bytes = new byte[checked(stride * region.Height)];
@@ -57,10 +57,9 @@ internal static class ScreenSnapshot
         bool visible = false;
         for (int i = 0; i < bytes.Length && !visible; i += 4)
             visible = (bytes[i] | bytes[i + 1] | bytes[i + 2]) != 0;
-        if (!visible) throw new InvalidDataException("This region may be blank or unavailable. Select another area or cancel.");
         var crop = BitmapSource.Create(region.Width, region.Height, 96, 96, PixelFormats.Bgr32, null, bytes, stride);
         crop.Freeze();
-        return crop;
+        return (crop, !visible);
     }
 
     public static void Place(Window window, Drawing.Rectangle bounds)
@@ -71,6 +70,8 @@ internal static class ScreenSnapshot
     }
 
     public static uint WindowDpi(Window window) => GetDpiForWindow(new WindowInteropHelper(window).Handle);
+    public static Drawing.Rectangle? Bounds(nint window) => GetWindowRect(window, out var rect)
+        ? Drawing.Rectangle.FromLTRB(rect.Left, rect.Top, rect.Right, rect.Bottom) : null;
     public static bool NativeVisible(Window window) => IsWindowVisible(new WindowInteropHelper(window).Handle);
     public static bool SetCloaked(Window window, bool cloaked)
     {
@@ -118,6 +119,9 @@ internal static class ScreenSnapshot
     [DllImport("user32.dll")] private static extern bool CloseDesktop(nint desktop);
     [DllImport("user32.dll")] private static extern nint GetThreadDesktop(uint thread);
     [DllImport("user32.dll")] private static extern uint GetDpiForWindow(nint window);
+    [StructLayout(LayoutKind.Sequential)] private struct WindowRect { public int Left, Top, Right, Bottom; }
+    [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetWindowRect(nint window, out WindowRect rect);
     [DllImport("user32.dll")] [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsWindowVisible(nint window);
     [DllImport("kernel32.dll")] private static extern uint GetCurrentThreadId();
