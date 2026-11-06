@@ -53,7 +53,7 @@ The final tracking-only run passed all 10 cases, including application exit with
 
 ## L — CI
 
-The reviewed baseline run passed. The Execution 12 head will be verified against the hosted workflow before reporting delivery complete.
+The reviewed baseline run passed. GitHub Actions also reported success for implementation commit `e517de35c9c9ede4b6f34f9a8be57653cccce6b2`. This documentation follow-up records that result. [Hosted Windows verification](https://github.com/yayatidattayt/Invey/actions/runs/42180628066)
 
 ## M — Failed, blocked and inconclusive cases
 
@@ -72,7 +72,7 @@ Gate A physical input and Explorer remain open. A2 remains fixture-only provisio
 
 ## P — Recommendation
 
-The recommendation applies to the PR review scope separately from hardware acceptance. See the completed verification results.
+**READY FOR REVIEW** for the calibration reliability fixes. The isolated suite and hosted Windows workflow passed. Live hardware acceptance remains **BLOCKED** until a new explicit Enable or authorization. Full B1 remains open.
 
 ## Q — Next canonical milestone
 
