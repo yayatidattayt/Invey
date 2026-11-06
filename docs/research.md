@@ -521,3 +521,9 @@ New risks R29–R41 (full problem/root/impact/likelihood/detection/prevention/re
 
 Other open items: exact tested wheel/model/interpreter/native combination and licenses; calibration preview transport; HDR/color correctness of selected capture API; pointer ergonomics and physical independence; clean-host distribution. No architecture solves arbitrary external app concurrency. Latest .NET10 baseline retained under ADR-11; framework license is not model-asset license. No measurement or app compatibility claim added. Canonical research mirror must be resynchronized after this append.
 
+
+## 2026-11-07 — Window transitions and shortcut integration
+
+The synthetic capture probe reproduced a 38-pixel-high nonblack band at the former caption position of a just-closed card. DwmFlush is scoped to the caller's outstanding surface updates. Removing the app-owned capture window transitions eliminated the reproduced band in the follow-up controlled checks. Retain the original failure and the 125% verification limit. [DWM window attributes](https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute)
+
+RegisterHotKey and MOD_NOREPEAT provided shortcut dispatch without a global hook. A private-desktop test kept the conflicted chord registered to an owned fixture and verified the remapped chord after an application restart. Explorer and physical shortcut acceptance remain separately scoped. [RegisterHotKey](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey)

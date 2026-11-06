@@ -89,3 +89,9 @@ Add ADRs for any framework or API change with date, experiment, observed outcome
 ## 2026-11-06 — Invey desktop identity
 
 - **ADR-19 — Separate product, subsystem and compatibility identities.** Invey owns the executable, solution, shell identity and new profile root. Pocket, Dual and Ghost retain subsystem names. Keep the shared legacy mutex and reopen event across executable names so a transition cannot produce two writers in the same Windows session. Publish a verified copy of a legacy profile and retain the original. An existing Invey profile takes precedence. A rollback may run the old executable against its original profile after Invey exits. Invey-only edits stay in the new profile. The execution report records the fixture results and open acceptance cases.
+
+## 2026-11-07 — Pocket integration
+
+- **ADR-20 — Tuck a real native window.** Keep the library and floating cards independently owned. Tuck hides the shelf HWND, keeps its selection and leaves explicitly pinned cards visible. Prefer immediate transitions to invisible hit regions or asynchronous fades.
+- **ADR-21 — Reserve shortcuts before committing.** Use a message-only native window and RegisterHotKey with MOD_NOREPEAT. Keep the previous map active while reserving replacement chords and publishing the validated settings file.
+- **ADR-22 — Preserve Dual ownership in Workspace.** Bind both application-owned targets to the existing reducer. Production uses ordinary mouse and keyboard. The isolated logical Ghost stream proves independence without changing the physical cursor or sending actions to other apps.

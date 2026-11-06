@@ -1,5 +1,7 @@
 # Invey — Requirement traceability
 
+Execution 15 advances F10 and F12–F15 through window-transition capture hardening, a tuckable shelf, configurable Windows shortcuts and an application-owned Workspace. The [Execution 15 report](EXECUTION_15_REPORT.md) separates isolated WPF and logical Ghost evidence from physical F06/F07 and full C09 acceptance.
+
 Execution 13 delivers the Pocket vertical slice for F10/F11 and camera-off retrieval. Its isolated capture checks cover C01–C05 and C11, with deterministic recovery evidence for C06. Full Gate C and real protected-content and mixed-DPI scenarios remain open. [Execution 13 report](EXECUTION_13_REPORT.md)
 
 Execution 12 separates F06 worker, host and F07 UI calibration counts by session, tests controlled camera failure feedback and adds 100%/125% deterministic B03 route coverage. Physical B03, B07, the remaining real device lifecycle and full B1 stay open. [Execution 12 report](EXECUTION_12_REPORT.md)
