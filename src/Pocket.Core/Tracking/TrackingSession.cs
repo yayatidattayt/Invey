@@ -3,6 +3,8 @@ namespace Pocket.Core.Tracking;
 public enum TrackingSource { Simulation, Camera, Recorded }
 public enum TrackingState { Off, Starting, Ready, Observing, Lost, Stopping, Stopped, Unavailable, Stale, Partial, Ambiguous }
 public enum TrackingBreak { None, Loss, Partial, Ambiguous, Gap, HandChanged, Movement, Stale }
+public sealed record TrackingCounters(long Hand, long Loss, long Partial, long Ambiguous,
+    IReadOnlyDictionary<string, long> Breaks);
 
 public sealed record TrackingSnapshot(TrackingState State, Guid? SessionId, TrackingSource? Source,
     HandObservation? Observation, TimeSpan? HostObservationAge, TrackingFailure? Failure,
@@ -30,6 +32,16 @@ public sealed class TrackingSession(TimeProvider? clock = null)
     private long _continuity;
     private TrackingBreak _lastBreak;
     private bool _observedByConsumer;
+    private readonly long[] _breakCounts = new long[Enum.GetValues<TrackingBreak>().Length];
+    private long _hand, _loss, _partial, _ambiguous;
+
+    public TrackingCounters ReadCounters()
+    {
+        lock (_gate)
+            return new(_hand, _loss, _partial, _ambiguous,
+                Enum.GetValues<TrackingBreak>().Where(reason => reason != TrackingBreak.None)
+                    .ToDictionary(reason => reason.ToString(), reason => _breakCounts[(int)reason]));
+    }
 
     public Guid? Enable(TrackingSource source)
     {
@@ -46,6 +58,8 @@ public sealed class TrackingSession(TimeProvider? clock = null)
             _lastCapture = _lastResult = _accepted = _superseded = 0;
             _continuity = 0;
             _lastBreak = TrackingBreak.None;
+            _hand = _loss = _partial = _ambiguous = 0;
+            Array.Clear(_breakCounts);
             return _session;
         }
     }
@@ -157,12 +171,16 @@ public sealed class TrackingSession(TimeProvider? clock = null)
             };
             if (reason != TrackingBreak.None) Break(reason);
         }
+        if (_lastSequence >= 0 && !_observedByConsumer) _superseded++;
         _lastSequence = observation.Sequence;
         _lastCapture = observation.CaptureMonoMs;
         _lastResult = observation.ResultMonoMs;
         _receivedAt = _lastContact = now;
         _accepted++;
-        if (_latest is not null && !_observedByConsumer) _superseded++;
+        if (observation.Tracked) _hand++;
+        else if (observation.Ambiguous) _ambiguous++;
+        else if (observation.Partial) _partial++;
+        else _loss++;
         _latest = observation.Tracked ? observation : null;
         _observedByConsumer = false;
         _state = observation.Ambiguous ? TrackingState.Ambiguous : observation.Partial ? TrackingState.Partial :
@@ -195,6 +213,7 @@ public sealed class TrackingSession(TimeProvider? clock = null)
     {
         _continuity++;
         _lastBreak = reason;
+        _breakCounts[(int)reason]++;
     }
 
     private static bool Jumped(HandObservation prior, HandObservation current, int index) =>

@@ -17,7 +17,11 @@ public sealed record CalibrationPreferences(
 public sealed class CalibrationPreferencesStore(string path)
 {
     private const int Limit = 4096;
-    private static readonly JsonSerializerOptions Schema = new() { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
+    private static readonly JsonSerializerOptions Schema = new()
+    {
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+        AllowDuplicateProperties = false
+    };
 
     public (CalibrationPreferences? Preferences, bool Unreadable) Load()
     {

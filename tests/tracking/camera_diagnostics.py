@@ -4,21 +4,23 @@ from contextlib import contextmanager
 import json
 import math
 import os
+import sys
 from statistics import median
 import time
 from types import SimpleNamespace
 
 
 class CameraDiagnostics:
-    def __init__(self, path, session, device):
+    def __init__(self, path, session):
         self.path = path
         self.started = time.perf_counter()
         self.cpu = time.process_time()
         self.inference, self.age = [], []
         self.timings = {}
-        self.data = {"session": session, "pid": os.getpid(), "device": device[:16],
+        self.data = {"session": session, "pid": os.getpid(),
                      "startedUnix": time.time(), "stages": {}, "submitted": 0, "processed": 0,
-                     "results": {"hand": 0, "partial": 0, "empty": 0}}
+                     "results": {"hand": 0, "partial": 0, "ambiguous": 0, "empty": 0}}
+        self.write_failed = False
 
     def elapsed(self):
         return round((time.perf_counter() - self.started) * 1000, 3)
@@ -29,7 +31,9 @@ class CameraDiagnostics:
             temporary.write_text(json.dumps(self.data, indent=2) + "\n", encoding="utf-8")
             temporary.replace(self.path)
         except OSError:
-            pass  # Evidence must never prevent source cleanup.
+            if not self.write_failed:
+                print("GHOST_TRACKING_DIAGNOSTICS_WRITE_FAILED", file=sys.stderr, flush=True)
+                self.write_failed = True
 
     @contextmanager
     def stage(self, name):
@@ -50,7 +54,8 @@ class CameraDiagnostics:
             self.save()
 
     def result(self, fields):
-        kind = "hand" if fields["tracked"] else "partial" if fields.get("partial") else "empty"
+        kind = ("hand" if fields["tracked"] else "ambiguous" if fields.get("ambiguous")
+                else "partial" if fields.get("partial") else "empty")
         self.data["results"][kind] += 1
         self.data.setdefault("firstResultMs", self.elapsed())
 

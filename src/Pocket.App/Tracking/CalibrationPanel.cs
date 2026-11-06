@@ -19,6 +19,8 @@ internal sealed class CalibrationPanel : StackPanel
     private CalibrationMapping? _mapping;
     private bool _refreshingDisplays;
     private int _readyDisplayed;
+    private Guid? _diagnosticSession;
+    private string _endReason = "SourceEnded";
     private readonly Canvas _preview = new() { Height = 126, ClipToBounds = true };
     private readonly Rectangle _frame = new() { Stroke = SystemColors.ControlDarkBrush, StrokeThickness = 1 };
     private readonly Rectangle _region = new() { Stroke = SystemColors.HighlightBrush, StrokeThickness = 1 };
@@ -48,8 +50,8 @@ internal sealed class CalibrationPanel : StackPanel
         var cancel = new Button { Content = "Cancel cali_bration" };
         var skip = new Button { Content = "S_kip practice" };
         var repeat = new Button { Content = "Re_peat practice" };
-        cancel.Click += async (_, _) => { RestoreSaved(); await stop(); };
-        skip.Click += async (_, _) => { RestoreSaved(); await stop(); };
+        cancel.Click += async (_, _) => { _endReason = "Cancel"; RestoreSaved(); await stop(); };
+        skip.Click += async (_, _) => { _endReason = "Skip"; RestoreSaved(); await stop(); };
         repeat.Click += (_, _) => Reset();
         _save.Click += (_, _) => Save();
         AutomationProperties.SetName(_preview, "Camera geometry and fingertip marker. No video preview.");
@@ -106,8 +108,10 @@ internal sealed class CalibrationPanel : StackPanel
         RestoreSaved();
     }
 
-    public void Begin()
+    public void Begin(Guid? diagnosticSession)
     {
+        _diagnosticSession = diagnosticSession;
+        _endReason = "SourceEnded";
         _readiness = new();
         RestoreSaved();
         RefreshDisplays();
@@ -145,6 +149,11 @@ internal sealed class CalibrationPanel : StackPanel
             choices = [];
             Announce(_settingsStatus, "Windows could not read display geometry. Try calibration again.");
         }
+        ApplyDisplays(choices);
+    }
+
+    internal void ApplyDisplays(CalibrationDisplayChoice[] choices)
+    {
         var chosen = _desiredDisplay is { } desired
             ? choices.FirstOrDefault(choice => choice.Geometry == desired)
             : choices.FirstOrDefault(choice => choice.Primary) ?? choices.FirstOrDefault();
@@ -272,17 +281,18 @@ internal sealed class CalibrationPanel : StackPanel
 
     private object Counts() => new
     {
-        _readiness.Fresh, _readiness.Consecutive, _readiness.MaxConsecutive, _readiness.Resets,
+        _readiness.Fresh, _readiness.WrongHandObservations, _readiness.Consecutive, _readiness.MaxConsecutive, _readiness.Resets,
         _readiness.ReadyEntries, ReadyDisplayed = _readyDisplayed
     };
 
     private void WriteDiagnostics()
     {
         string? directory = Environment.GetEnvironmentVariable("GHOST_CAMERA_DIAGNOSTICS");
-        if (!Directory.Exists(directory)) return;
-        try { File.WriteAllText(System.IO.Path.Combine(directory!, Guid.NewGuid() + ".calibration.json"), JsonSerializer.Serialize(Counts())); }
+        if (_diagnosticSession is not { } session || !Directory.Exists(directory)) return;
+        try { File.WriteAllText(System.IO.Path.Combine(directory!, session + ".calibration.json"),
+            JsonSerializer.Serialize(new { Session = session, EndReason = _endReason, UiObserved = Counts() })); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        { Announce(_settingsStatus, "Calibration diagnostic counts could not be saved."); }
+        { System.Diagnostics.Trace.TraceWarning("Calibration diagnostic write failed: 0x{0:X8}", ex.HResult); }
     }
 
     private static void Place(FrameworkElement item, double left, double top, double width, double height)

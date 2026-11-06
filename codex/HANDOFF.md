@@ -1,5 +1,9 @@
 # Invey — Current handoff
 
+## Execution 12 — B1 reliability review
+
+PR #1 gains session-correlated calibration diagnostics, stricter settings parsing and controlled camera failure and display-loss coverage. Physical camera activation requires a new explicit Enable or test-specific authorization. [Execution 12 report](../docs/EXECUTION_12_REPORT.md)
+
 ## Execution 11 — calibration and Windows verification
 
 Invey now maps the calibration region to a selected display, saves numeric preferences, and provides a local practice target with timed pinch and release. The camera starts off and the live Ready cause remains unresolved. Review the [Execution 11 report](../docs/EXECUTION_11_REPORT.md) before the historical checkpoints below.

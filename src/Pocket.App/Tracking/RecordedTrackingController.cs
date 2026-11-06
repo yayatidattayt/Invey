@@ -80,6 +80,7 @@ internal sealed class RecordedTrackingController
         using var readCancellation = CancellationTokenSource.CreateLinkedTokenSource(stop);
         NamedPipeServerStream? pipe = null;
         Task<TrackerMessage?>? pendingRead = null;
+        Task? stderrDrain = null;
         var clock = Stopwatch.StartNew();
         var startedUtc = DateTimeOffset.UtcNow;
         double? firstResultMs = null;
@@ -100,7 +101,7 @@ internal sealed class RecordedTrackingController
             worker = Process.Start(start) ?? throw new IOException("Tracker did not start.");
             _lastPid = worker.Id;
             RecordedWorkerJob.Assign(job, worker);
-            _ = DrainAsync(worker.StandardError);
+            stderrDrain = DrainAsync(worker.StandardError);
             stop.ThrowIfCancellationRequested();
             await worker.StandardInput.WriteLineAsync("start".AsMemory(), stop).ConfigureAwait(false);
             await worker.StandardInput.FlushAsync(stop).ConfigureAwait(false);
@@ -120,6 +121,7 @@ internal sealed class RecordedTrackingController
                 try { message = await pendingRead.WaitAsync(TimeSpan.FromMilliseconds(100), stop).ConfigureAwait(false); }
                 catch (TimeoutException) { continue; }
                 pendingRead = null;
+                if (stop.IsCancellationRequested) break;
                 if (message is null or TrackerStopped)
                 {
                     _session.ReportFailure(id, TrackingFailure.WorkerExited);
@@ -187,9 +189,13 @@ internal sealed class RecordedTrackingController
                     exited = await WaitForExitAsync(worker, TrackingSession.StopDeadline).ConfigureAwait(false);
                 }
                 job?.Dispose();
-                if (exited)
+                if (stderrDrain is not null)
                 {
                     worker.StandardError.Dispose();
+                    await stderrDrain.ConfigureAwait(false);
+                }
+                if (exited)
+                {
                     worker.Dispose();
                     _session.ConfirmWorkerExit(id);
                 }
@@ -207,8 +213,10 @@ internal sealed class RecordedTrackingController
                     File.WriteAllText(Path.Combine(diagnostics, id + ".host.json"), JsonSerializer.Serialize(new
                     {
                         Session = id, StartedUtc = startedUtc, WorkerPid = LastWorkerPid,
-                        Device = device!.Id[..16], FirstAcceptedResultMs = firstResultMs, LastSequence = lastSequence,
+                        FirstAcceptedResultMs = firstResultMs, LastSequence = lastSequence,
+                        ReceivedObservations = final.AcceptedObservations + rejectedObservations,
                         final.AcceptedObservations, RejectedObservations = rejectedObservations,
+                        final.SupersededObservations, final.Continuity, HostCounters = _session.ReadCounters(),
                         CurrentObservationCleared = final.Observation is null,
                         State = final.State.ToString(), Failure = final.Failure?.ToString(),
                         ExitConfirmed = !final.SessionId.HasValue, ForcedStop, WorkerPhase, WorkerNativeCode,
@@ -216,7 +224,8 @@ internal sealed class RecordedTrackingController
                         CleanupMs = clock.Elapsed.TotalMilliseconds - cleanupStartMs, WorkerWorkingSetBytes = workingSet
                     }, new JsonSerializerOptions { WriteIndented = true }));
                 }
-                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                { Trace.TraceWarning("Tracking diagnostic write failed: 0x{0:X8}", ex.HResult); }
             }
         }
     }
@@ -341,6 +350,8 @@ internal sealed class RecordedTrackingController
                     if (buffer[i] == '\n')
                     {
                         string entry = line.ToString().TrimEnd('\r');
+                        if (entry == "GHOST_TRACKING_DIAGNOSTICS_WRITE_FAILED")
+                            Trace.TraceWarning("Tracking worker could not write diagnostic evidence.");
                         const string NativeCodePrefix = "GHOST_TRACKING_NATIVE_CODE=";
                         if (entry.StartsWith(NativeCodePrefix, StringComparison.Ordinal) &&
                             entry.Length == NativeCodePrefix.Length + 8 &&
@@ -363,7 +374,7 @@ internal sealed class RecordedTrackingController
                 }
             }
         }
-        catch (IOException) { }
+        catch (IOException ex) { Trace.TraceWarning("Tracking diagnostic stream closed: 0x{0:X8}", ex.HResult); }
         catch (ObjectDisposedException) { }
     }
 

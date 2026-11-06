@@ -285,14 +285,22 @@ internal static partial class Program
                 AccessKey(0x50); // Repeat practice
                 await Until(client, s => Calibration(s).GetProperty("PracticeStatus").GetString() ==
                     "Practice becomes available when tracking is ready.");
+                var disconnected = Calibration(await client.Command("tracking-display-disconnect"));
+                Require(disconnected.GetProperty("Display").ValueKind == JsonValueKind.Null &&
+                    disconnected.GetProperty("Physical").ValueKind == JsonValueKind.Null &&
+                    disconnected.GetProperty("Status").GetString() == "Choose a connected display to calibrate.",
+                    "A missing selected display left calibration mapped.");
                 AccessKey(0x42);
                 await Until(client, s => State(s) == "Stopped", 5000);
+                var repeated = await client.Command("tracking-stop");
+                Require(State(repeated) == "Stopped", "Repeated Stop altered the terminal state.");
                 Require(!ProcessExists(worker), "Practice Cancel leaked the fixture worker.");
                 await client.Command("exit");
                 await host.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
                 Require(host.ExitCode == 0 && !Input.Exists(new nint(hwnd)), "Practice restart host cleanup failed.");
                 return new { PersistedAcrossProcessRestart = true, CameraOff = true, KeyboardFocus = true,
-                    Held = true, Released = true, AmbiguityCanceledHold = true, Repeat = true, WorkerExited = true };
+                    Held = true, Released = true, AmbiguityCanceledHold = true, Repeat = true,
+                    MissingDisplayClearedMapping = true, RepeatedStop = true, WorkerExited = true };
             }
             finally
             {
@@ -372,6 +380,29 @@ internal static partial class Program
             await client.Command("tracking-close");
             return new { PermissionFailureVisible = true, WorkerExited = true, CameraFrames = 0 };
         });
+        foreach (var (fault, expected, feedback) in new[]
+        {
+            ("busy", "DeviceBusy", "camera is busy"),
+            ("missing", "NoDevice", "camera is unavailable")
+        })
+        {
+            await Measure("F06_CAMERA_" + fault.ToUpperInvariant(), "UI_INTEGRATION + CONTROLLED_FAILURE_INJECTION",
+                "Injected source error is visible and releases its worker", async () =>
+            {
+                await client.Command("tracking-close");
+                var opened = await client.Command("tracking-open-camera-" + fault);
+                await SelectCameraFixture(client, opened.GetProperty("TrackingHandle").GetInt64());
+                AccessKey(0x45);
+                var failed = Tracking(await Until(client, s => State(s) == "Unavailable" &&
+                    Tracking(s).GetProperty("CanStart").GetBoolean(), 12000));
+                Require(failed.GetProperty("Failure").GetString() == expected &&
+                    failed.GetProperty("Status").GetString()!.Contains(feedback) &&
+                    failed.GetProperty("SourceStatus").GetString()!.EndsWith("Camera off") &&
+                    !ProcessExists(failed.GetProperty("LastWorkerPid").GetInt32()), "Unexpected failure or worker left active.");
+                await client.Command("tracking-close");
+                return new { Failure = expected, WorkerExited = true, CameraFrames = 0 };
+            });
+        }
     }
 
     private static async Task SelectCameraFixture(Client client, long handle)
@@ -421,6 +452,8 @@ internal static partial class Program
             AccessKey(0x45);
             var active = Tracking(await Until(client, s => State(s) == "Observing", 12000));
             trackingPid = active.GetProperty("LastWorkerPid").GetInt32();
+            AccessKey(0x43); // Leave calibration open while exiting the application.
+            await Until(client, s => Tracking(s).GetProperty("Calibration").GetProperty("Open").GetBoolean());
         }
         await client.Command("exit");
         await host.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
@@ -428,6 +461,7 @@ internal static partial class Program
         if (trackingPid is { } pid)
             Require(!ProcessExists(pid) && !Input.Exists(new nint(trackingWindow)), "Host exit leaked tracking worker or HWND.");
         Cases.Add(new("EXIT_CLEANUP", "NATIVE_SOFTWARE_TEST", "Host exits and owned windows and active workers vanish",
-            new { host.ExitCode, OverlayGone = true, FixtureGone = true, TrackingWorkerExited = trackingPid.HasValue }, "PASS", 0));
+            new { host.ExitCode, OverlayGone = true, FixtureGone = true, TrackingWorkerExited = trackingPid.HasValue,
+                CalibrationOpenAtExit = trackingPid.HasValue }, "PASS", 0));
     }
 }

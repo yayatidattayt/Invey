@@ -71,7 +71,9 @@ internal sealed class RecordedTrackingWindow : Window
         }, settings is null ? null : new CalibrationPreferencesStore(settings));
         _calibrate.Click += (_, _) =>
         {
-            _calibration.Begin();
+            var snapshot = _controller.Read();
+            _calibration.Begin(_controller.HasDiagnostics && snapshot.Source == TrackingSource.Camera &&
+                _fixtureCameraFault is null ? snapshot.SessionId : null);
             _refresh.Interval = TimeSpan.FromMilliseconds(25);
             Render();
         };
@@ -128,8 +130,14 @@ internal sealed class RecordedTrackingWindow : Window
 
     private void RefreshCalibrationDisplays()
     {
-        if (_calibration.Visibility != Visibility.Visible) return;
+        if (_allowClose || _closing || _calibration.Visibility != Visibility.Visible) return;
         _calibration.RefreshDisplays();
+        Render();
+    }
+
+    internal void SimulateDisplayDisconnect()
+    {
+        _calibration.ApplyDisplays([]);
         Render();
     }
 

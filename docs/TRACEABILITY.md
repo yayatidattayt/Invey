@@ -1,5 +1,7 @@
 # Invey — Requirement traceability
 
+Execution 12 separates F06 worker, host and F07 UI calibration counts by session, tests controlled camera failure feedback and adds 100%/125% deterministic B03 route coverage. Physical B03, B07, the remaining real device lifecycle and full B1 stay open. [Execution 12 report](EXECUTION_12_REPORT.md)
+
 Execution 11 adds selected-display geometry, local calibration preferences, practice and ambiguity cancellation to the F07 preview. The controlled rectangle route and recorded WPF mapping have evidence. B03 physical rectangle-route, B07 physical multi-hand cases and full B1 remain open. [Execution 11 report](EXECUTION_11_REPORT.md)
 
 Execution 09 provides F06 real-device evidence for explicit ASUS FHD activation, local inference, Stop, clean release and same-device reacquisition. Recorded, injected and real-device evidence remain separate. Hardware denial, disconnect and full B1 acceptance remain open. [Hardware report](EXECUTION_09_REPORT.md)

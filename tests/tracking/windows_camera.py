@@ -403,9 +403,12 @@ def open_source(np, device=None, fixture_file=None, diagnostic=None):
                 try:
                     with stage("IMFMediaSource::Shutdown"):
                         check(call(source, 12, ()))
+                    if diagnostic:
+                        diagnostic.data["nativeReleaseConfirmed"] = True
                 except CameraError as error:
                     # Preserve an earlier capture failure. Process exit is still required by the host.
                     if diagnostic:
+                        diagnostic.data["nativeReleaseConfirmed"] = False
                         diagnostic.data["shutdownHresult"] = f"0x{error.native_code:08X}"
             stack.callback(shutdown)
             set_u32(attrs, DISCONNECT_ON_SHUTDOWN, 1)  # This scope explicitly shuts down the source.

@@ -18,6 +18,7 @@ public sealed class CalibrationReadiness
     public int Consecutive => _consecutive;
     public int MaxConsecutive { get; private set; }
     public int Fresh { get; private set; }
+    public int WrongHandObservations { get; private set; }
     public int ReadyEntries { get; private set; }
     public IReadOnlyDictionary<string, int> Resets => _resets;
     public void Invalidate() => Clear("CalibrationChanged", CalibrationState.Waiting);
@@ -64,7 +65,10 @@ public sealed class CalibrationReadiness
         if (hand.Handedness is null)
             return Clear("UnknownHand", CalibrationState.Ambiguous);
         if (selected is not null && hand.Handedness != selected)
+        {
+            WrongHandObservations++;
             return Clear("WrongHand", CalibrationState.WrongHand);
+        }
 
         var tip = hand.Landmarks[8];
         var point = new DipPoint(mirror ? 1 - tip.X : tip.X, tip.Y);

@@ -139,8 +139,9 @@ def stream(args, pipe, stop, diagnostic=None):
                 return
             if args.camera or args.fixture_file:
                 phase("opening-camera")
-                if args.fault == "camera-denied":
-                    raise CameraError("permission-denied")
+                if args.fault in ("camera-denied", "camera-busy", "camera-missing"):
+                    raise CameraError({"camera-denied": "permission-denied", "camera-busy": "device-busy",
+                                       "camera-missing": "no-device"}[args.fault])
                 source = resources.enter_context(open_source(np, args.camera, args.fixture_file, diagnostic))
             send("ready")
             phase("ready")
@@ -192,7 +193,8 @@ def main():
     source.add_argument("--camera")
     source.add_argument("--fixture-file", type=Path)
     parser.add_argument("--fault", choices=["startup-hang", "crash", "malformed", "ignore-stop",
-                                          "bad-model", "result-gap", "camera-denied", "calibration-practice"])
+                                          "bad-model", "result-gap", "camera-denied", "camera-busy",
+                                          "camera-missing", "calibration-practice"])
     args = parser.parse_args()
     if not args.list_cameras and not all((args.pipe, args.session, args.site_packages, args.model, args.palm)):
         parser.error("The tracking worker requires a pipe, session, runtime, and asset paths.")
@@ -223,7 +225,7 @@ def main():
                     from windows_camera import multithreaded_com
                     if args.camera and args.diagnostics:
                         from camera_diagnostics import CameraDiagnostics
-                        diagnostic = CameraDiagnostics(args.diagnostics, args.session, args.camera)
+                        diagnostic = CameraDiagnostics(args.diagnostics, args.session)
                         diagnostic.save()
                     with diagnostic.stage("CoInitializeEx") if diagnostic else nullcontext():
                         apartment.enter_context(multithreaded_com())

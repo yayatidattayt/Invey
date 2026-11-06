@@ -73,11 +73,13 @@ internal sealed class AcceptanceHost : IDisposable
             case "tracking-open":
             case "tracking-open-native-video":
             case "tracking-open-camera-denied":
+            case "tracking-open-camera-busy":
+            case "tracking-open-camera-missing":
                 if (_tracking is null)
                 {
                     _tracking = new RecordedTrackingWindow(
                         command == "tracking-open-native-video" ? Path.GetFullPath("artifacts/execution-08/controlled.mp4") : null,
-                        command == "tracking-open-camera-denied" ? "camera-denied" : null,
+                        command.StartsWith("tracking-open-camera-", StringComparison.Ordinal) ? command[14..] : null,
                         testSettingsPath: Environment.GetEnvironmentVariable("GHOST_TEST_CALIBRATION_SETTINGS"),
                         acceptanceHost: true);
                     _tracking.Closed += (_, _) => _tracking = null;
@@ -92,6 +94,8 @@ internal sealed class AcceptanceHost : IDisposable
             case "tracking-start-gap": _tracking!.Start("result-gap"); break;
             case "tracking-start-ignore-stop": _tracking!.Start("ignore-stop"); break;
             case "tracking-start-calibration-practice": _tracking!.Start("calibration-practice"); break;
+            case "tracking-display-disconnect": _tracking!.SimulateDisplayDisconnect(); break;
+            case "tracking-stop": await _tracking!.StopAsync(); break;
             case "tracking-close": if (_tracking is not null) await _tracking.CloseAsync(); break;
             case "automation-open":_automation??=new AutomationFixtureWindow();_automation.Show();break;
             case "recovery-open":

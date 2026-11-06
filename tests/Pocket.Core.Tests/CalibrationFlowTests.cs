@@ -9,12 +9,12 @@ public sealed class CalibrationFlowTests
     private static readonly CalibrationDisplay Display = new(2, -1920, -1200, 1920, 1200, 120);
 
     [Theory]
-    [InlineData(false, 0.5)]
-    [InlineData(true, 1.0)]
-    [InlineData(true, 2.0)]
-    public void RectangleRouteMapsToSelectedDisplayAndBack(bool mirror, double sensitivity)
+    [InlineData(false, 0.5, 96)]
+    [InlineData(true, 1.0, 120)]
+    [InlineData(true, 2.0, 120)]
+    public void RectangleRouteMapsToSelectedDisplayAndBack(bool mirror, double sensitivity, int dpi)
     {
-        var map = new CalibrationMapping(Display, .125, sensitivity, mirror);
+        var map = new CalibrationMapping(Display with { Dpi = dpi }, .125, sensitivity, mirror);
         var camera = new[] { new DipPoint(.125, .125), new(.875, .125), new(.875, .875), new(.125, .875), new(.125, .125) };
         for (int i = 0; i < camera.Length; i++)
         {
@@ -22,8 +22,8 @@ public sealed class CalibrationFlowTests
             bool right = (camera[i].X == .875) != mirror;
             bool bottom = camera[i].Y == .875;
             Assert.Equal(new ScreenPoint(right ? -1 : -1920, bottom ? -1 : -1200), map.ToPhysical(dip));
-            Assert.Equal((right ? 1919 : 0) * .8, dip.X, 10);
-            Assert.Equal((bottom ? 1199 : 0) * .8, dip.Y, 10);
+            Assert.Equal((right ? 1919 : 0) * 96.0 / dpi, dip.X, 10);
+            Assert.Equal((bottom ? 1199 : 0) * 96.0 / dpi, dip.Y, 10);
             Assert.Equal(camera[i], map.Inverse(dip));
         }
         var interior = new DipPoint(.29, .72);
@@ -53,6 +53,19 @@ public sealed class CalibrationFlowTests
             Assert.Equal((prefs, false), new CalibrationPreferencesStore(path).Load());
             new CalibrationPreferencesStore(path).Save(prefs with { Mirror = 0 });
             Assert.Equal(0, new CalibrationPreferencesStore(path).Load().Preferences!.Mirror);
+            if (OperatingSystem.IsWindows())
+            {
+                using (File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    var error = Record.Exception(() => new CalibrationPreferencesStore(path).Save(prefs));
+                    Assert.True(error is IOException or UnauthorizedAccessException, "Expected replacement to fail while the settings file was locked.");
+                    Assert.Equal(0, new CalibrationPreferencesStore(path).Load().Preferences!.Mirror);
+                }
+            }
+            var duplicate = File.ReadAllText(path).Replace("\"Mirror\":0", "\"Mirror\":0,\"Mirror\":1");
+            Assert.Contains("\"Mirror\":0,\"Mirror\":1", duplicate);
+            File.WriteAllText(path, duplicate);
+            Assert.Equal((null, true), new CalibrationPreferencesStore(path).Load());
             File.WriteAllText(path, """{"Version":1,"CameraEnabled":1}""");
             Assert.Equal((null, true), new CalibrationPreferencesStore(path).Load());
             File.WriteAllText(path, "{");
@@ -81,7 +94,11 @@ public sealed class CalibrationFlowTests
         Assert.Equal(1, readiness.ReadyEntries);
         Assert.True(tracker.Accept(new HandObservation(id, 6, 300, 310, [], Ambiguous: true)));
         Assert.True(tracker.Accept(Hand(id, 7, false)));
-        Assert.Equal(CalibrationState.Stabilizing, readiness.Observe(tracker.Read(), HandSide.Left, false, .12).State);
+        var afterBreak = tracker.Read();
+        Assert.Equal(1, afterBreak.SupersededObservations);
+        Assert.Equal(1, tracker.ReadCounters().Ambiguous);
+        Assert.Equal(1, tracker.ReadCounters().Breaks["Ambiguous"]);
+        Assert.Equal(CalibrationState.Stabilizing, readiness.Observe(afterBreak, HandSide.Left, false, .12).State);
         Assert.Equal(1, readiness.Consecutive);
         Assert.Contains("Ambiguous", readiness.Resets.Keys);
         readiness.Invalidate();
