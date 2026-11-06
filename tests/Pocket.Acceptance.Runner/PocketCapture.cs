@@ -24,7 +24,7 @@ internal static partial class Program
     private static async Task RunPocketCapture(Client client, string output)
     {
         await Measure("C01_C04_POCKET_CAPTURE", "NATIVE_GDI_FIXTURE + WPF_INTEGRATION",
-            "Frozen selection captures known desktop pixels, cancels without files, rejects black and saves only the crop", async () =>
+            "Frozen selection captures known desktop pixels, cancels without files, confirms black and saves only the crop", async () =>
         {
             await client.Command("show"); // The capture must hide the passive overlay before taking pixels.
             var opened = await client.Command("pocket-open");
@@ -51,13 +51,16 @@ internal static partial class Program
             AccessKey(0x50); // Preview is disabled for a zero-area selection.
             Require(!Pocket(await client.Command("status")).GetProperty("Capture").GetProperty("Preview").GetBoolean(),
                 "Zero-area selection showed a preview.");
-            Draw(.42, .22, .53, .34);
+            Draw(.48, .87, .54, .94);
             AccessKey(0x50);
-            await Until(client, s =>
+            var black = await Until(client, s =>
             {
                 Require(Selector(s) != 0, "Selector closed while checking black content: " + PocketText(s));
-                return Pocket(s).GetProperty("Capture").GetProperty("Status").GetString()!.Contains("blank or unavailable");
+                return Pocket(s).GetProperty("Capture").GetProperty("Status").GetString()!.Contains("preview is black");
             });
+            Require(!Pocket(black).GetProperty("Capture").GetProperty("SaveEnabled").GetBoolean(),
+                "Black content could be saved without explicit confirmation.");
+            AccessKey(0x42); // Back
             AccessKey(0x4B); // Keyboard region
             AccessKey(0x50); // Preview
             await Until(client, s => Pocket(s).GetProperty("Capture").GetProperty("Preview").GetBoolean());
@@ -115,12 +118,72 @@ internal static partial class Program
             var restored = await Until(client, s => Selector(s) == 0 &&
                 s.GetProperty("Native").GetProperty("Foreground").GetInt64() == workspace);
             Require(restored.GetProperty("OverlayVisible").GetBoolean(), "Cancel after a save failure did not restore the overlay.");
+
+            await BeginPocketCapture(client);
+            Draw(.48, .87, .54, .94);
+            AccessKey(0x50);
+            await Until(client, s => Pocket(s).GetProperty("Capture").GetProperty("Status").GetString()!.Contains("preview is black"));
+            Input.Key(0x20, false); Input.Key(0x20, true); // Acknowledge the black-content warning.
+            await Until(client, s => Pocket(s).GetProperty("Capture").GetProperty("SaveEnabled").GetBoolean());
+            AccessKey(0x53);
+            await Until(client, s => Selector(s) == 0 && Pocket(s).GetProperty("Count").GetInt32() == 2, 6000);
+            AccessKey(0x4F);
+            var blackCard = await Until(client, s => Viewer(s) != 0 && Pocket(s).GetProperty("SampleBlack").GetBoolean());
+            long pinnedHandle = Viewer(blackCard);
+            AccessKey(0x49); // Zoom in from Fit to 125%.
+            await Until(client, s => Pocket(s).GetProperty("Zoom").GetInt32() == 125);
+            AccessKey(0x50);
+            var pinned = await Until(client, s => Pocket(s).GetProperty("Pinned").GetBoolean());
+            var bounds = Pocket(pinned).GetProperty("ViewerBounds");
+            int cardX = bounds.GetProperty("X").GetInt32(), cardY = bounds.GetProperty("Y").GetInt32();
+            Input.Move(cardX + 150, cardY + 20);
+            Input.Down();
+            try { Input.Move(cardX + 250, cardY - 55); }
+            finally { Input.Up(); }
+            var moved = await Until(client, s => Pocket(s).GetProperty("ViewerBounds").GetProperty("X").GetInt32() != cardX);
+            var movedBounds = Pocket(moved).GetProperty("ViewerBounds");
+            int right = movedBounds.GetProperty("Right").GetInt32(), bottom = movedBounds.GetProperty("Bottom").GetInt32();
+            int originalWidth = movedBounds.GetProperty("Width").GetInt32();
+            Input.Move(right - 4, bottom - 4);
+            Input.Down();
+            try { Input.Move(right + 76, bottom + 56); }
+            finally { Input.Up(); }
+            await Until(client, s => Pocket(s).GetProperty("ViewerBounds").GetProperty("Width").GetInt32() > originalWidth);
+            var hidden = await client.Command("pocket-hide-library");
+            Require(!Pocket(hidden).GetProperty("LibraryVisible").GetBoolean() && Input.Exists(new nint(pinnedHandle)),
+                "Hiding the library removed its independent pinned card.");
+            await client.Command("pocket-open");
+            await FocusTrackingAsync(client, workspace);
+            var rows = Pocket(await Until(client, s => !Pocket(s).GetProperty("Busy").GetBoolean() &&
+                Pocket(s).GetProperty("LastRowPoint").ValueKind == JsonValueKind.Object));
+            var lastRow = rows.GetProperty("LastRowPoint");
+            Input.Click(lastRow.GetProperty("X").GetDouble(), lastRow.GetProperty("Y").GetDouble());
+            await Until(client, s => Pocket(s).GetProperty("SelectedIndex").GetInt32() == 1 &&
+                s.GetProperty("Native").GetProperty("Foreground").GetInt64() == workspace);
+            AccessKey(0x4F);
+            await Until(client, s => Pocket(s).GetProperty("Cards").GetInt32() == 2 &&
+                Pocket(s).GetProperty("SampleMatchesFixture").GetBoolean());
+            await FocusTrackingAsync(client, workspace);
+            AccessKey(0x55); // Move up
+            await Until(client, s => Pocket(s).GetProperty("SelectedIndex").GetInt32() == 0 && !Pocket(s).GetProperty("Busy").GetBoolean());
+            AccessKey(0x4E); // Rename
+            await Until(client, s => Pocket(s).GetProperty("RenameHandle").GetInt64() is var rename && rename != 0 &&
+                s.GetProperty("Native").GetProperty("Foreground").GetInt64() == rename);
+            Input.Text("Known crop");
+            Input.Key(0x0D, false); Input.Key(0x0D, true);
+            await Until(client, s => Pocket(s).GetProperty("SelectedTitle").GetString() == "Known crop");
+            AccessKey(0x4C); // Delete
+            await Until(client, s => Pocket(s).GetProperty("Count").GetInt32() == 1 && Pocket(s).GetProperty("Cards").GetInt32() == 1);
+            AccessKey(0x45); // Undo delete
+            await Until(client, s => Pocket(s).GetProperty("Count").GetInt32() == 2 &&
+                Pocket(s).GetProperty("SelectedTitle").GetString() == "Known crop");
             var closed = await client.Command("pocket-close");
             Require(Pocket(closed).ValueKind == JsonValueKind.Null &&
                 closed.GetProperty("Tracking").ValueKind == JsonValueKind.Null, "Pocket was not closed or started tracking.");
             return new { Dpi = active.GetProperty("Dpi").GetInt32(), CropWidth = cropWidth, CropHeight = cropHeight,
-                ExpectedPixels = true, CancelWroteNothing = true, BlackRejected = true, CameraOff = true,
-                LockedLibraryPreserved = true, RestoredAfterFailure = true };
+                ExpectedPixels = true, CancelWroteNothing = true, ConfirmedBlack = true, CameraOff = true,
+                LockedLibraryPreserved = true, RestoredAfterFailure = true, MultipleCards = true,
+                IndependentPin = true, MoveResize = true, RenameMoveDeleteUndo = true };
         });
     }
 
@@ -130,18 +193,42 @@ internal static partial class Program
         await Measure("C05_C11_POCKET_RESTART", "PROCESS_RESTART + WPF_INTEGRATION",
             "A fresh process reopens the saved image and exits safely during a new unsaved capture", async () =>
         {
+            string source = Path.Combine(output, "pocket-test");
+            string migration = Path.Combine(output, "pocket-migration");
+            string legacy = Path.Combine(migration, "PocketDualGhost");
+            string originalAssets = Path.Combine(legacy, "assets");
+            Directory.CreateDirectory(originalAssets);
+            foreach (var file in Directory.GetFiles(Path.Combine(source, "assets"), "*.png"))
+                File.Copy(file, Path.Combine(originalAssets, Path.GetFileName(file)));
+            var originalIndex = File.ReadAllBytes(Path.Combine(source, "manifest.json"));
+            File.WriteAllBytes(Path.Combine(legacy, "manifest.json"), originalIndex);
+            using var index = JsonDocument.Parse(originalIndex);
+            var placement = index.RootElement.GetProperty("Items").EnumerateArray()
+                .Select(item => item.GetProperty("Placement"))
+                .Single(value => value.ValueKind == JsonValueKind.Object && value.GetProperty("Pinned").GetBoolean());
             var (host, client) = StartAcceptanceHost(app, output);
             using (host)
             using (client)
             try
             {
                 await client.Connect();
-                var opened = await client.Command("pocket-open");
+                var opened = await client.Command("pocket-open-migrated");
                 long workspace = Pocket(opened).GetProperty("Handle").GetInt64();
                 await FocusTrackingAsync(client, workspace);
-                await Until(client, s => Pocket(s).GetProperty("Count").GetInt32() == 1);
+                var restored = await Until(client, s => Pocket(s).GetProperty("Count").GetInt32() == 2 &&
+                    Pocket(s).GetProperty("Cards").GetInt32() == 1 && Pocket(s).GetProperty("Pinned").GetBoolean());
+                var restoredBounds = Pocket(restored).GetProperty("ViewerBounds");
+                foreach (string property in new[] { "X", "Y", "Width", "Height" })
+                    Require(restoredBounds.GetProperty(property).GetInt32() == placement.GetProperty(property).GetInt32(),
+                        "The restarted card did not restore its physical placement.");
+                Require(Pocket(restored).GetProperty("Zoom").GetInt32() == 125, "The restarted card lost its zoom.");
+                await FocusTrackingAsync(client, Viewer(restored));
+                AccessKey(0x50); // Unpin the restored card.
+                await Until(client, s => !Pocket(s).GetProperty("Pinned").GetBoolean() &&
+                    Pocket(s).GetProperty("Cards").GetInt32() == 1);
+                await FocusTrackingAsync(client, workspace);
                 AccessKey(0x4F);
-                var viewer = await Until(client, s => Viewer(s) != 0);
+                var viewer = await Until(client, s => Pocket(s).GetProperty("Cards").GetInt32() == 2);
                 Require(Pocket(viewer).GetProperty("SampleMatchesFixture").GetBoolean(), "Saved pixels were lost across restart.");
                 AccessKey(0x48);
                 await Until(client, s => Viewer(s) == 0);
@@ -153,9 +240,12 @@ internal static partial class Program
                 await host.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
                 Require(host.ExitCode == 0 && !Input.Exists(new nint(workspace)) && !Input.Exists(new nint(selector)),
                     "Pocket windows survived application exit.");
-                Require(Directory.GetFiles(Path.Combine(output, "pocket-test", "assets"), "*.png").Length == 1,
-                    "Exit during capture wrote a second image.");
-                return new { Reloaded = true, CameraOff = true, ClosedDuringCapture = true, NoUnconfirmedSave = true };
+                Require(Directory.GetFiles(Path.Combine(migration, "Invey", "assets"), "*.png").Length == 2,
+                    "Exit during capture wrote another image.");
+                Require(originalIndex.SequenceEqual(File.ReadAllBytes(Path.Combine(legacy, "manifest.json"))) &&
+                    Directory.GetFiles(originalAssets, "*.png").Length == 2, "Profile migration changed the original fixture.");
+                return new { Reloaded = true, MigratedOriginalPreserved = true, PinnedCardRestored = true,
+                    Unpinned = true, ZoomRestored = true, CameraOff = true, ClosedDuringCapture = true, NoUnconfirmedSave = true };
             }
             finally
             {
@@ -175,6 +265,23 @@ internal static partial class Program
         if (!Directory.Exists(root)) return;
         try
         {
+            string migration = Path.Combine(output, "pocket-migration");
+            if (Directory.Exists(migration))
+            {
+                Require((File.GetAttributes(migration) & FileAttributes.ReparsePoint) == 0, "Refusing linked fixture migration.");
+                CleanStore(Path.Combine(migration, "Invey"));
+                CleanStore(Path.Combine(migration, "PocketDualGhost"));
+                Directory.Delete(migration);
+            }
+            CleanStore(root);
+            Cases.Add(new("POCKET_FIXTURE_CLEANUP", "TEST_HARNESS_CLEANUP", "Remove synthetic capture files", new { Removed = true }, "PASS", 0));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        { Cases.Add(new("POCKET_FIXTURE_CLEANUP", "TEST_HARNESS_CLEANUP", "Remove synthetic capture files", ex.Message, "FAIL", 0)); }
+
+        static void CleanStore(string root)
+        {
+            if (!Directory.Exists(root)) return;
             string assets = Path.Combine(root, "assets");
             Require((File.GetAttributes(root) & FileAttributes.ReparsePoint) == 0, "Refusing linked fixture root.");
             if (Directory.Exists(assets))
@@ -187,9 +294,6 @@ internal static partial class Program
             File.Delete(Path.Combine(root, "manifest.json"));
             File.Delete(Path.Combine(root, "manifest.backup.json"));
             Directory.Delete(root);
-            Cases.Add(new("POCKET_FIXTURE_CLEANUP", "TEST_HARNESS_CLEANUP", "Remove synthetic capture files", new { Removed = true }, "PASS", 0));
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
-        { Cases.Add(new("POCKET_FIXTURE_CLEANUP", "TEST_HARNESS_CLEANUP", "Remove synthetic capture files", ex.Message, "FAIL", 0)); }
     }
 }

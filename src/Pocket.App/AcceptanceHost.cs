@@ -79,6 +79,12 @@ internal sealed class AcceptanceHost : IDisposable
             case "pocket-open":
                 OpenPocketFixture();
                 break;
+            case "pocket-open-migrated":
+                OpenPocketFixture(migrate: true);
+                break;
+            case "pocket-hide-library":
+                _pocket!.Hide();
+                break;
             case "pocket-close":
                 if (_pocket is { } pocket) { await pocket.PrepareExitAsync(); pocket.Close(); }
                 _capturePattern?.Close();
@@ -144,13 +150,20 @@ internal sealed class AcceptanceHost : IDisposable
             Native=NativeWindow.Observe() });
     }
 
-    private void OpenPocketFixture()
+    private void OpenPocketFixture(bool migrate = false)
     {
         ValidateDesktop();
         if (_pocket is null)
         {
             string path = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE") ??
                 throw new InvalidOperationException("No isolated Pocket store.");
+            if (migrate)
+            {
+                var migrated = InveyProfile.Resolve(Path.Combine(Path.GetDirectoryName(path)!, "pocket-migration"));
+                if (!migrated.Available || !migrated.Writable || Path.GetFileName(migrated.Root) != "Invey")
+                    throw new InvalidOperationException("The isolated profile did not migrate.");
+                path = migrated.Root;
+            }
             var display = SnapshotDisplay.Available().FirstOrDefault(item => item.Label.EndsWith("Primary", StringComparison.Ordinal))
                 ?? throw new InvalidOperationException("No primary display for the capture fixture.");
             var grid = new Grid();
@@ -171,6 +184,9 @@ internal sealed class AcceptanceHost : IDisposable
                 _simulation.Stop();
                 return _tracking is null || await _tracking.StopAsync();
             }, _capturePattern);
+            var bounds = display.Bounds;
+            _pocket.Loaded += (_, _) => ScreenSnapshot.Place(_pocket, new System.Drawing.Rectangle(
+                bounds.Left + 24, bounds.Top + 64, Math.Min(630, bounds.Width / 2 - 48), Math.Min(670, bounds.Height - 96)));
             _pocket.Closed += (_, _) => _pocket = null;
         }
         _pocket.Show();
