@@ -124,6 +124,7 @@ internal static partial class Program
                 await RunPocketCapture(client, output);
                 await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
                 await RunPocketRestart(app, output);
+                await RunProductIntegration(app, output);
                 CleanPocketFixture(output);
                 return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
             }
@@ -249,6 +250,7 @@ internal static partial class Program
             await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
             await RunCalibrationAfterRestart(app, output);
             await RunPocketRestart(app, output);
+            await RunProductIntegration(app, output);
         }
         catch(Exception ex){Cases.Add(new("SESSION","NATIVE_SOFTWARE_TEST","Complete bounded isolated session",ex.ToString(),"FAIL",0));}
         finally

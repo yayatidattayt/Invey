@@ -13,7 +13,10 @@ internal static partial class Program
 
     private static async Task<JsonElement> BeginPocketCapture(Client client)
     {
-        AccessKey(0x43);
+        var ready = Pocket(await Until(client, state => !Pocket(state).GetProperty("CaptureInProgress").GetBoolean() &&
+            Pocket(state).GetProperty("CapturePoint").ValueKind == JsonValueKind.Object));
+        var button = ready.GetProperty("CapturePoint");
+        Input.Click(button.GetProperty("X").GetDouble(), button.GetProperty("Y").GetDouble());
         var active = await Until(client, state => Selector(state) != 0 ||
             PocketText(state).StartsWith("Capture unavailable.", StringComparison.Ordinal), 5000);
         Require(Selector(active) != 0, "Capture did not open: " + PocketText(active));
@@ -32,7 +35,14 @@ internal static partial class Program
             await FocusTrackingAsync(client, workspace);
             await Until(client, s => PocketText(s).StartsWith("Your library is empty", StringComparison.Ordinal));
             string store = Path.Combine(output, "pocket-test");
-            var active = await BeginPocketCapture(client);
+            var historical = new List<JsonElement>();
+            async Task<JsonElement> Begin()
+            {
+                var state = await BeginPocketCapture(client);
+                historical.Add(Pocket(state).GetProperty("Capture").GetProperty("BlackFixtureBands"));
+                return state;
+            }
+            var active = await Begin();
             var pattern = Pocket(active).GetProperty("Capture").GetProperty("FrozenPattern");
             Require(pattern.GetProperty("Left").GetBoolean() && pattern.GetProperty("Center").GetBoolean() &&
                 pattern.GetProperty("Right").GetBoolean(), "Frozen screen did not match fixture stripes: " + pattern.GetRawText());
@@ -51,7 +61,21 @@ internal static partial class Program
             AccessKey(0x50); // Preview is disabled for a zero-area selection.
             Require(!Pocket(await client.Command("status")).GetProperty("Capture").GetProperty("Preview").GetBoolean(),
                 "Zero-area selection showed a preview.");
-            Draw(.48, .87, .54, .94);
+            Draw(.32, .55, .35, .59);
+            AccessKey(0x50);
+            var boundary = await Until(client, s => Pocket(s).GetProperty("Capture").GetProperty("Preview").GetBoolean());
+            Require(Pocket(boundary).GetProperty("Capture").GetProperty("SaveEnabled").GetBoolean(),
+                "A black-to-color boundary was reported as all black.");
+            AccessKey(0x42);
+            await Until(client, s => !Pocket(s).GetProperty("Capture").GetProperty("Preview").GetBoolean());
+            Draw(.50, .82, .505, .825);
+            AccessKey(0x50);
+            var small = await Until(client, s => Pocket(s).GetProperty("Capture").GetProperty("Preview").GetBoolean());
+            Require(!Pocket(small).GetProperty("Capture").GetProperty("SaveEnabled").GetBoolean(),
+                "The small black region did not require confirmation: " + Pocket(small).GetProperty("Capture").GetRawText());
+            AccessKey(0x42);
+            await Until(client, s => !Pocket(s).GetProperty("Capture").GetProperty("Preview").GetBoolean());
+            Draw(.38, .64, .62, .80);
             AccessKey(0x50);
             var black = await Until(client, s =>
             {
@@ -69,7 +93,7 @@ internal static partial class Program
             Require(!Directory.Exists(store), "Cancel wrote Pocket data.");
             await Until(client, s => s.GetProperty("Native").GetProperty("Foreground").GetInt64() == workspace);
 
-            active = await BeginPocketCapture(client);
+            active = await Begin();
             Input.Move(left + width * .10, top + height * .22);
             var start = Input.Cursor();
             Input.Down();
@@ -97,7 +121,10 @@ internal static partial class Program
             AccessKey(0x48); // Hide reference
             await Until(client, s => Viewer(s) == 0);
             await FocusTrackingAsync(client, workspace);
-            await BeginPocketCapture(client);
+            var afterCardClose = await Begin();
+            var oldBand = Pocket(afterCardClose).GetProperty("Capture").GetProperty("BlackFixtureBands").GetProperty("Historical");
+            Require(oldBand.GetProperty("Nonblack").GetInt32() == 0,
+                "The previous card left pixels in the historical black region: " + oldBand.GetRawText());
             Draw(.10, .22, .22, .34);
             AccessKey(0x50);
             var retry = await Until(client, s => Pocket(s).GetProperty("Capture").GetProperty("Preview").GetBoolean());
@@ -119,7 +146,7 @@ internal static partial class Program
                 s.GetProperty("Native").GetProperty("Foreground").GetInt64() == workspace);
             Require(restored.GetProperty("OverlayVisible").GetBoolean(), "Cancel after a save failure did not restore the overlay.");
 
-            await BeginPocketCapture(client);
+            await Begin();
             Draw(.48, .87, .54, .94);
             AccessKey(0x50);
             await Until(client, s => Pocket(s).GetProperty("Capture").GetProperty("Status").GetString()!.Contains("preview is black"));
@@ -183,7 +210,8 @@ internal static partial class Program
             return new { Dpi = active.GetProperty("Dpi").GetInt32(), CropWidth = cropWidth, CropHeight = cropHeight,
                 ExpectedPixels = true, CancelWroteNothing = true, ConfirmedBlack = true, CameraOff = true,
                 LockedLibraryPreserved = true, RestoredAfterFailure = true, MultipleCards = true,
-                IndependentPin = true, MoveResize = true, RenameMoveDeleteUndo = true };
+                IndependentPin = true, MoveResize = true, RenameMoveDeleteUndo = true,
+                HistoricalAndBottomFixtureBands = historical, BlackBoundaryAndSmallCrop = true };
         });
     }
 
@@ -293,6 +321,7 @@ internal static partial class Program
             }
             File.Delete(Path.Combine(root, "manifest.json"));
             File.Delete(Path.Combine(root, "manifest.backup.json"));
+            File.Delete(Path.Combine(root, "shortcuts.json"));
             Directory.Delete(root);
         }
     }

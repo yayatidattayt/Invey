@@ -19,6 +19,22 @@ public class InteractionTests
         Assert.Equal(before,s.Target("b"));Assert.Equal("a",s.Pointer(PointerOwner.Mouse).Target);
         s.Move(PointerOwner.Ghost,new(120,120));Assert.False(s.Press(PointerOwner.Ghost,"a"));
     }
+    [Fact]
+    public void RemovingTargetCancelsOnlyItsOwnerAndResizeRespectsClaims()
+    {
+        var scene = Scene();
+        scene.Move(PointerOwner.Mouse, new(110, 110));
+        scene.Move(PointerOwner.Ghost, new(510, 110));
+        Assert.True(scene.Press(PointerOwner.Mouse, "a"));
+        Assert.True(scene.Press(PointerOwner.Ghost, "b"));
+        Assert.False(scene.Resize(PointerOwner.Mouse, "b", new(510, 120, 300, 200)));
+        scene.RemoveTarget("b");
+        Assert.Null(scene.Pointer(PointerOwner.Ghost).Target);
+        Assert.Equal("a", scene.Pointer(PointerOwner.Mouse).Target);
+        scene.SetTarget("b", new(990, 770, 320, 200));
+        Assert.Equal(new DipRect(680, 600, 320, 200), scene.Target("b"));
+    }
+
     private static InteractionState Scene()=>new(new(0,0,1000,800),new Dictionary<string,DipRect>{{"a",new(100,100,200,100)},{"b",new(500,100,200,100)}});
     [Fact] public void DistinctTargetsCanBeClaimedAndReleasedIndependently()
     {
