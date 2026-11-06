@@ -34,9 +34,12 @@ internal sealed class PocketWorkspace : Window
     private CaptureWindow? _selector;
     private Window? _renameWindow;
     private Task? _captureTask;
+    private Task<bool>? _editTask;
     private IReadOnlyList<DeletedReference> _deleted = [];
     private bool _needsRepair;
     private bool _busy, _canCapture, _closed, _exitRequested, _restoreFailed;
+    internal event Action<Guid>? ReferenceDeleted;
+    internal event Action<Guid>? ReferenceRestored;
     public bool CaptureInProgress => _captureTask is { IsCompleted: false };
 
     public PocketWorkspace(PocketStore store, Func<Task<bool>> prepareCapture, Window? syntheticBackground = null,
@@ -54,12 +57,23 @@ internal sealed class PocketWorkspace : Window
         MinWidth = 390;
         MinHeight = 340;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(this);
         AutomationProperties.SetName(_displays, "Capture display");
         AutomationProperties.SetName(_references, "Saved references");
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
         var displays = new Button { Content = "Refresh _displays" };
         displays.Click += (_, _) => RefreshDisplays();
-        _capture.Click += async (_, _) => await (_captureTask = CaptureAsync());
+        _capture.Click += async (_, _) => await StartCaptureAsync();
+        var tuck = new Button { Content = "_Tuck shelf" };
+        tuck.Click += (_, _) => Tuck();
+        PreviewKeyDown += (_, args) =>
+        {
+            if (args.Key == System.Windows.Input.Key.Escape && !_busy)
+            {
+                Tuck();
+                args.Handled = true;
+            }
+        };
         _reload.Click += async (_, _) => await ReloadAsync();
         _open.Click += async (_, _) => await OpenAsync();
         _rename.Click += async (_, _) => await RenameAsync();
@@ -98,7 +112,7 @@ internal sealed class PocketWorkspace : Window
                 new WrapPanel { Margin = new Thickness(0, 8, 0, 8), Children = { _capture, displays } },
                 new Label { Content = "Saved re_ferences", Target = _references, Padding = new Thickness(0, 0, 0, 4) },
                 _references,
-                new WrapPanel { Margin = new Thickness(0, 8, 0, 2), Children = { _open, _reload } },
+                new WrapPanel { Margin = new Thickness(0, 8, 0, 2), Children = { _open, _reload, tuck } },
                 new WrapPanel { Children = { _rename, _up, _down, _delete, _undo, _purge, _repair } },
                 _status
             }
@@ -112,7 +126,26 @@ internal sealed class PocketWorkspace : Window
                 try { await _cards.RestoreAsync(); }
                 catch (Exception error) when (IsStorageError(error)) { _status.Text = "Could not restore saved cards."; }
         };
+        Closing += (_, args) =>
+        {
+            if (_exitRequested) return;
+            args.Cancel = true;
+            Tuck();
+        };
         Closed += (_, _) => _closed = true;
+    }
+
+    public void Tuck()
+    {
+        if (!_busy && !CaptureInProgress && _renameWindow is null) Hide();
+    }
+
+    public async Task StartCaptureAsync()
+    {
+        if (_exitRequested || _busy || CaptureInProgress || _renameWindow is not null) return;
+        if (!IsLoaded) await ReloadAsync();
+        if (_exitRequested || _busy || CaptureInProgress || _renameWindow is not null) return;
+        await (_captureTask = CaptureAsync());
     }
 
     private sealed record Row(PocketReference Reference)
@@ -125,8 +158,10 @@ internal sealed class PocketWorkspace : Window
     {
         _exitRequested = true;
         UpdateActions();
+        _renameWindow?.Close();
         if (_selector is { Committing: false }) _selector.Close();
         if (_captureTask is not null) await _captureTask;
+        if (_editTask is not null) await _editTask;
         if (_ownsCards) await _cards.CloseAsync();
     }
 
@@ -198,10 +233,12 @@ internal sealed class PocketWorkspace : Window
         UpdateActions();
         Window[] visible = [];
         var cloaked = new HashSet<Window>();
-        bool saved = false;
+        bool saved = false, cardOpenBlocked = false;
         try
         {
             if (!await _prepareCapture()) { _status.Text = "Tracking cleanup is pending. Try again after Stop completes."; return; }
+            await _cards.BlockOpeningAsync();
+            cardOpenBlocked = true;
             if (_exitRequested) return;
             visible = Application.Current.Windows.OfType<Window>()
                 .Where(window => window.IsVisible && window != _syntheticBackground).ToArray();
@@ -236,6 +273,7 @@ internal sealed class PocketWorkspace : Window
         finally
         {
             if (_selector is { IsClosed: false }) _selector.Close();
+            if (cardOpenBlocked) _cards.ResumeOpening();
             _selector = null;
             foreach (var window in visible)
             {
@@ -321,19 +359,22 @@ internal sealed class PocketWorkspace : Window
     private async Task DeleteAsync()
     {
         if (_references.SelectedItem is not Row row) return;
-        await _cards.SaveBeforeDeleteAsync(row.Reference.Id);
-        if (await ChangeAsync(() => _store.Delete(row.Reference.Id)))
-        {
-            _cards.CloseDeleted(row.Reference.Id);
+        Guid id = row.Reference.Id;
+        if (await ChangeAsync(() => _store.Delete(id), before: () => _cards.SaveBeforeDeleteAsync(id),
+            committed: () =>
+            {
+                _cards.CloseDeleted(id);
+                ReferenceDeleted?.Invoke(id);
+            }))
             _status.Text = "Reference deleted. Undo is available for 10 minutes.";
-        }
     }
 
     private async Task UndoAsync()
     {
         var row = _deleted.LastOrDefault(_store.CanUndo);
         if (row is null) { _status.Text = "No deleted reference is eligible for Undo."; UpdateActions(); return; }
-        if (await ChangeAsync(() => _store.Undo(row.Item.Id), row.Item.Id) &&
+        if (await ChangeAsync(() => _store.Undo(row.Item.Id), row.Item.Id,
+            committed: () => ReferenceRestored?.Invoke(row.Item.Id)) &&
             row.Item.Placement is { Pinned: true, Visible: true })
         {
             try { await _cards.OpenAsync(row.Item, activate: false); }
@@ -345,12 +386,20 @@ internal sealed class PocketWorkspace : Window
     private Task<bool> ChangeSelectedAsync(Action<PocketReference> operation) =>
         _references.SelectedItem is Row row ? ChangeAsync(() => operation(row.Reference), row.Reference.Id) : Task.FromResult(false);
 
-    private async Task<bool> ChangeAsync(Action operation, Guid? selected = null)
+    private Task<bool> ChangeAsync(Action operation, Guid? selected = null, Func<Task>? before = null,
+        Action? committed = null) => _busy || _exitRequested ? Task.FromResult(false) :
+        _editTask = CommitEditAsync(operation, selected, before, committed);
+
+    private async Task<bool> CommitEditAsync(Action operation, Guid? selected, Func<Task>? before, Action? committed)
     {
-        if (_busy || _exitRequested) return false;
         _busy = true;
         UpdateActions();
-        try { await Task.Run(operation); }
+        try
+        {
+            if (before is not null) await before();
+            await Task.Run(operation);
+            committed?.Invoke();
+        }
         catch (Exception error) when (IsStorageError(error) || error is FileFormatException)
         {
             _status.Text = error is InvalidDataException or NotSupportedException ? error.Message :
@@ -381,6 +430,9 @@ internal sealed class PocketWorkspace : Window
         return new
         {
             LastRowPoint = lastRowPoint,
+            CapturePoint = _capture.IsVisible && _capture.IsEnabled
+                ? _capture.PointToScreen(new Point(_capture.ActualWidth / 2, _capture.ActualHeight / 2)) : (Point?)null,
+            CaptureInProgress,
             Handle = new WindowInteropHelper(this).Handle.ToInt64(),
             CaptureHandle = _selector is { } selector ? new WindowInteropHelper(selector).Handle.ToInt64() : 0,
             Capture = _selector?.TestState(), _status.Text, Count = _references.Items.Count, Busy = _busy,
