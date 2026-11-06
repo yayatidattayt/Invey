@@ -14,7 +14,7 @@ The installer also extracted the verified cached archive into a fresh project-lo
 
 The Windows x64 workflow uses a read-only token, commit-pinned checkout/Python/artifact actions and no checkout credential persistence. It checks the SDK archive, restores locked dependencies, builds and tests both configurations and runs deterministic worker tests with a checksum-pinned NumPy wheel. It uploads core TRX results. The native file-reader test reports a skip when the local MP4 fixture is absent. See [workflow](../.github/workflows/windows.yml) and [evidence policy](../VERIFICATION.md).
 
-Hosted run status is recorded in section R.
+The first hosted run passed SDK setup, locked restore, both builds and core tests, deterministic worker tests and TRX upload. GitHub published the `windows-core-test-results` artifact. The local MP4 case remains a separately reported fixture-dependent test. [Windows verification run](https://github.com/yayatidattayt/Invey/actions/runs/42174465421)
 
 ## D — Engineering defects
 
@@ -97,7 +97,7 @@ Pocket still provides a passive panel and simulated reference action. Dual retai
 
 ## R — GitHub delivery
 
-Feature branch `codex/execution-11-calibration-ci`, targeting `main`. Publication and the hosted result are pending verification.
+Feature branch `codex/execution-11-calibration-ci` targets `main`. Implementation commit `4092c008f6a8141697e246961390e1d670c871dd` passed the hosted Windows workflow. This report records that implementation run in a documentation follow-up. The pull request is open for review. [Pull request #1](https://github.com/yayatidattayt/Invey/pull/1) · [Passing Windows run](https://github.com/yayatidattayt/Invey/actions/runs/42174465421)
 
 ## S — Remaining risks
 

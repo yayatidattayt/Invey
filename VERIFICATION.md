@@ -2,7 +2,7 @@
 
 Execution 10 established the published Windows baseline. It recorded 54 core passes per configuration, 14 worker passes, and live acquisition and Stop on the laptop webcam. The live calibration session ended without observing Ready. [Execution 10 report](docs/EXECUTION_10_REPORT.md)
 
-Execution 11 covers selected-display calibration, numeric preferences, practice and safe Windows CI. See the [Execution 11 report](docs/EXECUTION_11_REPORT.md) for actual run results. Physical input, Explorer, F06 device-loss and denial, physical F07 routes and full B1 remain open.
+Execution 11 covers selected-display calibration, numeric preferences, practice and Windows CI. The combined local run passed 29 cases with Explorer blocked. Hosted Windows verification also passed for the implementation commit. Physical input, Explorer, F06 device loss and denial, physical F07 routes and full B1 remain open. [Execution 11 report](docs/EXECUTION_11_REPORT.md) · [Hosted verification](https://github.com/yayatidattayt/Invey/actions/runs/42174465421)
 
 ## Where evidence lives
 
