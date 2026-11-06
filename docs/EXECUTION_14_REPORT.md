@@ -28,7 +28,7 @@ The renamed solution restored from lock files with SDK 10.0.403 and produced the
 
 ## E — Windows identity compatibility
 
-Both versions use the shared instance mutex and reopen event to coordinate ownership in the same session. The Windows app manifest and taskbar identity use Invey.Desktop. The tray continues to be owned by the normal app controller. No new installer or startup shortcut was introduced. [Microsoft AppUserModelID API](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-setcurrentprocessexplicitappusermodelid)
+Both versions use the shared instance mutex and reopen event to coordinate ownership in the same session. The Windows app manifest and taskbar identity use Invey.Desktop. On the normal desktop, the previous PR #2 executable was rebuilt from a disposable source snapshot. While that executable still owned the session, `Invey.exe` exited as a secondary process with exit code 0. Both versions also passed their own native single-instance smoke checks. The check used an empty local-profile inventory, and neither process created a profile. The tray continues to be owned by the normal app controller. No new installer or startup shortcut was introduced. [Microsoft AppUserModelID API](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-setcurrentprocessexplicitappusermodelid)
 
 ## F — User-data migration
 
@@ -82,11 +82,11 @@ Session A canceled calibration and Session B stopped explicitly. The worker reco
 
 ## P — Debug and Release
 
-Baseline locked restore, both builds and 70 core tests per configuration passed before changes. The rename was built independently before larger changes. Both final builds completed with zero warnings and errors. The pinned `scripts/dotnet.ps1` wrapper built `Invey.sln` in Debug and Release x64 from the locked restore.
+Baseline locked restore, both builds and 70 core tests per configuration passed before changes. The rename was built independently before larger changes. Both final builds completed with zero warnings and errors. The pinned `scripts/dotnet.ps1` wrapper built `Invey.sln` in Debug and Release x64 from the locked restore. A restricted compiler invocation was canceled with MSB5021. The rerun completed cleanly in both configurations. A restricted legacy fixture restore also exited before completion, and the rerun restored and built the historical executable.
 
 ## Q — Core tests
 
-Debug and Release each passed 76 tests, with zero failures or skips. New tests cover rename and ordering, preserved hashes, durable Undo and expiry, explicit repair, old/new profile conflicts, interrupted and locked migration, migration of tombstones with Undo, and card placement on signed desktop origins.
+Debug and Release each passed 80 tests, with zero failures or skips. New tests cover rename and ordering, preserved hashes, durable Undo and expiry, explicit repair, old/new profile conflicts, interrupted and locked migration, migration of tombstones with Undo, corrupt and newer legacy manifests, missing assets, corrupt legacy calibration, and card placement on signed desktop origins.
 
 ## R — Worker tests
 
@@ -94,23 +94,23 @@ The baseline and final rerun each passed all 15 worker tests, including native f
 
 ## S — Native Windows tests
 
-The first renamed Pocket-only run passed using the Execution 13 suite. The revised suite verifies actual black and colored snapshots, two independent cards, pinning, move/resize, keyboard selection, rename, order, Delete/Undo, and restart retrieval. Both final targeted runs passed all four cases at 125% DPI, including capture and edits, exit, migration and restart with restored bounds and zoom, and fixture cleanup. The run IDs begin `20261106T134538152` and `20261106T134541968` for seeds 73021 and 73022. The first verified normal-size colored region retained its 230 × 144 dimensions. The tests drive real WPF windows over owned synthetic content on a separate Windows desktop.
+The first renamed Pocket-only run passed using the Execution 13 suite. The revised suite verifies actual black and colored snapshots, two independent cards, pinning, move/resize, native row selection, rename, order, Delete/Undo, and restart retrieval. Both final targeted runs passed all four cases at 125% DPI, including capture and edits, exit, migration and restart with restored bounds and zoom, and fixture cleanup. The run IDs begin `20261106T134538152` and `20261106T134541968` for seeds 73021 and 73022. The first verified normal-size colored region retained its 230 × 144 dimensions. The tests drive real WPF windows over owned synthetic content on a separate Windows desktop.
 
 ## T — Crash and resource review
 
-Cards release decoded images on close, detach display notifications, and save placement via bounded debouncing and an asynchronous serialized writer. Capture retains the existing cloak-and-restore cleanup. Profile staging retains a prior interrupted copy for inspection. There is no automatic claim that long-session memory or performance targets are met.
+Cards release decoded images on close, detach display notifications, and save placement via bounded debouncing and an asynchronous serialized writer. Capture retains the existing cloak-and-restore cleanup. Profile staging retains a prior interrupted copy for inspection. No app crash occurred in the final targeted, full regression or startup smoke runs. The normal-desktop audit found the Default input desktop restored, no scoped processes, no synthetic Pocket fixture folders and no new normal profiles. Sustained CPU and memory targets remain unmeasured.
 
 ## U — Full regression
 
-The first card build caught a nullable constructor callback and was corrected. The first two private runs reached the real pin path but failed the fixture's list-selection assertion. The second showed focus on the ListBox with its initial row still selected after a single Down key. Using End after confirmed list focus selected the intended second reference. The first corrected targeted run passed. Two later targeted runs beginning `20261106T133655190` and `20261106T134100061` saw a nonblack pixel in the second intended black selection despite sampled stripe anchors matching. The exact origin of that pixel was inconclusive. Run `20261106T134105330` had 32 passes, one blocked Explorer case and one failed Pocket case. The pinned card lost its zoom when the list-focus shortcut was sent and the list never received focus. The revised fixture places the library outside the pinned card, clicks the realized row and verifies selection and foreground, and samples the black stripe in a clear bottom band. Failed and passing attempts are retained locally. Both revised targeted runs passed. The full short run on seed 73021 (`20261106T134545570-89cb3210ea1949bd9ea31f126320b787`) finished with 34 PASS, zero FAIL and one BLOCKED for Explorer on the isolated desktop. This included the recorded F06/F07 controls, A1/A2 fixtures, and Pocket restart and cleanup. Both specification validators passed.
+The first card build caught a nullable constructor callback and was corrected. The first two private runs reached the real pin path but failed the fixture's list-selection assertion. The second showed focus on the ListBox with its initial row still selected after a single Down key. Using End after confirmed list focus selected the intended second reference. The first corrected targeted run passed. Two later targeted runs beginning `20261106T133655190` and `20261106T134100061` saw a nonblack pixel in the second intended black selection despite sampled stripe anchors matching. The exact origin of that pixel was inconclusive. Run `20261106T134105330` had 32 passes, one blocked Explorer case and one failed Pocket case. The pinned card lost its zoom when the list-focus shortcut was sent and the list never received focus. The revised fixture places the library outside the pinned card, clicks the realized row and verifies selection and foreground, and samples the black stripe in a clear bottom band. Failed and passing attempts are retained locally. Both revised targeted runs passed. The full short run on seed 73021 (`20261106T134545570-89cb3210ea1949bd9ea31f126320b787`) finished with 34 PASS, zero FAIL and one BLOCKED for Explorer on the isolated desktop. This included the recorded F06/F07 controls, A1/A2 fixtures, and Pocket restart and cleanup. Both specification validators passed. Separate normal-desktop smoke runs (`20261106T134859801` and `20261106T134928987`) each passed with 900 observations, retained fixture focus and cursor position, and destroyed the overlay handle. These are software-only native checks.
 
 ## V — GitHub CI
 
-The feature workflow result is recorded after publication.
+The published implementation at `d1a2223bf9706a26ab3045ee02734cf4c504e53a` passed the pinned SDK installation, locked restore, Debug and Release build and tests, and native-file worker tests in hosted Windows. The follow-up adds four deterministic migration fault cases and this report. The PR Checks tab records the verification for its current head. [Implementation CI run](https://github.com/yayatidattayt/Invey/actions/runs/42228795362) · [PR checks](https://github.com/yayatidattayt/Invey/pull/3/checks)
 
 ## W — Pull request
 
-The feature review targets PR #2's branch. The parent PRs remain separate.
+[PR #3](https://github.com/yayatidattayt/Invey/pull/3) targets PR #2's feature branch. Parent PRs #1 and #2 are open at the same heads observed at recovery. The Execution 14 branch is ready for review of the verified slice. Acceptance of the open physical and broader product gates remains separate.
 
 ## X — Defect ledger
 

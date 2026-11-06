@@ -245,6 +245,42 @@ public sealed class PocketStoreTests
         Assert.Equal(Png(), store.Open(item));
     }
 
+    [Theory]
+    [InlineData("corrupt manifest")]
+    [InlineData("newer manifest")]
+    [InlineData("missing image")]
+    [InlineData("corrupt calibration")]
+    public void InvalidLegacyDataRemainsInPlaceWithoutPublishing(string failure)
+    {
+        using var folder = new StoreFolder();
+        string legacy = Path.Combine(folder.Path, "PocketDualGhost");
+        var item = new PocketStore(legacy).Save(Guid.NewGuid(), Png());
+        string manifest = Path.Combine(legacy, "manifest.json");
+        string image = Path.Combine(legacy, "assets", item.Id.ToString("N") + ".png");
+        string calibration = Path.Combine(legacy, "calibration.json");
+
+        switch (failure)
+        {
+            case "corrupt manifest": File.WriteAllText(manifest, "{broken"); break;
+            case "newer manifest":
+                File.WriteAllText(manifest, File.ReadAllText(manifest).Replace("\"Version\":2", "\"Version\":99"));
+                break;
+            case "missing image": File.Delete(image); break;
+            case "corrupt calibration": File.WriteAllText(calibration, "{broken"); break;
+        }
+
+        var original = File.ReadAllBytes(manifest);
+        var profile = InveyProfile.Resolve(folder.Path);
+        Assert.Equal(legacy, profile.Root);
+        Assert.False(profile.Writable);
+        Assert.False(Directory.Exists(Path.Combine(folder.Path, "Invey")));
+        Assert.False(Directory.Exists(Path.Combine(folder.Path, "Invey.migration")));
+        Assert.Equal(original, File.ReadAllBytes(manifest));
+        if (failure == "missing image") Assert.False(File.Exists(image));
+        else Assert.Equal(Png(), File.ReadAllBytes(image));
+        if (failure == "corrupt calibration") Assert.Equal("{broken", File.ReadAllText(calibration));
+    }
+
     [Fact]
     public void MigrationPreservesADeletedReferenceAndItsUndo()
     {
