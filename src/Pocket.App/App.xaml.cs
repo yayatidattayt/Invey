@@ -40,15 +40,30 @@ public partial class App : Application
             var profile = await Task.Run(() => InveyProfile.Resolve(profileParent));
             _controller=new MainWindow(profile); MainWindow=_controller;
             _wait=ThreadPool.RegisterWaitForSingleObject(_reopen,(_,_)=>Dispatcher.BeginInvoke(new Action(Open)),null,Timeout.Infinite,false);
-            var menu=new Forms.ContextMenuStrip();
-            menu.Items.Add("Open Invey",null,(_,_)=>Open());
-            menu.Items.Add("Pocket · capture and references",null,(_,_)=>_controller.ShowPocket());
-            menu.Items.Add("Settings",null,(_,_)=>{if(!_controller.CaptureInProgress){Open();_controller.ShowSettings();}});
-            menu.Items.Add("Stop tracking",null,(_,_)=>_controller.Pause());
-            menu.Items.Add("Exit Invey",null,async (_,_)=>await _controller.ExitAsync());
-            _tray=new Forms.NotifyIcon { Text="Invey · Camera off",Icon=System.Drawing.SystemIcons.Application,ContextMenuStrip=menu,Visible=true };
+            var menu = new Forms.ContextMenuStrip();
+            menu.Items.Add("Open Invey", null, (_, _) => Open());
+            menu.Items.Add("Capture region", null, async (_, _) => await _controller.CaptureAsync());
+            menu.Items.Add("Toggle Pocket shelf", null, (_, _) => _controller.ShowPocket(toggle: true));
+            menu.Items.Add("Workspace", null, (_, _) => _controller.ShowWorkspace());
+            menu.Items.Add("Settings", null, (_, _) => { if (!_controller.CaptureInProgress) { Open(); _controller.ShowSettings(); } });
+            menu.Items.Add("Pause Ghost", null, (_, _) => _controller.Pause());
+            menu.Items.Add("Exit Invey", null, async (_, _) => await _controller.ExitAsync());
+            try
+            {
+                _tray = new Forms.NotifyIcon { Text = "Invey · Camera off", Icon = System.Drawing.SystemIcons.Application, ContextMenuStrip = menu };
+                _tray.Visible = true;
+                _tray.DoubleClick += (_, _) => Open();
+                _controller.TrayAvailable = true;
+            }
+            catch (System.ComponentModel.Win32Exception error)
+            {
+                _tray?.Dispose();
+                _tray = null;
+                menu.Dispose();
+                Trace.TraceWarning("Invey tray could not start: 0x{0:X8}", error.HResult);
+            }
             _controller.CameraStatusChanged += status => { if (_tray is { } tray) tray.Text = "Invey · " + status; };
-            _tray.DoubleClick+=(_,_)=>Open();
+            _controller.StartShortcuts();
             _controller.Show();
             if(e.Args.Contains("--native-smoke")) _=RunSmoke();
         }
@@ -56,6 +71,11 @@ public partial class App : Application
     }
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     private static extern int SetCurrentProcessExplicitAppUserModelID(string appId);
+
+    internal static bool HasShellTray() => FindWindow("Shell_TrayWnd", null) != 0;
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern nint FindWindow(string windowClass, string? title);
     private async Task RunSmoke()
     {
         string outputDirectory=NativeSmoke.CreateRunDirectory();
