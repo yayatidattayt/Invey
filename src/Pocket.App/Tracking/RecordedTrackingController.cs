@@ -31,8 +31,11 @@ internal sealed class RecordedTrackingController
     internal static string? DiagnosticDirectory => Environment.GetEnvironmentVariable("INVEY_CAMERA_DIAGNOSTICS") ??
         Environment.GetEnvironmentVariable("GHOST_CAMERA_DIAGNOSTICS");
     private readonly string? _diagnostics = DiagnosticDirectory;
-    public const int DiagnosticSeconds = 25;
-    public bool HasDiagnostics => Directory.Exists(_diagnostics);
+    public const int DiagnosticSeconds = 16;
+    private const int DiagnosticMaxStarts = 3;
+    private static int _diagnosticStarts;
+    public bool HasDiagnostics => !string.IsNullOrWhiteSpace(_diagnostics);
+    public bool DiagnosticBudgetAvailable => !HasDiagnostics || _diagnosticStarts < DiagnosticMaxStarts;
 
     public RecordedTrackingController(string? root = null) =>
         _root = root ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
@@ -47,18 +50,27 @@ internal sealed class RecordedTrackingController
     public bool Start(CameraDevice? device, string? fixtureFile = null, string? testFault = null)
     {
         var source = device is null || fixtureFile is not null ? TrackingSource.Recorded : TrackingSource.Camera;
-        if (!CanStart || _session.Enable(source) is not { } id) return false;
+        bool boundedCamera = source == TrackingSource.Camera && testFault is null && HasDiagnostics;
+        if (!CanStart || (boundedCamera && !TryReserveDiagnosticStart()) || _session.Enable(source) is not { } id) return false;
         _stop?.Dispose();
         _stop = new CancellationTokenSource();
         _explicitStop = false;
-        string? diagnostics = source == TrackingSource.Camera && testFault is null && HasDiagnostics ? _diagnostics : null;
-        if (diagnostics is not null) _stop.CancelAfter(TimeSpan.FromSeconds(DiagnosticSeconds));
+        string? diagnostics = boundedCamera ? _diagnostics : null;
+        if (boundedCamera) _stop.CancelAfter(TimeSpan.FromSeconds(DiagnosticSeconds));
         _lastPid = 0;
         _forcedStop = false;
         _workerPhase = null;
         _workerNativeCode = null;
         var token = _stop.Token;
         _run = Task.Run(() => RunAsync(id, device, fixtureFile, testFault, diagnostics, token));
+        return true;
+    }
+
+    // Both the lab and the isolated budget test call this on their WPF dispatcher.
+    internal static bool TryReserveDiagnosticStart()
+    {
+        if (_diagnosticStarts >= DiagnosticMaxStarts) return false;
+        _diagnosticStarts++;
         return true;
     }
 
