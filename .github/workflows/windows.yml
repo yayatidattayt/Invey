@@ -2,7 +2,7 @@ name: Windows verification
 
 on:
   pull_request:
-    branches: [main, codex/execution-11-calibration-ci]
+    branches: [main, codex/execution-11-calibration-ci, codex/execution-13-pocket-capture]
   push:
     branches: [main]
 
@@ -23,11 +23,11 @@ jobs:
       - name: Install and verify the pinned x64 SDK
         run: ./scripts/Install-Dotnet.ps1
       - name: Restore locked packages
-        run: ./scripts/dotnet.ps1 -Arguments @('restore','Pocket.Dual.Ghost.sln','--locked-mode','-p:Platform=x64')
+        run: ./scripts/dotnet.ps1 -Arguments @('restore','Invey.sln','--locked-mode','-p:Platform=x64')
       - name: Build and test Debug and Release
         run: |
           foreach ($configuration in 'Debug','Release') {
-            & ./scripts/dotnet.ps1 -Arguments @('build','Pocket.Dual.Ghost.sln','-c',$configuration,'-p:Platform=x64','--no-restore')
+            & ./scripts/dotnet.ps1 -Arguments @('build','Invey.sln','-c',$configuration,'-p:Platform=x64','--no-restore')
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             & ./scripts/dotnet.ps1 -Arguments @('test','tests/Pocket.Core.Tests','-c',$configuration,'--no-build','--logger',"trx;LogFileName=$configuration.trx",'--results-directory','TestResults')
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

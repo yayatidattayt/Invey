@@ -106,7 +106,7 @@ internal static class Program
         if (actual != pid) return null;
         using var process = Process.GetProcessById(pid);
         if (process.HasExited || process.StartTime.ToUniversalTime().Ticks != lifetime ||
-            process.ProcessName != "Pocket.App") return null;
+            process.ProcessName is not ("Invey" or "Pocket.App")) return null;
         var root = AutomationElement.FromHandle(new nint(hwnd));
         return root.Current.AutomationId == "GhostFixture.Window" ? root : null;
     }

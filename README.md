@@ -22,8 +22,8 @@ From the repository root on Windows x64, run these commands in PowerShell.
 
 ```powershell
 & ./scripts/Install-Dotnet.ps1
-& ./scripts/dotnet.ps1 -Arguments @('restore','Pocket.Dual.Ghost.sln','--locked-mode','-p:Platform=x64')
-& ./scripts/dotnet.ps1 -Arguments @('build','Pocket.Dual.Ghost.sln','-c','Debug','-p:Platform=x64','--no-restore')
+& ./scripts/dotnet.ps1 -Arguments @('restore','Invey.sln','--locked-mode','-p:Platform=x64')
+& ./scripts/dotnet.ps1 -Arguments @('build','Invey.sln','-c','Debug','-p:Platform=x64','--no-restore')
 & ./scripts/dotnet.ps1 -Arguments @('test','tests/Pocket.Core.Tests','-c','Debug','--no-build')
 & ./scripts/dotnet.ps1 -Arguments @('run','--project','src/Pocket.App','-c','Debug','--no-build')
 ```

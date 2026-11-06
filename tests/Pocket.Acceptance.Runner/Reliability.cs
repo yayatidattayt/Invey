@@ -221,7 +221,7 @@ internal static partial class Program
         await Measure("A2_REAL_PROVIDER_RECOVERY","NATIVE_SOFTWARE_TEST","Real blocked provider callback; kill worker; responsive primary host; explicit new-request recovery",async()=>
         {
             string directory=Path.Combine(output,"adverse-provider");Directory.CreateDirectory(directory);
-            var info=new ProcessStartInfo(Path.GetFullPath("src/Pocket.App/bin/Release/net10.0-windows/Pocket.App.exe")){UseShellExecute=false,CreateNoWindow=true};
+            var info=new ProcessStartInfo(Path.GetFullPath("src/Pocket.App/bin/Release/net10.0-windows/Invey.exe")){UseShellExecute=false,CreateNoWindow=true};
             info.Environment["DOTNET_ROOT"]=Path.GetDirectoryName(Environment.ProcessPath)!;
             info.ArgumentList.Add("--adverse-provider");info.ArgumentList.Add(directory);
             using var provider=Process.Start(info)??throw new IOException("Cannot start adverse provider.");
@@ -283,7 +283,7 @@ internal static partial class Program
         await Measure("A2_STANDARD_PROVIDER_COMPATIBILITY","NATIVE_SOFTWARE_TEST","Observe only owned WinForms/Win32 controls; supported actions need independent state",async()=>
         {
             string directory=Path.Combine(output,"standard-provider");Directory.CreateDirectory(directory);
-            var info=new ProcessStartInfo(Path.GetFullPath("src/Pocket.App/bin/Release/net10.0-windows/Pocket.App.exe")){UseShellExecute=false,CreateNoWindow=true};
+            var info=new ProcessStartInfo(Path.GetFullPath("src/Pocket.App/bin/Release/net10.0-windows/Invey.exe")){UseShellExecute=false,CreateNoWindow=true};
             info.Environment["DOTNET_ROOT"]=Path.GetDirectoryName(Environment.ProcessPath)!;
             info.ArgumentList.Add("--standard-provider");info.ArgumentList.Add(directory);
             using var provider=Process.Start(info)??throw new IOException("Standard fixture failed.");
