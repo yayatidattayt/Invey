@@ -36,6 +36,7 @@ public partial class App : Application
             _wait=ThreadPool.RegisterWaitForSingleObject(_reopen,(_,_)=>Dispatcher.BeginInvoke(new Action(Open)),null,Timeout.Infinite,false);
             var menu=new Forms.ContextMenuStrip();
             menu.Items.Add("Open Invey",null,(_,_)=>Open());
+            menu.Items.Add("Pocket · capture and references",null,(_,_)=>_controller.ShowPocket());
             menu.Items.Add("Settings",null,(_,_)=>{Open();_controller.ShowSettings();});
             menu.Items.Add("Stop tracking",null,(_,_)=>_controller.Pause());
             menu.Items.Add("Exit Invey",null,async (_,_)=>await _controller.ExitAsync());

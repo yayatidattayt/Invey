@@ -15,6 +15,7 @@ internal static partial class Program
 {
     private static readonly List<Case> Cases=new();
     private static bool TrackingOnly => Environment.GetEnvironmentVariable("GHOST_ACCEPTANCE_F06_ONLY") == "1";
+    private static bool PocketOnly => Environment.GetEnvironmentVariable("GHOST_ACCEPTANCE_POCKET_ONLY") == "1";
     [STAThread] public static int Main(string[] args)
     {
         Input.InitializeDpi();
@@ -114,10 +115,18 @@ internal static partial class Program
         try
         {
             Desktop.Guard();
-            if (!TrackingOnly) await CursorScenario("CURSOR_CONTROL_GHOST_CLOSED");
+            if (!TrackingOnly && !PocketOnly) await CursorScenario("CURSOR_CONTROL_GHOST_CLOSED");
             (host, client) = StartAcceptanceHost(app, output);
             await client.Connect();
             var initial=await client.Command("status");fixtureHandle=initial.GetProperty("FixtureHandle").GetInt64();overlayHandle=initial.GetProperty("OverlayHandle").GetInt64();
+            if (PocketOnly)
+            {
+                await RunPocketCapture(client, output);
+                await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
+                await RunPocketRestart(app, output);
+                CleanPocketFixture(output);
+                return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
+            }
             if (TrackingOnly)
             {
                 await RunRecordedTracking(client);
@@ -229,6 +238,7 @@ internal static partial class Program
             await RunRecordedTracking(client);
             await RunCalibration(client);
             await RunNativeTrackingFixture(client);
+            await RunPocketCapture(client, output);
             await Measure("OVERLAY_CLOSED_DURING_PRESS","NATIVE_SOFTWARE_TEST","Closing owned overlay cancels claim and timer immediately",async()=>
             {
                 await client.Command("start");await Until(client,s=>s.GetProperty("GhostClaim").ValueKind==JsonValueKind.String);
@@ -238,6 +248,7 @@ internal static partial class Program
             });
             await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
             await RunCalibrationAfterRestart(app, output);
+            await RunPocketRestart(app, output);
         }
         catch(Exception ex){Cases.Add(new("SESSION","NATIVE_SOFTWARE_TEST","Complete bounded isolated session",ex.ToString(),"FAIL",0));}
         finally
@@ -255,7 +266,8 @@ internal static partial class Program
                 catch (Exception ex) { Cases.Add(new("HOST_CLEANUP","TEST_HARNESS_CLEANUP","Confirm owned host exit",ex.Message,"FAIL",0)); }
                 finally { host.Dispose(); }
             }
-            var result=new{Scope=TrackingOnly?"F06 only":"A1/A2 and recorded F06",RunId=Path.GetFileName(output),Utc=DateTimeOffset.UtcNow,Os=Environment.OSVersion.VersionString,Runtime=Environment.Version.ToString(),Architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),Configuration="Release",RunnerVersion="1.1",Profile=TestProfile.Name,Seed=TestProfile.Seed,ProfileBudgetSeconds=TestProfile.BudgetSeconds,RunnerSha256=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(Program).Assembly.Location))),WorkerSha256=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes("src/Pocket.Automation.Worker/bin/Release/net10.0-windows/Pocket.Automation.Worker.dll"))),ClientSha256=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(WorkerClient).Assembly.Location))),AppSha256=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(app))),Desktop=Environment.GetEnvironmentVariable("GHOST_ACCEPTANCE_DESKTOP"),Cases,FullPhysicalAcceptance="BLOCKED;no human/device-origin tests",AutomatedAcceptance=Cases.Any(c=>c.Status=="FAIL")?"FAIL":Cases.Any(c=>c.Status is "BLOCKED" or "INCONCLUSIVE")?"PASS WITH EXPLICIT ENVIRONMENT GAPS":"PASS"};
+            if (!Cases.Any(c => c.Id == "POCKET_FIXTURE_CLEANUP")) CleanPocketFixture(output);
+            var result=new{Scope=PocketOnly?"Pocket only":TrackingOnly?"F06 only":"A1/A2, recorded F06 and Pocket",RunId=Path.GetFileName(output),Utc=DateTimeOffset.UtcNow,Os=Environment.OSVersion.VersionString,Runtime=Environment.Version.ToString(),Architecture=System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),Configuration="Release",RunnerVersion="1.1",Profile=TestProfile.Name,Seed=TestProfile.Seed,ProfileBudgetSeconds=TestProfile.BudgetSeconds,RunnerSha256=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(Program).Assembly.Location))),WorkerSha256=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes("src/Pocket.Automation.Worker/bin/Release/net10.0-windows/Pocket.Automation.Worker.dll"))),ClientSha256=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(typeof(WorkerClient).Assembly.Location))),AppSha256=Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(app))),Desktop=Environment.GetEnvironmentVariable("GHOST_ACCEPTANCE_DESKTOP"),Cases,FullPhysicalAcceptance="BLOCKED;no human/device-origin tests",AutomatedAcceptance=Cases.Any(c=>c.Status=="FAIL")?"FAIL":Cases.Any(c=>c.Status is "BLOCKED" or "INCONCLUSIVE")?"PASS WITH EXPLICIT ENVIRONMENT GAPS":"PASS"};
             await File.WriteAllTextAsync(Path.Combine(output,"results.json"),JsonSerializer.Serialize(result,new JsonSerializerOptions{WriteIndented=true}));
             await File.WriteAllLinesAsync(Path.Combine(output,"results.md"),new[]{"# Invey isolated automated acceptance",""}.Concat(Cases.Select(c=>$"- {c.Id}: {c.Status} ({c.EvidenceClass})")));
         }
@@ -271,6 +283,7 @@ internal static partial class Program
         info.Environment["GHOST_ACCEPTANCE_DOTNET"] = Environment.ProcessPath!;
         info.Environment["GHOST_ACCEPTANCE_WORKER"] = Path.GetFullPath("src/Pocket.Automation.Worker/bin/Release/net10.0-windows/Pocket.Automation.Worker.dll");
         info.Environment["GHOST_TEST_CALIBRATION_SETTINGS"] = Path.GetFullPath(Path.Combine(output, "calibration.json"));
+        info.Environment["GHOST_TEST_POCKET_STORE"] = Path.GetFullPath(Path.Combine(output, "pocket-test"));
         foreach (var argument in new[] { "--acceptance-host", pipe, token }) info.ArgumentList.Add(argument);
         var host = Process.Start(info) ?? throw new InvalidOperationException("Cannot start controlled Invey host.");
         Input.ExpectedPid = host.Id;

@@ -1,5 +1,7 @@
 # Invey verification
 
+Execution 13 adds camera-off Pocket capture, local crop persistence and retrieval. The synthetic native capture harness exercises actual pixels in an isolated desktop. CI also tests Media Foundation reading and reopening a generated, non-private video fixture. [Execution 13 report](docs/EXECUTION_13_REPORT.md)
+
 Execution 10 established the published Windows baseline. It recorded 54 core passes per configuration, 14 worker passes, and live acquisition and Stop on the laptop webcam. The live calibration session ended without observing Ready. [Execution 10 report](docs/EXECUTION_10_REPORT.md)
 
 Execution 11 covers selected-display calibration, numeric preferences, practice and Windows CI. The combined local run passed 29 cases with Explorer blocked. Hosted Windows verification also passed for the implementation commit. Physical input, Explorer, F06 device loss and denial, physical F07 routes and full B1 remain open. [Execution 11 report](docs/EXECUTION_11_REPORT.md) · [Hosted verification](https://github.com/yayatidattayt/Invey/actions/runs/42174465421)

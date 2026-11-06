@@ -5,6 +5,8 @@ using System.Text.Json;
 using Microsoft.Win32;
 using Pocket.Overlay;
 using Pocket.App.Tracking;
+using Pocket.App.References;
+using Pocket.Core.References;
 
 namespace Pocket.App;
 
@@ -15,6 +17,7 @@ public partial class MainWindow : Window
     private Window? _settings;
     private FixtureWindow? _fixture;
     private RecordedTrackingWindow? _tracking;
+    private PocketWorkspace? _pocket;
     private bool _exiting;
     internal event Action<string>? CameraStatusChanged;
     public MainWindow() { InitializeComponent(); }
@@ -52,7 +55,7 @@ public partial class MainWindow : Window
             var content=new StackPanel { Margin=new(24) };
             content.Children.Add(new TextBlock { Text="Invey settings",FontSize=20,FontWeight=FontWeights.SemiBold });
             content.Children.Add(new TextBlock { Text="Invey (in-vay) brings together Pocket, Dual, and Ghost.", TextWrapping=TextWrapping.Wrap });
-            content.Children.Add(new TextBlock { Margin=new(0,16,0,16),TextWrapping=TextWrapping.Wrap,Text="Primary display only. Camera use is optional and starts from the Tracking lab. No settings are persisted yet." });
+            content.Children.Add(new TextBlock { Margin=new(0,16,0,16),TextWrapping=TextWrapping.Wrap,Text="Camera use is optional and starts from the Tracking lab. Pocket references are stored in your local Windows profile." });
             var checkbox=new CheckBox { Content="Show passive overlay",IsChecked=_overlay?.IsVisible==true,Margin=new(0,0,0,16) };
             checkbox.Checked+=(_,_)=>Safely(()=>{EnsureOverlay();_overlay!.Show();});
             checkbox.Unchecked+=(_,_)=>Safely(()=>{_simulation?.Stop();_overlay?.Hide();});
@@ -88,9 +91,29 @@ public partial class MainWindow : Window
         _tracking.Activate();
     }
     private async void ExitApp(object sender, RoutedEventArgs e) => await ExitAsync();
+    private void OpenPocket(object sender, RoutedEventArgs e) => ShowPocket();
+    public void ShowPocket()
+    {
+        if (_pocket is null)
+        {
+            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PocketDualGhost");
+            _pocket = new PocketWorkspace(new PocketStore(path), PrepareCaptureAsync);
+            _pocket.Closed += (_, _) => _pocket = null;
+        }
+        if (!_pocket.IsVisible && !_pocket.CaptureInProgress) _pocket.Show();
+        if (_pocket.IsVisible) _pocket.Activate();
+    }
+    private async Task<bool> PrepareCaptureAsync()
+    {
+        _simulation?.Stop();
+        UpdateButtons();
+        return _tracking is null || await _tracking.StopAsync();
+    }
     public async Task ExitAsync()
     {
+        if (_pocket is { } pocket) await pocket.PrepareExitAsync();
         if (_tracking is null || await _tracking.CloseAsync()) Application.Current.Shutdown();
+        else _pocket?.ResumeAfterAbortedExit();
     }
     public async void Pause()
     {
@@ -106,7 +129,7 @@ public partial class MainWindow : Window
     }
     public void Cleanup()
     {
-        _exiting=true; DisposeOverlay(); _settings?.Close(); _fixture?.Close(); Close();
+        _exiting=true; DisposeOverlay(); _pocket?.Close(); _settings?.Close(); _fixture?.Close(); Close();
     }
     protected override void OnClosing(CancelEventArgs e)
     {
