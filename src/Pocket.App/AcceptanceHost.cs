@@ -6,6 +6,10 @@ using System.Windows;
 using System.Windows.Interop;
 using Pocket.Overlay;
 using Pocket.App.Tracking;
+using Pocket.App.References;
+using Pocket.Core.References;
+using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Pocket.App;
 
@@ -27,6 +31,8 @@ internal sealed class AcceptanceHost : IDisposable
     private AutomationFixtureWindow? _automation;
     private MutationRecoveryWindow? _recovery;
     private RecordedTrackingWindow? _tracking;
+    private PocketWorkspace? _pocket;
+    private Window? _capturePattern;
     public AcceptanceHost(string pipeName,string token)
     {
         ValidateDesktop();
@@ -70,6 +76,14 @@ internal sealed class AcceptanceHost : IDisposable
         switch(command)
         {
             case "status":break;
+            case "pocket-open":
+                OpenPocketFixture();
+                break;
+            case "pocket-close":
+                if (_pocket is { } pocket) { await pocket.PrepareExitAsync(); pocket.Close(); }
+                _capturePattern?.Close();
+                _capturePattern = null;
+                break;
             case "tracking-open":
             case "tracking-open-native-video":
             case "tracking-open-camera-denied":
@@ -114,7 +128,9 @@ internal sealed class AcceptanceHost : IDisposable
             case "start":_simulation.Start(20,0);break;
             case "stop":_simulation.Stop();break;
             case "focus":_fixture.Activate();break;
-            case "exit":_simulation.Stop();if(NativeWindow.Exists(_overlay.Handle))_overlay.Hide();break;
+            case "exit":
+                if (_pocket is { } workspace) await workspace.PrepareExitAsync();
+                _simulation.Stop();if(NativeWindow.Exists(_overlay.Handle))_overlay.Hide();break;
             case "close-overlay":_overlay.Close();break;
             default:throw new InvalidOperationException("Unsupported acceptance operation.");
         }
@@ -122,9 +138,43 @@ internal sealed class AcceptanceHost : IDisposable
             OverlayHandle=_overlay.Handle.ToInt64(),_overlay.Dpi,_overlay.Monitor,Styles=NativeWindow.ReadStyles(_overlay.Handle),
             AutomationHandle=_automation is null?0:new WindowInteropHelper(_automation).Handle.ToInt64(),Automation=_automation?.Snapshot(),Recovery=_recovery?.Snapshot(),
             TrackingHandle = _tracking is null ? 0 : new WindowInteropHelper(_tracking).Handle.ToInt64(), Tracking = _tracking?.TestSnapshot(),
+            Pocket = _pocket?.TestState(),
             TimerScheduled=_simulation.IsScheduled,OverlayVisible=_overlay.IsVisible,Running=_simulation.IsRunning,Events=_simulation.Observations.Count,
             GhostClaim=_overlay.Scene.Pointer(Pocket.Core.PointerOwner.Ghost).Target,Panel=_overlay.Scene.Target("panel"),
             Native=NativeWindow.Observe() });
+    }
+
+    private void OpenPocketFixture()
+    {
+        ValidateDesktop();
+        if (_pocket is null)
+        {
+            string path = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE") ??
+                throw new InvalidOperationException("No isolated Pocket store.");
+            var display = SnapshotDisplay.Available().FirstOrDefault(item => item.Label.EndsWith("Primary", StringComparison.Ordinal))
+                ?? throw new InvalidOperationException("No primary display for the capture fixture.");
+            var grid = new Grid();
+            foreach (var color in new[] { Color.FromRgb(192, 32, 64), Colors.Black, Colors.RoyalBlue })
+            {
+                var stripe = new Border { Background = new SolidColorBrush(color) };
+                Grid.SetColumn(stripe, grid.ColumnDefinitions.Count);
+                grid.ColumnDefinitions.Add(new());
+                grid.Children.Add(stripe);
+            }
+            _capturePattern = new Window { WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize,
+                WindowStartupLocation = WindowStartupLocation.Manual, Content = grid, ShowInTaskbar = false };
+            ScreenSnapshot.Place(_capturePattern, display.Bounds);
+            _capturePattern.Loaded += (_, _) => ScreenSnapshot.Place(_capturePattern, display.Bounds);
+            _capturePattern.Show();
+            _pocket = new PocketWorkspace(new PocketStore(path), async () =>
+            {
+                _simulation.Stop();
+                return _tracking is null || await _tracking.StopAsync();
+            }, _capturePattern);
+            _pocket.Closed += (_, _) => _pocket = null;
+        }
+        _pocket.Show();
+        _pocket.Activate();
     }
     public async Task CloseFixturesAsync()
     {
@@ -146,7 +196,7 @@ internal sealed class AcceptanceHost : IDisposable
             text.Append(c[0]);if(text.Length>16384)throw new IOException("Oversized command.");
         }
     }
-    public void Dispose(){_simulation.Dispose();if(NativeWindow.Exists(_overlay.Handle))_overlay.Close();_fixture.Close();_automation?.Close();}
+    public void Dispose(){_simulation.Dispose();if(NativeWindow.Exists(_overlay.Handle))_overlay.Close();_pocket?.Close();_capturePattern?.Close();_fixture.Close();_automation?.Close();}
     [DllImport("kernel32.dll")]private static extern uint GetCurrentThreadId();
     [DllImport("user32.dll")]private static extern nint GetThreadDesktop(uint thread);
     [DllImport("user32.dll",EntryPoint="GetUserObjectInformationW",CharSet=CharSet.Unicode,SetLastError=true)]private static extern bool GetUserObjectInformation(nint handle,int index,StringBuilder text,int size,out int needed);

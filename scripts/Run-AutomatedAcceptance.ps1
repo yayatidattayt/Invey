@@ -1,10 +1,13 @@
-param([switch]$Build,[ValidateSet('short','standard','extended')][string]$Profile='standard',[int]$Seed=73021,[switch]$TrackingOnly)
+param([switch]$Build,[ValidateSet('short','standard','extended')][string]$Profile='standard',[int]$Seed=73021,[switch]$TrackingOnly,[switch]$PocketOnly)
+if ($TrackingOnly -and $PocketOnly) { throw 'Choose at most one isolated test scope.' }
 $previousProfile=$env:GHOST_ACCEPTANCE_PROFILE
 $previousSeed=$env:GHOST_ACCEPTANCE_SEED
 $previousTracking=$env:GHOST_ACCEPTANCE_F06_ONLY
+$previousPocket=$env:GHOST_ACCEPTANCE_POCKET_ONLY
 $env:GHOST_ACCEPTANCE_PROFILE=$Profile
 $env:GHOST_ACCEPTANCE_SEED=$Seed.ToString()
 $env:GHOST_ACCEPTANCE_F06_ONLY=if($TrackingOnly){'1'}else{'0'}
+$env:GHOST_ACCEPTANCE_POCKET_ONLY=if($PocketOnly){'1'}else{'0'}
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 Push-Location $root
@@ -20,4 +23,4 @@ try {
     $result=$LASTEXITCODE
     Get-ChildItem artifacts/automated-acceptance -Directory | Sort-Object Name -Descending | Select-Object -First 1 -ExpandProperty FullName
     exit $result
-} finally {Pop-Location;$env:GHOST_ACCEPTANCE_PROFILE=$previousProfile;$env:GHOST_ACCEPTANCE_SEED=$previousSeed;$env:GHOST_ACCEPTANCE_F06_ONLY=$previousTracking}
+} finally {Pop-Location;$env:GHOST_ACCEPTANCE_PROFILE=$previousProfile;$env:GHOST_ACCEPTANCE_SEED=$previousSeed;$env:GHOST_ACCEPTANCE_F06_ONLY=$previousTracking;$env:GHOST_ACCEPTANCE_POCKET_ONLY=$previousPocket}

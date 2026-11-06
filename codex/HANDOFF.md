@@ -1,5 +1,9 @@
 # Invey — Current handoff
 
+## Execution 13 — first persistent Pocket references
+
+Open Pocket from the main window or tray to capture, preview, save and retrieve a local snapshot without a camera. Read the [Execution 13 report](../docs/EXECUTION_13_REPORT.md) for the tested slice, stacked review and remaining hardware gates.
+
 ## Execution 12 — B1 reliability review
 
 PR #1 gains session-correlated calibration diagnostics, stricter settings parsing and controlled camera failure and display-loss coverage. Physical camera activation requires a new explicit Enable or test-specific authorization. [Execution 12 report](../docs/EXECUTION_12_REPORT.md)
