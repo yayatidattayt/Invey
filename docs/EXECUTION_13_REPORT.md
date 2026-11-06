@@ -66,11 +66,11 @@ The runner switches to an owned private desktop, checks process identity before 
 
 ## P — GitHub CI
 
-PR #1's verified CI-only head is `48f5449a0af1b40681eee40fa056b4491cc418a4`. The Pocket workflow status is recorded after publication. [PR #1 CI](https://github.com/yayatidattayt/Invey/actions/runs/42189993965)
+PR #1's verified CI-only head is `48f5449a0af1b40681eee40fa056b4491cc418a4`. Windows CI passed for Pocket implementation commit `42587271599780d3adcd9881f527f514f5ed21a9`, including the pinned SDK, locked restore, both build and core-test configurations, the generated-video worker tests, and TRX upload. This documentation follow-up records that implementation run. [PR #1 CI](https://github.com/yayatidattayt/Invey/actions/runs/42189993965) · [Pocket implementation CI](https://github.com/yayatidattayt/Invey/actions/runs/42221408997)
 
 ## Q — Pull request
 
-Pocket uses `codex/execution-13-pocket-capture` stacked on `codex/execution-11-calibration-ci`. Its review diff is limited to Pocket and its supporting tests and documentation.
+Pocket is open as PR #2 on `codex/execution-13-pocket-capture`, stacked on `codex/execution-11-calibration-ci`. Its review diff is limited to Pocket and its supporting tests and documentation. PR #1 remains open at the verified base. [Pocket PR #2](https://github.com/yayatidattayt/Invey/pull/2)
 
 ## R — Remaining defects and evidence gaps
 
