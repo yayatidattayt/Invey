@@ -204,7 +204,12 @@ internal static partial class Program
             var active = await Until(client, s => State(s) == "Observing", 12000);
             int pid = Tracking(active).GetProperty("LastWorkerPid").GetInt32();
             AccessKey(0x43); // Calibrate
-            await Until(client, s => Tracking(s).GetProperty("Calibration").GetProperty("State").GetString() == "Ready", 9000);
+            var ready = Tracking(await Until(client, s =>
+                Tracking(s).GetProperty("Calibration").GetProperty("Status").GetString()!.StartsWith("Ready."), 9000))
+                .GetProperty("Calibration");
+            Require(ready.GetProperty("Physical").ValueKind == JsonValueKind.Object &&
+                ready.GetProperty("Counts").GetProperty("ReadyDisplayed").GetInt32() > 0,
+                "Ready was not displayed with a selected-display physical point.");
             AccessKey(0x4D); // Mirror preview
             var mirrored = Tracking(await Until(client, s =>
             {
@@ -214,13 +219,90 @@ internal static partial class Program
             double x = mirrored.GetProperty("IndexX").GetDouble();
             double mapped = mirrored.GetProperty("Calibration").GetProperty("TipX").GetDouble();
             Require(Math.Abs(mapped - (1 - x)) < 1e-8, "Mirror did not reflect the fresh normalized landmark.");
+            AccessKey(0x56); // Save settings
+            await Until(client, s => Tracking(s).GetProperty("Calibration").GetProperty("SettingsStatus").GetString() ==
+                "Calibration settings saved.");
             AccessKey(0x42); // Cancel calibration
             var stopped = Tracking(await Until(client, s => State(s) == "Stopped" &&
                 !Tracking(s).GetProperty("Calibration").GetProperty("Open").GetBoolean(), 5000));
             Require(!ProcessExists(pid) && stopped.GetProperty("IndexX").ValueKind == JsonValueKind.Null,
                 "Calibration Cancel left the worker or hand active.");
             await client.Command("tracking-close");
-            return new { Title = "Invey · Tracking lab", PreviewReady = true, Mirrored = true, WorkerExited = true };
+            var reopened = await client.Command("tracking-open");
+            Require(State(reopened) == "Off" && Tracking(reopened).GetProperty("SourceStatus").GetString()!.Contains("Camera off"),
+                "Opening a lab with saved calibration activated a source.");
+            await FocusTrackingAsync(client, reopened.GetProperty("TrackingHandle").GetInt64());
+            AccessKey(0x45);
+            var restarted = await Until(client, s => State(s) == "Observing", 12000);
+            int restartedPid = Tracking(restarted).GetProperty("LastWorkerPid").GetInt32();
+            AccessKey(0x43);
+            var reloaded = Tracking(await Until(client, s =>
+                Tracking(s).GetProperty("Calibration").GetProperty("Status").GetString()!.StartsWith("Ready."), 9000))
+                .GetProperty("Calibration");
+            Require(reloaded.GetProperty("Mirrored").GetBoolean(), "Saved mirror preference was not reloaded.");
+            AccessKey(0x4B); // Skip practice
+            await Until(client, s => State(s) == "Stopped", 5000);
+            Require(!ProcessExists(restartedPid), "Skipping practice left the worker active.");
+            await client.Command("tracking-close");
+            return new { Title = "Invey · Tracking lab", PreviewReady = true, Mirrored = true,
+                SettingsReloaded = true, CameraOffOnOpen = true, WorkerExited = true };
+        });
+    }
+
+    private static async Task RunCalibrationAfterRestart(string app, string output)
+    {
+        if (!Cases.Any(c => c.Id == "F07_CALIBRATION_PREVIEW" && c.Status == "PASS")) return;
+        await Measure("F07_PRACTICE_AND_RESTART", "SYNTHETIC_LANDMARKS + UI_INTEGRATION",
+            "A fresh Invey process reloads calibration while off and practices only on its own target", async () =>
+        {
+            var (host, client) = StartAcceptanceHost(app, output);
+            using (host)
+            using (client)
+            try
+            {
+                await client.Connect();
+                var opened = await client.Command("tracking-open");
+                Require(State(opened) == "Off" && Tracking(opened).GetProperty("LastWorkerPid").ValueKind == JsonValueKind.Null,
+                    "Restart restored an active tracking source.");
+                long hwnd = opened.GetProperty("TrackingHandle").GetInt64();
+                await FocusTrackingAsync(client, hwnd);
+                await client.Command("tracking-start-calibration-practice");
+                var started = await Until(client, s => State(s) == "Observing", 5000);
+                int worker = Tracking(started).GetProperty("LastWorkerPid").GetInt32();
+                AccessKey(0x43);
+                static JsonElement Calibration(JsonElement s) => Tracking(s).GetProperty("Calibration");
+                var setup = Calibration(await Until(client, s => Calibration(s).GetProperty("Open").GetBoolean()));
+                Require(setup.GetProperty("Mirrored").GetBoolean() && setup.GetProperty("Focus").GetString() == "Mirror",
+                    "Saved mirror or initial calibration focus did not survive process restart.");
+                Input.Key(0x09, false);
+                Input.Key(0x09, true);
+                await Until(client, s => Calibration(s).GetProperty("Focus").GetString() == "Hand");
+                await Until(client, s => Calibration(s).GetProperty("Practice").GetString() == "Held", 5000);
+                await Until(client, s => Calibration(s).GetProperty("PracticeStatus").GetString()!.StartsWith("Practice complete."), 5000);
+                await Until(client, s => Calibration(s).GetProperty("Practice").GetString() == "Held", 5000);
+                await Until(client, s => State(s) == "Ambiguous" &&
+                    Calibration(s).GetProperty("Practice").GetString() == "Canceled", 5000);
+                AccessKey(0x50); // Repeat practice
+                await Until(client, s => Calibration(s).GetProperty("PracticeStatus").GetString() ==
+                    "Practice becomes available when tracking is ready.");
+                AccessKey(0x42);
+                await Until(client, s => State(s) == "Stopped", 5000);
+                Require(!ProcessExists(worker), "Practice Cancel leaked the fixture worker.");
+                await client.Command("exit");
+                await host.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+                Require(host.ExitCode == 0 && !Input.Exists(new nint(hwnd)), "Practice restart host cleanup failed.");
+                return new { PersistedAcrossProcessRestart = true, CameraOff = true, KeyboardFocus = true,
+                    Held = true, Released = true, AmbiguityCanceledHold = true, Repeat = true, WorkerExited = true };
+            }
+            finally
+            {
+                Input.ReleaseAll();
+                if (!host.HasExited)
+                {
+                    host.Kill(entireProcessTree: true);
+                    Require(host.WaitForExit(3000), "Practice restart host remained active.");
+                }
+            }
         });
     }
 

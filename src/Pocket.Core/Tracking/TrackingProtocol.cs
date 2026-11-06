@@ -26,7 +26,7 @@ public sealed record TrackerError(Guid SessionId, TrackingFailure Failure) : Tra
 /// <summary>Single selected hand in normalized image coordinates. Empty landmarks mean tracking loss.</summary>
 public sealed record HandObservation(Guid SessionId, long Sequence, long CaptureMonoMs, long ResultMonoMs,
     ImmutableArray<ImageLandmark> Landmarks, HandSide? Handedness = null, double? HandednessScore = null,
-    bool Partial = false, TrackingFrameSize? FrameSize = null)
+    bool Partial = false, TrackingFrameSize? FrameSize = null, bool Ambiguous = false)
     : TrackerMessage(SessionId)
 {
     public bool Tracked => !Landmarks.IsDefault && Landmarks.Length == 21;
@@ -34,7 +34,7 @@ public sealed record HandObservation(Guid SessionId, long Sequence, long Capture
     public bool IsValid =>
         SessionId != Guid.Empty && Sequence >= 0 && CaptureMonoMs >= 0 && ResultMonoMs >= CaptureMonoMs &&
         !Landmarks.IsDefault && (Landmarks.IsEmpty || Tracked) &&
-        (!Partial || Landmarks.IsEmpty) &&
+        (!(Partial || Ambiguous) || Landmarks.IsEmpty) && !(Partial && Ambiguous) &&
         (FrameSize is null || FrameSize.Value.IsValid) &&
         Landmarks.All(p => p.X is >= 0 and <= 1 && p.Y is >= 0 and <= 1 && double.IsFinite(p.Z)) &&
         (Handedness is null || (Tracked && Enum.IsDefined(Handedness.Value))) &&
@@ -90,11 +90,12 @@ public static class TrackingProtocol
     private static HandObservation ReadObservation(Guid session, Dictionary<string, JsonElement> fields)
     {
         if (fields.Keys.Any(name => name is not ("v" or "kind" or "session" or "seq" or "captureMonoMs" or
-            "resultMonoMs" or "tracked" or "landmarks" or "handedness" or "quality" or "partial" or "frame")))
+            "resultMonoMs" or "tracked" or "landmarks" or "handedness" or "quality" or "partial" or "ambiguous" or "frame")))
             throw new InvalidDataException("Unknown observation field.");
 
         bool tracked = fields["tracked"].GetBoolean();
         bool partial = fields.TryGetValue("partial", out var partialField) && partialField.GetBoolean();
+        bool ambiguous = fields.TryGetValue("ambiguous", out var ambiguousField) && ambiguousField.GetBoolean();
         var points = fields["landmarks"];
         if (points.GetArrayLength() != (tracked ? 21 : 0))
             throw new InvalidDataException("Wrong landmark count.");
@@ -127,7 +128,7 @@ public static class TrackingProtocol
             size = new(dimensions["width"].GetInt32(), dimensions["height"].GetInt32());
         }
         var observation = new HandObservation(session, fields["seq"].GetInt64(), fields["captureMonoMs"].GetInt64(),
-            fields["resultMonoMs"].GetInt64(), landmarks.MoveToImmutable(), side, score, partial, size);
+            fields["resultMonoMs"].GetInt64(), landmarks.MoveToImmutable(), side, score, partial, size, ambiguous);
         if (!observation.IsValid) throw new InvalidDataException("Invalid hand observation.");
         return observation;
     }

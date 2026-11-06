@@ -1,5 +1,9 @@
 # Invey — Current handoff
 
+## Execution 11 — calibration and Windows verification
+
+Invey now maps the calibration region to a selected display, saves numeric preferences, and provides a local practice target with timed pinch and release. The camera starts off and the live Ready cause remains unresolved. Review the [Execution 11 report](../docs/EXECUTION_11_REPORT.md) before the historical checkpoints below.
+
 ## Invey Execution 10 checkpoint — 2026-11-06
 
 Invey is the public product name. Ghost remains the hand-tracking subsystem. Existing assemblies, executables, mutexes and pipes retain compatibility. Tracking lab includes a session-local calibration preview with a working region, mirror, hand choice and readiness checks. Cancel stops the active worker. [Execution 10 report](../docs/EXECUTION_10_REPORT.md)
@@ -16,13 +20,13 @@ Keep physical Gate A and Explorer, A2 scope and M02 review separate. The next us
 
 The creator authorized provisional F06 implementation before acceptance. Tracking lab now offers **Live camera**, explicit metadata discovery and device selection, Enable, visible lifecycle, Stop and Restart. The Windows Media Foundation adapter runs inside the existing local MediaPipe worker. The worker requires deliberate start and observed exit before replacement. Hand geometry near an edge can report a partial result with no interaction geometry. [Execution 08 report](../docs/EXECUTION_08_REPORT.md)
 
-The final native run had 26 passes, zero failures, one blocked Explorer case and one inconclusive closed-app cursor baseline. It verified the actual native reader through WPF on a controlled file. An extended native file run completed 720 inferences. The camera metadata probe opened zero devices and the final cleanup audit found zero scoped test processes. [Final native run](../artifacts/automated-acceptance/20261105T173443873-72db4162abd54d28bd1f6125873e0f20/results.json)
+The final native run had 26 passes, zero failures, one blocked Explorer case and one inconclusive closed-app cursor baseline. It verified the actual native reader through WPF on a controlled file. An extended native file run completed 720 inferences. The camera metadata probe opened zero devices and the final cleanup audit found zero scoped test processes. Final native run (`artifacts/automated-acceptance/20261105T173443873-72db4162abd54d28bd1f6125873e0f20/results.json`, local only)
 
 Next, verify the live path on an explicitly authorized device or virtual source and close F06 review before F07 calibration. Gate A physical and Explorer evidence remain open. M02 optional ordinary-app UIA deferral remains proposed. No ordinary-app control or release merge was made.
 
 ## Execution 07 checkpoint — 2026-11-05
 
-The existing recorded Tracking lab uses a shared, validated single-frame VIDEO path. A distinct stale-result state clears an expired hand and recovers on a fresh result in the same session. Live camera is explicitly unavailable. The Windows regression recorded 24 passes, one blocked Explorer check, one inconclusive prelaunch cursor baseline and zero failures. All three recorded cases and active-worker shutdown passed. [Execution 07 report](../docs/EXECUTION_07_REPORT.md) · [Native results](../artifacts/automated-acceptance/20261105T165845687-97103b0ee2674f8c9169b75edce63b76/results.json)
+The existing recorded Tracking lab uses a shared, validated single-frame VIDEO path. A distinct stale-result state clears an expired hand and recovers on a fresh result in the same session. Live camera is explicitly unavailable. The Windows regression recorded 24 passes, one blocked Explorer check, one inconclusive prelaunch cursor baseline and zero failures. All three recorded cases and active-worker shutdown passed. [Execution 07 report](../docs/EXECUTION_07_REPORT.md) · Native results (`artifacts/automated-acceptance/20261105T165845687-97103b0ee2674f8c9169b75edce63b76/results.json`, local only)
 
 M02 is the disposition of optional ordinary-app UIA. Recommend formal deferral with consumer access kept hidden. A1 physical and shell evidence still precedes formal A2/M02 review. Once eligible, wire one opt-in Windows Media Foundation source into the existing worker, validate an authorized device and finish F06 before F07. The current checkout remains uncommitted.
 
@@ -30,7 +34,7 @@ M02 is the disposition of optional ordinary-app UIA. Recommend formal deferral w
 
 The existing app's **Tracking lab** connects controlled frames to real MediaPipe CPU VIDEO inference, a PID-validated named pipe and WPF. Enable, hand detection, movement, loss, return, Stop and Restart work on this source. Exit is required before Restart. Tested worker faults clear observations and contain the process. The lab says **Recorded source · Camera off**. Its local fixture and runtime come from Execution 05. [Execution 06 report](../docs/EXECUTION_06_REPORT.md)
 
-Both builds succeeded and 47 deterministic tests passed per configuration. The final private-desktop run had 23 passes, one blocked Explorer check and one inconclusive closed-app cursor baseline. The two recorded tracking cases and active-worker shutdown passed. Full A1 and A2 disposition remain open. Next, finish those prerequisites and complete M03/B1 F06 live capture and authorized device verification. F07 calibration follows F06. The checkout still has no commit. [Native results](../artifacts/automated-acceptance/20261105T162333916-e5faee384bda46c081ce462be083b822/results.json)
+Both builds succeeded and 47 deterministic tests passed per configuration. The final private-desktop run had 23 passes, one blocked Explorer check and one inconclusive closed-app cursor baseline. The two recorded tracking cases and active-worker shutdown passed. Full A1 and A2 disposition remain open. Next, finish those prerequisites and complete M03/B1 F06 live capture and authorized device verification. F07 calibration follows F06. The checkout still has no commit. Native results (`artifacts/automated-acceptance/20261105T162333916-e5faee384bda46c081ce462be083b822/results.json`, local only)
 
 ## Execution 05 checkpoint — 2026-11-05
 

@@ -1,4 +1,16 @@
-# Verification status — project kit v2.1
+# Invey verification
+
+Execution 10 established the published Windows baseline. It recorded 54 core passes per configuration, 14 worker passes, and live acquisition and Stop on the laptop webcam. The live calibration session ended without observing Ready. [Execution 10 report](docs/EXECUTION_10_REPORT.md)
+
+Execution 11 covers selected-display calibration, numeric preferences, practice and safe Windows CI. See the [Execution 11 report](docs/EXECUTION_11_REPORT.md) for actual run results. Physical input, Explorer, F06 device-loss and denial, physical F07 routes and full B1 remain open.
+
+## Where evidence lives
+
+- Public source and Markdown reports are included in the repository.
+- Inline paths labeled **local only** refer to ignored files under `artifacts/` in the original workspace. The reports record the historical claims and their limitations.
+- GitHub Actions publishes non-sensitive core TRX results with each workflow run when available. Hosted checks cover source builds and deterministic tests. Native recorded inference and file-reader fixtures run in the local isolated harness, with physical device and shell checks classified separately.
+
+## Historical project-kit checkpoints
 
 ## Latest autonomous Execution02 —2026-11-05
 

@@ -10,7 +10,9 @@ $root=Split-Path -Parent $PSScriptRoot
 Push-Location $root
 try {
     if($Build) {
-        & "$PSScriptRoot/dotnet.ps1" -Arguments @('build','Pocket.Dual.Ghost.sln','-c','Release','-p:Platform=x64')
+        & "$PSScriptRoot/dotnet.ps1" -Arguments @('restore','Pocket.Dual.Ghost.sln','--locked-mode','-p:Platform=x64')
+        if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+        & "$PSScriptRoot/dotnet.ps1" -Arguments @('build','Pocket.Dual.Ghost.sln','-c','Release','-p:Platform=x64','--no-restore')
         if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
     }
     Write-Host 'Starting bounded isolated-desktop tests. The original desktop will be restored. No normal-desktop input injection.'

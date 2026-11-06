@@ -24,7 +24,7 @@ class NormalizationTests(unittest.TestCase):
     def test_missing_ambiguous_and_malformed_hands_are_distinct(self):
         point = SimpleNamespace(x=0.5, y=0.5, z=0)
         self.assertEqual(normalize(SimpleNamespace(hand_landmarks=[], handedness=[])), ([], {}))
-        self.assertEqual(normalize(SimpleNamespace(hand_landmarks=[[point] * 21] * 2, handedness=[])), ([], {"partial": True}))
+        self.assertEqual(normalize(SimpleNamespace(hand_landmarks=[[point] * 21] * 2, handedness=[])), ([], {"ambiguous": True}))
         with self.assertRaises(ValueError):
             normalize(SimpleNamespace(hand_landmarks=[[point] * 20], handedness=[]))
 

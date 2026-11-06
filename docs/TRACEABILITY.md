@@ -1,6 +1,6 @@
 # Invey — Requirement traceability
 
-Execution 10 adds provisional F07 readiness, mirror, hand selection, working-region and Cancel with controlled geometry and recorded WPF evidence. A bounded ASUS FHD session verified live integration and release. B03 live rectangle-route, B07 physical multi-hand cases, display mapping and full B1 acceptance remain open. [Execution 10 report](EXECUTION_10_REPORT.md)
+Execution 11 adds selected-display geometry, local calibration preferences, practice and ambiguity cancellation to the F07 preview. The controlled rectangle route and recorded WPF mapping have evidence. B03 physical rectangle-route, B07 physical multi-hand cases and full B1 remain open. [Execution 11 report](EXECUTION_11_REPORT.md)
 
 Execution 09 provides F06 real-device evidence for explicit ASUS FHD activation, local inference, Stop, clean release and same-device reacquisition. Recorded, injected and real-device evidence remain separate. Hardware denial, disconnect and full B1 acceptance remain open. [Hardware report](EXECUTION_09_REPORT.md)
 

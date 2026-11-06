@@ -45,7 +45,7 @@ def normalize(result):
     if not result.hand_landmarks:
         return [], {}
     if len(result.hand_landmarks) != 1:
-        return [], {"partial": True}
+        return [], {"ambiguous": True}
     points = [[point.x, point.y, point.z] for point in result.hand_landmarks[0]]
     if len(points) != 21 or any(not all(map(math.isfinite, point)) for point in points):
         raise ValueError("Invalid hand model geometry.")
@@ -64,9 +64,30 @@ def normalize(result):
 def open_landmarker(mp, asset):
     options = mp.tasks.vision.HandLandmarkerOptions(
         base_options=mp.tasks.BaseOptions(model_asset_buffer=asset, delegate=mp.tasks.BaseOptions.Delegate.CPU),
-        running_mode=mp.tasks.vision.RunningMode.VIDEO, num_hands=1,
+        running_mode=mp.tasks.vision.RunningMode.VIDEO, num_hands=2,
     )
     return mp.tasks.vision.HandLandmarker.create_from_options(options)
+
+
+def practice_fixture(send, stop):
+    """Bounded synthetic landmarks for the isolated acceptance host."""
+    send("ready")
+    for sequence in range(120):
+        if stop.is_set():
+            break
+        cycle = sequence % 54
+        closed = 20 <= cycle < 27 or 35 <= cycle < 43
+        ambiguous = 43 <= cycle < 49
+        points = [[.5, .5, 0] for _ in range(21)]
+        points[4][0] = .51 if closed else .62
+        points[5][0], points[17][0] = .4, .6
+        stamp = time.perf_counter_ns() // 1_000_000
+        send("observation", seq=sequence, captureMonoMs=stamp, resultMonoMs=stamp,
+             tracked=not ambiguous, landmarks=[] if ambiguous else points,
+             frame={"width": 640, "height": 480},
+             **({"ambiguous": True} if ambiguous else {"handedness": "right"}))
+        stop.wait(.08)
+    send("stopped")
 
 
 def stream(args, pipe, stop, diagnostic=None):
@@ -80,6 +101,11 @@ def stream(args, pipe, stop, diagnostic=None):
 
     if args.fault == "startup-hang":
         stop.wait(30)
+        return
+    if args.fault == "calibration-practice":
+        if args.camera or args.fixture_file:
+            raise ValueError("Practice fixture requires the recorded test source.")
+        practice_fixture(send, stop)
         return
 
     sys.path.insert(0, str(args.site_packages))
@@ -166,7 +192,7 @@ def main():
     source.add_argument("--camera")
     source.add_argument("--fixture-file", type=Path)
     parser.add_argument("--fault", choices=["startup-hang", "crash", "malformed", "ignore-stop",
-                                          "bad-model", "result-gap", "camera-denied"])
+                                          "bad-model", "result-gap", "camera-denied", "calibration-practice"])
     args = parser.parse_args()
     if not args.list_cameras and not all((args.pipe, args.session, args.site_packages, args.model, args.palm)):
         parser.error("The tracking worker requires a pipe, session, runtime, and asset paths.")

@@ -2,6 +2,8 @@
 
 ## Execution 10 — 2026-11-06
 
+**ADR-37 — Separate geometry, practice and source activation.** Map to one display's local DIPs and physical bounds, with explicit mirror and invertible sensitivity. Persist only numeric calibration settings. A continuity break disarms practice, and a new valid open-hand dwell is required. Two detected hands produce an ambiguity marker. [Execution 11 report](EXECUTION_11_REPORT.md)
+
 **ADR-36 — Separate product identity from compatibility identities.** Public brand is Invey. Preserve existing executable, namespaces, endpoints, mutex and repository path. The first F07 slice uses ephemeral landmark geometry with no raw pixels over the tracking pipe. [Execution 10 report](EXECUTION_10_REPORT.md)
 
 ## Execution 09 — 2026-11-06
