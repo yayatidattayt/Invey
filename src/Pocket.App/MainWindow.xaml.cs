@@ -39,6 +39,7 @@ public partial class MainWindow : Window
             _cards = new PocketCards(_store, profile.Writable);
         }
         InitializeComponent();
+        SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(this);
         if (profile.Notice is not null) Status.Text = profile.Notice;
         CameraStatusChanged += status => GhostState.Text = $"Ghost · {status}";
         Loaded += async (_, _) =>
@@ -119,6 +120,7 @@ public partial class MainWindow : Window
             close.Click+=(_,_)=>_settings?.Close(); content.Children.Add(close);
             _settings=new Window { Title="Invey settings",Width=530,Height=560,
                 Content=new ScrollViewer { Content=content, VerticalScrollBarVisibility=ScrollBarVisibility.Auto }, Owner=this };
+            _settings.SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(_settings);
             _settings.Closed+=(_,_)=>_settings=null;
         }
         _settings.Show(); _settings.Activate();

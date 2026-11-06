@@ -54,6 +54,7 @@ internal sealed class RecordedTrackingWindow : Window
         MinWidth = 360;
         SizeToContent = SizeToContent.Height;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        SourceInitialized += (_, _) => References.ScreenSnapshot.DisableNativeTransitions(this);
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
         AutomationProperties.SetLiveSetting(_inventoryStatus, AutomationLiveSetting.Polite);
         AutomationProperties.SetName(_devices, "Camera device");

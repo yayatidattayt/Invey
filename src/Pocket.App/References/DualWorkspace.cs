@@ -37,6 +37,7 @@ internal sealed class DualWorkspace : Window
     {
         _store = store;
         Title = "Invey · Workspace";
+        SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(this);
         Width = 1050;
         Height = 790;
         MinWidth = 430;

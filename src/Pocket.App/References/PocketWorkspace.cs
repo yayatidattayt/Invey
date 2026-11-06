@@ -345,6 +345,7 @@ internal sealed class PocketWorkspace : Window
         };
         dialog.Content = new StackPanel { Margin = new Thickness(16), Children =
             { input, validation, new WrapPanel { Children = { save, cancel } } } };
+        dialog.SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(dialog);
         dialog.Loaded += (_, _) => { input.Focus(); input.SelectAll(); };
         _renameWindow = dialog;
         bool confirmed;

@@ -285,8 +285,11 @@ internal sealed class CaptureWindow : Window
             BlackFixtureBands = _source is { } fixture ? new
             {
                 Historical = CountFixturePixels(fixture, .42, .22, .53, .34),
-                Bottom = CountFixturePixels(fixture, .48, .87, .54, .94)
+                Bottom = CountFixturePixels(fixture, .48, .87, .54, .94),
+                Large = CountFixturePixels(fixture, .38, .64, .62, .80)
             } : null,
+            SelectedPixels = _crop is { } selected && (long)selected.PixelWidth * selected.PixelHeight <= 1_000_000
+                ? CountFixturePixels(selected, 0, 0, 1, 1) : null,
             FrozenPattern = _source is { } frozen ? new
             {
                 Left = PixelMatches(frozen, .16, .25, 192, 32, 64),
