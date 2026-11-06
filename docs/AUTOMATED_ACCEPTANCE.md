@@ -67,7 +67,7 @@ Native runner failures recorded without overwriting history. Unicode desktop nam
 From this project root:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Run-AutomatedAcceptance.ps1 -Build
-& .\scripts\dotnet.ps1 -Arguments @('build','Pocket.Dual.Ghost.sln','-c','Debug','--no-restore','-p:Platform=x64')
+& .\scripts\dotnet.ps1 -Arguments @('build','Invey.sln','-c','Debug','--no-restore','-p:Platform=x64')
 & .\scripts\dotnet.ps1 -Arguments @('test','tests/Pocket.Core.Tests/Pocket.Core.Tests.csproj','-c','Debug','--no-build','--no-restore')
 ```
 Final Debug/Release binaries compile with0 warnings/errors,20 tests per config. Build evidence artifacts/automation-final-{Debug,Release}.binlog; tests artifacts/automation-tests/automation-final-*.trx. Script requires interactive unlocked default desktop and briefly switches to private test desktop; no security bypass or virtual driver.

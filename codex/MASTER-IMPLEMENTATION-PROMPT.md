@@ -344,8 +344,8 @@ Run from verified solution root. Prerequisite: install official supported .NET 1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Preflight-Windows.ps1
 dotnet --info
 dotnet --list-sdks
-dotnet restore .\Pocket.Dual.Ghost.sln
-dotnet build .\Pocket.Dual.Ghost.sln -c Debug -p:Platform=x64
+dotnet restore .\Invey.sln --locked-mode
+dotnet build .\Invey.sln -c Debug -p:Platform=x64 --no-restore
 dotnet build .\src\Pocket.App\Pocket.App.csproj -c Debug -p:Platform=x64
 dotnet test .\tests\Pocket.Core.Tests\Pocket.Core.Tests.csproj -c Debug --logger "trx;LogFileName=core.trx"
 dotnet run --project .\src\Pocket.App\Pocket.App.csproj -c Debug -p:Platform=x64

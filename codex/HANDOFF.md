@@ -1,5 +1,9 @@
 # Invey — Current handoff
 
+## Execution 14 — Invey desktop identity and Pocket cards
+
+Build and launch from the current checkout with `Invey.sln` and `Invey.exe`. Invey resolves the verified local profile at `%LOCALAPPDATA%\Invey`. Pocket can open independent cards, persist pinned placement and manage the library with Rename, ordering, Delete and Undo. Consult the [Execution 14 report](../docs/EXECUTION_14_REPORT.md) for the migration policy, exact verification and remaining gates.
+
 ## Execution 13 — first persistent Pocket references
 
 Open Pocket from the main window or tray to capture, preview, save and retrieve a local snapshot without a camera. Read the [Execution 13 report](../docs/EXECUTION_13_REPORT.md) for the tested slice, stacked review and remaining hardware gates.

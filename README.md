@@ -42,6 +42,8 @@ The source includes the Windows application, local tracking and automation worke
 
 Pocket works with the camera off. Confirmed crops are stored as local PNGs in your Windows profile, where account permissions apply. Screen content can be sensitive. Review the crop before saving. See the [Execution 13 report](docs/EXECUTION_13_REPORT.md) for scope and verification.
 
+The desktop executable is `Invey.exe`. Invey uses `%LOCALAPPDATA%\Invey` and preserves the legacy profile when it migrates verified references and calibration settings. Opened snapshots are independent cards. Pin a card to keep it above other windows and restore it at restart. The library supports title changes, explicit ordering, and Delete with a 10-minute Undo window. [Execution 14 report](docs/EXECUTION_14_REPORT.md)
+
 ## Key files
 
 - `AGENTS.md` — permanent project instructions.
