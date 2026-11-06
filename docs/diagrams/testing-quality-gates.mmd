@@ -1,0 +1,20 @@
+---
+title: GHOST — testing quality gates
+---
+%% Intended design; not runtime evidence
+flowchart TD
+  Edit["Current milestone change"] --> Static["Compile projects and inspect prohibited APIs"]
+  Static --> Unit["Nonzero unit test discovery"]
+  Unit --> Integration["Boundary storage and process tests"]
+  Integration --> Native["Native fixture and physical input tests"]
+  Native --> Access["Keyboard screen reader and visual checks"]
+  Access --> Fault["Fault privacy and lifetime checks"]
+  Fault --> Perf["Measured relevant performance"]
+  Perf --> Evidence["Record exact setup and logs"]
+  Evidence --> Pass{"Acceptance complete without P0?"}
+  Pass -->|No| Repair["Fix or record blocked scope"]
+  Repair --> Edit
+  Pass -->|Yes| Review["Gate review"]
+  Review --> Next["Next gate only when authorized"]
+  Review --> Release{"Final release gate?"}
+  Release -->|Yes| Clean["Offline clean-host installation and regression"]

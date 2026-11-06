@@ -1,0 +1,25 @@
+---
+title: GHOST — feature interactions
+---
+%% Intended design; not runtime evidence
+flowchart LR
+  Onboard["Onboarding"] --> Settings["Settings service"]
+  Settings --> Tracker["Tracker supervisor"]
+  Tracker --> Gestures["Gesture reducer"]
+  Gestures --> Claims["Input coordinator and claims"]
+  Mouse["Workspace mouse events"] --> Claims
+  Claims --> Peek["Shelf and viewer"]
+  Claims --> Board["Workspace board"]
+  Capture["Capture and preview"] --> Storage["Serialized storage writer"]
+  Storage --> Library["Library metadata"]
+  Library --> Peek
+  Library --> Board
+  Peek --> Pin["Pinned layout commands"]
+  Pin --> Storage
+  Rename["Rename reorder delete Undo"] --> Storage
+  Settings --> Storage
+  Hotkey["Shortcuts and tray"] --> Capture
+  Hotkey --> Board
+  Hotkey --> Tracker
+  Health["Fault supervision"] --> Claims
+  Health --> Diagnostics["Redacted diagnostics"]

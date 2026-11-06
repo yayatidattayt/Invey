@@ -1,0 +1,21 @@
+---
+title: GHOST — startup
+---
+%% Intended design; not runtime evidence
+flowchart TD
+  Start["Start"] --> Mutex{"Per-user instance acquired?"}
+  Mutex -->|No| Signal["Signal normal Workspace then exit"]
+  Mutex -->|Yes| Config["Load and validate settings"]
+  Config --> Manifest{"Manifest valid and supported?"}
+  Manifest -->|Yes| Hydrate["Load metadata and clamp layout"]
+  Manifest -->|No| Recovery["Preserve originals; backup or read-only recovery"]
+  Recovery --> Hydrate
+  Hydrate --> Children["Children stopped; camera off"]
+  Children --> Hotkeys{"Register configured hotkeys?"}
+  Hotkeys -->|Conflict| Remap["Show conflict; tray fallback"]
+  Hotkeys -->|Success| Tray["Tray ready"]
+  Remap --> Tray
+  Tray --> First{"First launch?"}
+  First -->|Yes| Onboard["Compact onboarding"]
+  First -->|No| Dormant["Dormant reference layer"]
+  Onboard --> Dormant

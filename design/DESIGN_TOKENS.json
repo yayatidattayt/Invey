@@ -1,0 +1,13 @@
+{
+  "name": "Quiet Instrument",
+  "version": "2.0",
+  "fontFamily": "Segoe UI Variable, Segoe UI, system-ui, sans-serif",
+  "dark": {"canvas":"#14191C","surface":"#202729","raised":"#283135","border":"#384347","text":"#EDEEE8","muted":"#9DA9A8","accent":"#96CDB9","accentText":"#143C31","danger":"#E09C92"},
+  "light": {"canvas":"#F4F4F0","surface":"#FFFFFF","raised":"#E9ECE9","border":"#D3DAD7","text":"#182223","muted":"#5A6866","accent":"#327B69","accentText":"#FFFFFF","danger":"#B84E46"},
+  "radiusPx": {"small":6,"card":11,"shelf":14,"window":16},
+  "spacingPx": [4,8,12,16,24,32],
+  "ghostDiameterPx": 18,
+  "shelfWidthPx": 372,
+  "motionMs": {"shelfShow":260,"shelfHide":195,"cardEnter":160,"reorder":205,"hover":115,"press":80},
+  "notes": "Targets only. Verify actual contrast, frame pacing, reduced-motion behavior on Windows."
+}

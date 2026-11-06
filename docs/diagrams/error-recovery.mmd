@@ -1,0 +1,22 @@
+---
+title: GHOST — error recovery
+---
+%% Intended design; not runtime evidence
+flowchart TD
+  Error["Detected error"] --> Classify{"Boundary?"}
+  Classify -->|Tracker| GhostCancel["Cancel Ghost and invalidate epoch"]
+  GhostCancel --> Off["Close camera and show unavailable"]
+  Off --> Retry{"Explicit retry?"}
+  Retry -->|Yes| Restart["Bounded child restart"]
+  Retry -->|No| Keyboard["Continue shortcut mode"]
+  Classify -->|UIA| Kill["Expire capability and terminate stalled worker"]
+  Kill --> Uncertain["Report timeout or uncertain outcome"]
+  Uncertain --> NoRetry["Never retry action automatically"]
+  Classify -->|Storage| Preserve["Preserve committed generation and valid assets"]
+  Preserve --> ReadOnly["Retry or recovery read-only view"]
+  Classify -->|Overlay| Hide["Hide unsafe overlay"]
+  Hide --> Shell["Normal settings and diagnostics"]
+  Classify -->|Capture| Dispose["Dispose volatile frame; show retry or cancel"]
+  Restart --> Valid{"Ready and validated?"}
+  Valid -->|Yes| Disarmed["Resume disarmed"]
+  Valid -->|No| Keyboard

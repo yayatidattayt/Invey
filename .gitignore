@@ -1,0 +1,30 @@
+# Generated build artifacts
+**/bin/
+**/obj/
+.vs/
+.idea/
+.vscode/.ropeproject/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.user
+*.suo
+*.pdb
+# Sensitive local data and evidence
+local-data/
+user-captures/
+private-evidence/
+*.dmp
+# Do NOT commit real screenshots, camera recordings, log captures, or tokens.
+.env
+.env.*
+# Build directories and temporary packages
+artifacts/
+publish/
+out/
+.spec-tools/
+.tools/
+TestResults/
+*.tmp

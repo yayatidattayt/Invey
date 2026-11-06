@@ -1,0 +1,31 @@
+---
+title: GHOST — user journey
+---
+%% Intended design; not runtime evidence
+flowchart TD
+  Launch["Launch camera off"] --> First{"First launch?"}
+  First -->|Yes| Onboard["Equal camera or shortcut choice"]
+  First -->|No| Tray["Tray ready"]
+  Onboard --> Choice{"Enable GHOST explicitly?"}
+  Choice -->|Yes| Calibrate["Permission check and calibration"]
+  Choice -->|No| Tray
+  Calibrate --> CameraOK{"Camera usable?"}
+  CameraOK -->|No| Retry["Retry or use shortcuts"]
+  Retry --> Tray
+  CameraOK -->|Yes| Tray
+  Tray --> Capture["Explicit capture hides own visuals"]
+  Capture --> Select["Frozen selection and adjustment"]
+  Select --> Preview["Preview crop"]
+  Preview --> Confirm{"Confirm?"}
+  Confirm -->|Cancel| Discard["Dispose volatile buffers"]
+  Confirm -->|Back| Select
+  Confirm -->|Yes| Save["Commit cropped PNG and manifest"]
+  Save --> OK{"Committed?"}
+  OK -->|No| Recover["Explain failure and retry"]
+  Recover --> Preview
+  OK -->|Yes| Hidden["Hidden saved reference"]
+  Hidden --> Recall["Hand pull or conventional shortcut"]
+  Recall --> Use["View move resize pin scroll"]
+  Use --> Dismiss["Dismiss; pins remain"]
+  Dismiss --> Tray
+  Discard --> Tray

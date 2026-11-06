@@ -1,0 +1,21 @@
+---
+title: GHOST — implementation flow
+---
+%% Intended design; not runtime evidence
+flowchart TD
+  Inspect["Inspect docs environment and source"] --> Spec["Reconstruct research and contracts"]
+  Spec --> Preflight["M00 tooling and defect baseline"]
+  Preflight --> A1["M01 native overlay and timed Ghost"]
+  A1 --> Review{"A1 observed and reviewed?"}
+  Review -->|No| Fix["Fix P0 or record concrete blocker"]
+  Fix --> A1
+  Review -->|Yes and next gate requested| A2["M02 experimental UIA disposition"]
+  A2 --> B1["M03 tracker and calibration"]
+  B1 --> B2["M04 gestures claims and Peek"]
+  B2 --> C["M05 capture storage shelf and Workspace"]
+  C --> D1["M06 accessibility motion and profiling"]
+  D1 --> D2["M07 offline packaging clean-host proof"]
+  D2 --> Ready{"Release evidence complete?"}
+  Ready -->|No| Regress["Repair and regress affected milestone"]
+  Ready -->|Yes| Approval["Release candidate for approval"]
+  Approval -. "Separate scoped request" .-> E["M08 optional extension RFC"]

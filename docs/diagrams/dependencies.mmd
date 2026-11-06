@@ -1,0 +1,25 @@
+---
+title: GHOST — dependencies
+---
+%% Intended design; not runtime evidence
+flowchart TD
+  Core["Typed geometry and pure reducer"] --> Overlay["Overlay hit testing and transforms"]
+  Native["Win32 lifecycle and styles"] --> Overlay
+  Overlay --> A1["Native independence proof"]
+  A1 --> UIA["Optional UIA fixture disposition"]
+  UIA --> Tracker["Opt-in tracker and supervision"]
+  Tracker --> Calibration["Calibration"]
+  Calibration --> Gestures["Gesture state machine"]
+  Core --> Claims["Per-target ownership"]
+  Claims --> Gestures
+  Gestures --> Peek["Latched Peek"]
+  Capture["Explicit capture and preview"] --> Storage["Atomic cropped assets"]
+  Storage --> Shelf["Shelf and library"]
+  Peek --> Shelf
+  Shelf --> Viewer["Pin resize scroll"]
+  Claims --> Workspace["Dual Workspace"]
+  Viewer --> Complete["Complete camera and shortcut flow"]
+  Workspace --> Complete
+  Complete --> Quality["Accessibility and measured performance"]
+  Quality --> Package["Offline clean-host release"]
+  Package -. "Later RFC" .-> Future["Live or video or adapter"]

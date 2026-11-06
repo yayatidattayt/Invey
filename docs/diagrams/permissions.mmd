@@ -1,0 +1,24 @@
+---
+title: GHOST — permissions
+---
+%% Intended design; not runtime evidence
+flowchart TD
+  Launch["Launch"] --> Local["Ordinary OS user; no account sign-in"]
+  Local --> CameraOff["Camera off"]
+  CameraOff --> Enable{"User enables camera?"}
+  Enable -->|No| Shortcut["Full shortcut and mouse path"]
+  Enable -->|Yes| Privacy{"Windows camera access available?"}
+  Privacy -->|No| Denied["Explain privacy or busy state"]
+  Denied --> Shortcut
+  Privacy -->|Yes| Indicator["Local inference with visible indicator"]
+  Indicator --> Stop["Pause or disable releases camera"]
+  Local --> Capture{"Explicit foreground capture?"}
+  Capture -->|Yes| Preview["Volatile selection and preview"]
+  Preview --> Confirm{"Confirm crop storage?"}
+  Confirm -->|Yes| Store[("User-local selected crop")]
+  Confirm -->|No| Discard["Discard"]
+  Local --> External{"External controls opt-in?"}
+  External -->|No| Disabled["External automation disabled"]
+  External -->|Yes| Validate{"Tested allowlist and safe identity?"}
+  Validate -->|No| Unsupported["Unavailable; no fallback injection"]
+  Validate -->|Yes| Deliberate["Deliberate action then revalidate"]

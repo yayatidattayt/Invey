@@ -1,0 +1,22 @@
+---
+title: GHOST — deployment
+---
+%% Intended design; not runtime evidence
+flowchart TD
+  Source["Reviewed source and dependency locks"] --> Build["Windows .NET10 build and tests"]
+  Build --> Managed["Self-contained win-x64 app folder"]
+  Tracker["Pinned tracker interpreter and native wheels"] --> Bundle["Package artifact inventory"]
+  Models["Audited model and licenses"] --> Bundle
+  Managed --> Bundle
+  Bundle --> Hash["Notices SBOM and file hashes"]
+  Hash --> Clean["Clean Windows standard user offline test"]
+  Clean --> Passed{"Runtime camera cleanup and rollback pass?"}
+  Passed -->|No| Repair["Repair artifact and repeat clean test"]
+  Repair --> Bundle
+  Passed -->|Yes| Candidate["Portable or per-user installer candidate"]
+  Candidate --> User["User-local install"]
+  User --> Data[("Separate local snapshots and settings")]
+  User --> Upgrade{"Upgrade valid?"}
+  Upgrade -->|No| Rollback["Previous package and compatible schema backup"]
+  Upgrade -->|Yes| Current["Current verified version"]
+  User --> Uninstall["Stop children and uninstall; explicit data choice"]

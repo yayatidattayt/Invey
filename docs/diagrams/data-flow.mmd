@@ -1,0 +1,25 @@
+---
+title: GHOST — data flow
+---
+%% Intended design; not runtime evidence
+flowchart LR
+  Camera["Camera pixels in tracker RAM"] --> Inference["Local inference"]
+  Inference --> Numbers["Landmark numbers only"]
+  Numbers --> Validate["Schema epoch sequence validation"]
+  Validate --> FSM["Gesture reducer"]
+  FSM --> Scene["Scene and claim state"]
+  Scene --> Render["Display-paced visuals"]
+  User["Explicit capture command"] --> Frame["One full frame in volatile memory"]
+  Frame --> Selection["Frozen region selection"]
+  Selection --> Preview["Preview and adjustment"]
+  Preview --> Confirm{"Confirmed?"}
+  Confirm -->|No| Dispose["Dispose full and crop buffers"]
+  Confirm -->|Yes| Crop["Crop in memory"]
+  Crop --> Asset["Write selected PNG temp then rename"]
+  Asset --> Manifest["Commit manifest generation"]
+  Manifest --> Disk[("User-local store")]
+  Disk --> Decode["Bounded background decode"]
+  Decode --> Render
+  Crop --> DisposeFull["Promptly release full frame"]
+  Inference --> Metrics["Redacted health and timings"]
+  Metrics --> Logs["Bounded local diagnostics"]

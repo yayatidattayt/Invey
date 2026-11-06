@@ -1,0 +1,42 @@
+---
+title: GHOST — state machines
+---
+%% Intended design; not runtime evidence
+stateDiagram-v2
+  state Camera {
+    [*] --> Off
+    Off --> Starting: explicit enable
+    Starting --> ReadyDisarmed: ready or calibration
+    Starting --> Unavailable: denied or failure
+    ReadyDisarmed --> Tracking: explicit arm
+    Tracking --> Clutched: clutch cancels Ghost
+    Clutched --> ReadyDisarmed: release clutch
+    Clutched --> Off: pause or disable closes camera
+    ReadyDisarmed --> Off: pause or disable closes camera
+    Tracking --> Off: pause or disable closes camera
+    Tracking --> Unavailable: worker or camera failure
+    Unavailable --> Starting: explicit retry
+    Unavailable --> Off: use shortcuts
+  }
+  state Ghost {
+    [*] --> Disarmed
+    Disarmed --> Armed: fresh explicit arm
+    Armed --> Pressed: stable eligible pinch
+    Pressed --> Dragging: movement threshold
+    Pressed --> Armed: valid release
+    Dragging --> Armed: independent release
+    Pressed --> Disarmed: loss or stale cancels
+    Dragging --> Disarmed: loss or stale cancels
+    Armed --> Disarmed: pause or ambiguity
+  }
+  state Shelf {
+    [*] --> Hidden
+    Hidden --> Candidate: edge dwell
+    Candidate --> Hidden: invalid pull
+    Candidate --> Opening: deliberate inward movement
+    Opening --> Peek: visible
+    Peek --> Peek: claimed target blocks idle
+    Peek --> Closing: explicit close or idle without claim
+    Closing --> Hidden: pins survive
+    Closing --> Opening: interrupt with reveal
+  }

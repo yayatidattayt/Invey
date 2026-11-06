@@ -1,0 +1,30 @@
+---
+title: GHOST — navigation
+---
+%% Intended design; not runtime evidence
+flowchart LR
+  Tray["Tray"] --> Onboard["Onboarding if first run"]
+  Onboard --> Calibration["Calibration and practice"]
+  Onboard --> Workspace["Workspace and library"]
+  Tray --> Settings["Settings"]
+  Settings --> General["General"]
+  Settings --> Ghost["GHOST camera and calibration"]
+  Ghost --> Calibration
+  Settings --> Shortcuts["Shortcuts"]
+  Settings --> Privacy["Privacy and delete all"]
+  Settings --> Diagnostics["Diagnostics"]
+  Privacy --> Confirm["Delete confirmation and result"]
+  Confirm --> Privacy
+  Tray --> Workspace
+  Workspace --> Viewer["Snapshot viewer"]
+  Viewer --> Workspace
+  Workspace --> Rename["Rename or delete and Undo"]
+  Rename --> Workspace
+  Tray --> Capture["Capture selection"]
+  Workspace --> Capture
+  Capture --> Preview["Preview"]
+  Preview -->|Back| Capture
+  Preview -->|Saved or cancel| Tray
+  Ghost -->|Armed edge pull| Peek["Passive Interactive Peek"]
+  Peek --> Pins["Pinned static references"]
+  Peek -->|Close| Tray

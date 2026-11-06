@@ -1,0 +1,213 @@
+"""Private GHOST qualification worker. Source is an attributed still transformed in memory."""
+
+import argparse
+from contextlib import ExitStack, nullcontext
+import json
+import math
+import os
+from pathlib import Path
+import sys
+import time
+import uuid
+
+def phase(name):
+    print("GHOST_TRACKING_PHASE=" + name, file=sys.stderr, flush=True)
+
+
+class ParentPipe:
+    """The parent signals stop by closing its stdin writer."""
+
+    def __init__(self):
+        import ctypes
+        from ctypes import wintypes
+        import msvcrt
+
+        self.handle = msvcrt.get_osfhandle(sys.stdin.fileno())
+        self.peek = ctypes.WinDLL("kernel32", use_last_error=True).PeekNamedPipe
+        self.peek.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD,
+                              ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+        self.peek.restype = wintypes.BOOL
+
+    def is_set(self):
+        return not self.peek(self.handle, None, 0, None, None, None)
+
+    def wait(self, duration):
+        until = time.monotonic() + duration
+        while not self.is_set():
+            remaining = until - time.monotonic()
+            if remaining <= 0:
+                return
+            # Poll closure between frames. The host owns the deadline for blocked inference.
+            time.sleep(min(remaining, 0.025))
+
+
+def normalize(result):
+    if not result.hand_landmarks:
+        return [], {}
+    if len(result.hand_landmarks) != 1:
+        return [], {"partial": True}
+    points = [[point.x, point.y, point.z] for point in result.hand_landmarks[0]]
+    if len(points) != 21 or any(not all(map(math.isfinite, point)) for point in points):
+        raise ValueError("Invalid hand model geometry.")
+    if any(not (0 <= x <= 1 and 0 <= y <= 1) for x, y, _ in points):
+        return [], {"partial": True}
+
+    fields = {}
+    if len(result.handedness) == 1 and len(result.handedness[0]) == 1:
+        category = result.handedness[0][0]
+        side = category.category_name.lower()
+        if side in {"left", "right"} and 0 <= category.score <= 1:
+            fields = {"handedness": side, "quality": {"handednessScore": category.score}}
+    return points, fields
+
+
+def open_landmarker(mp, asset):
+    options = mp.tasks.vision.HandLandmarkerOptions(
+        base_options=mp.tasks.BaseOptions(model_asset_buffer=asset, delegate=mp.tasks.BaseOptions.Delegate.CPU),
+        running_mode=mp.tasks.vision.RunningMode.VIDEO, num_hands=1,
+    )
+    return mp.tasks.vision.HandLandmarker.create_from_options(options)
+
+
+def stream(args, pipe, stop, diagnostic=None):
+    def send(kind, **fields):
+        line = json.dumps({"v": 1, "kind": kind, "session": args.session, **fields}, allow_nan=False)
+        payload = (line + "\n").encode("utf-8")
+        if pipe.write(payload) != len(payload):
+            raise BrokenPipeError("Short tracker write.")
+        if diagnostic and kind == "observation":
+            diagnostic.result(fields)
+
+    if args.fault == "startup-hang":
+        stop.wait(30)
+        return
+
+    sys.path.insert(0, str(args.site_packages))
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        phase("importing")
+        from qualify_hand_landmarker import MODEL_HASH, PHOTO_HASH, checked_bytes, mp, np, Image, ImageOps
+        from frame_pipeline import RecordedFrameSource, run_frames
+        from windows_camera import CameraError, open_source
+        if sys.version_info[:3] != (3, 12, 10) or mp.__version__ != "0.10.32":
+            raise RuntimeError("Recorded qualification runtime differs from the pinned candidate.")
+    except (ImportError, RuntimeError, OSError):
+        send("error", code="runtime-failure")
+        return
+
+    try:
+        with ExitStack() as resources:
+            try:
+                phase("opening-model")
+                asset = checked_bytes(args.model, MODEL_HASH)
+                if args.fault == "bad-model":
+                    asset = b"invalid model"
+                tracker = resources.enter_context(open_landmarker(mp, asset))
+                if not args.camera and not args.fixture_file:
+                    checked_bytes(args.palm, PHOTO_HASH)
+                    source = RecordedFrameSource(args.palm, np, Image, ImageOps)
+            except (ValueError, RuntimeError, OSError):
+                send("error", code="invalid-model")
+                return
+            if stop.is_set():
+                return
+            if args.camera or args.fixture_file:
+                phase("opening-camera")
+                if args.fault == "camera-denied":
+                    raise CameraError("permission-denied")
+                source = resources.enter_context(open_source(np, args.camera, args.fixture_file, diagnostic))
+            send("ready")
+            phase("ready")
+            if args.fault == "crash":
+                os._exit(7)
+            if args.fault == "malformed":
+                pipe.write(b"{broken}\n")
+                return
+            if args.fault == "ignore-stop":
+                time.sleep(30)
+                return
+
+            def delay_result(sequence, *_):
+                if sequence == 12:
+                    stop.wait(0.9)
+
+            measured = diagnostic.measure_tracker(tracker) if diagnostic else tracker
+            run_frames(source, stop, measured, mp, np, normalize, send,
+                       diagnostic.sample if diagnostic else delay_result if args.fault == "result-gap" else None,
+                       diagnostic)
+    except CameraError as error:
+        if diagnostic:
+            diagnostic.data["error"] = error.code
+            if error.native_code is not None:
+                diagnostic.data["hresult"] = f"0x{error.native_code:08X}"
+        if error.native_code is not None:
+            print(f"GHOST_TRACKING_NATIVE_CODE={error.native_code:08X}", file=sys.stderr, flush=True)
+        send("error", code=error.code)
+        return
+    except (RuntimeError, ValueError, OSError) as error:
+        if isinstance(error, BrokenPipeError):
+            raise
+        if getattr(error, "winerror", None) is not None:
+            print(f"GHOST_TRACKING_NATIVE_CODE={error.winerror & 0xFFFFFFFF:08X}", file=sys.stderr, flush=True)
+        send("error", code="runtime-failure")
+    send("stopped")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--list-cameras", action="store_true")
+    parser.add_argument("--pipe")
+    parser.add_argument("--session", type=lambda value: str(uuid.UUID(value)))
+    parser.add_argument("--site-packages", type=Path)
+    parser.add_argument("--model", type=Path)
+    parser.add_argument("--palm", type=Path)
+    parser.add_argument("--diagnostics", type=Path)
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument("--camera")
+    source.add_argument("--fixture-file", type=Path)
+    parser.add_argument("--fault", choices=["startup-hang", "crash", "malformed", "ignore-stop",
+                                          "bad-model", "result-gap", "camera-denied"])
+    args = parser.parse_args()
+    if not args.list_cameras and not all((args.pipe, args.session, args.site_packages, args.model, args.palm)):
+        parser.error("The tracking worker requires a pipe, session, runtime, and asset paths.")
+
+    # No pipe connection or inference before the host assigns this process to its job.
+    phase("waiting-for-start")
+    if sys.stdin.readline().strip() != "start":
+        return
+    if args.list_cameras:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from windows_camera import CameraError, list_cameras
+        try:
+            print(json.dumps({"devices": list_cameras()}), flush=True)
+        except (CameraError, OSError) as error:
+            print(json.dumps({"error": error.code if isinstance(error, CameraError) else "runtime-failure"}), flush=True)
+        return
+    phase("connecting")
+    stop = ParentPipe()
+    diagnostic = None
+    try:
+        descriptor = os.open("\\\\.\\pipe\\" + args.pipe, os.O_WRONLY | os.O_BINARY)
+        with os.fdopen(descriptor, "wb", buffering=0) as pipe:
+            phase("connected")
+            with ExitStack() as apartment:
+                if args.camera or args.fixture_file:
+                    # Initialize MTA before the inference imports can initialize this thread as STA.
+                    sys.path.insert(0, str(Path(__file__).resolve().parent))
+                    from windows_camera import multithreaded_com
+                    if args.camera and args.diagnostics:
+                        from camera_diagnostics import CameraDiagnostics
+                        diagnostic = CameraDiagnostics(args.diagnostics, args.session, args.camera)
+                        diagnostic.save()
+                    with diagnostic.stage("CoInitializeEx") if diagnostic else nullcontext():
+                        apartment.enter_context(multithreaded_com())
+                stream(args, pipe, stop, diagnostic)
+    except BrokenPipeError:
+        pass
+    finally:
+        if diagnostic:
+            diagnostic.finish()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,29 @@
+---
+title: GHOST — system architecture
+---
+%% Intended design; not runtime evidence
+flowchart LR
+  subgraph Win["Windows user session"]
+    Mouse["Physical mouse"] --> OS["OS input"]
+    OS --> External["Underlying application"]
+    OS --> Workspace["Pocket Workspace"]
+    User["User"] --> Host["Pocket.App lifecycle"]
+    Host --> Workspace
+    Workspace --> Core["Pure Core reducer and claims"]
+    Core --> Overlay["Passive Overlay"]
+    Host --> Capture["Explicit capture worker"]
+    Capture --> Store["Storage writer"]
+    Store --> Disk[("Local cropped PNG and manifest")]
+  end
+  subgraph TrackerBoundary["Isolated tracker process"]
+    Camera["Opt-in camera"] --> Tracker["Local inference"]
+  end
+  Tracker --> Validator["Bounded validated observations"]
+  Validator --> Core
+  Core -. "Deliberate experimental action" .-> UIA["Windowless MTA worker"]
+  UIA -. "Tested capability only" .-> External
+  Host --> Supervisor["Watchdog and child lifetime"]
+  Supervisor --> Tracker
+  Supervisor --> UIA
+  Supervisor --> Cancel["Fault: cancel Ghost only"]
+  Cancel --> Core

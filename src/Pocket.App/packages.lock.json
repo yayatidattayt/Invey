@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0-windows7.0": {
+      "pocket.automation.client": {
+        "type": "Project",
+        "dependencies": {
+          "Pocket.Automation.Contracts": "[1.0.0, )"
+        }
+      },
+      "pocket.automation.contracts": {
+        "type": "Project"
+      },
+      "pocket.core": {
+        "type": "Project"
+      },
+      "pocket.overlay": {
+        "type": "Project",
+        "dependencies": {
+          "Pocket.Core": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}
