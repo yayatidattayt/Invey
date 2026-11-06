@@ -136,7 +136,7 @@ internal sealed class CalibrationPanel : StackPanel
         _completed = false;
         var display = (_display.SelectedItem as CalibrationDisplayChoice)?.Geometry;
         _mapping = display is { } geometry ? new(geometry, _margin.Value / 100, _sensitivity.Value / 100, _mirror.IsChecked == true) : null;
-        _save.IsEnabled = _mapping is not null && _store is not null;
+        _save.IsEnabled = _mapping is not null && _store?.CanSave == true;
         Draw();
     }
 
@@ -179,7 +179,7 @@ internal sealed class CalibrationPanel : StackPanel
 
     private void Save()
     {
-        if (_store is null || _display.SelectedItem is not CalibrationDisplayChoice choice) return;
+        if (_store?.CanSave != true || _display.SelectedItem is not CalibrationDisplayChoice choice) return;
         var value = new CalibrationPreferences(1, choice.Geometry, _mirror.IsChecked == true ? 1 : 0,
             _hand.SelectedIndex, (int)_margin.Value, (int)_sensitivity.Value);
         try
@@ -287,7 +287,7 @@ internal sealed class CalibrationPanel : StackPanel
 
     private void WriteDiagnostics()
     {
-        string? directory = Environment.GetEnvironmentVariable("GHOST_CAMERA_DIAGNOSTICS");
+        string? directory = RecordedTrackingController.DiagnosticDirectory;
         if (_diagnosticSession is not { } session || !Directory.Exists(directory)) return;
         try { File.WriteAllText(System.IO.Path.Combine(directory!, session + ".calibration.json"),
             JsonSerializer.Serialize(new { Session = session, EndReason = _endReason, UiObserved = Counts() })); }

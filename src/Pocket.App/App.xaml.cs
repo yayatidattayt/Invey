@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Security.Principal;
+using System.Runtime.InteropServices;
 using System.Windows;
+using Pocket.Core.References;
 using Forms=System.Windows.Forms;
 
 namespace Pocket.App;
@@ -13,7 +15,7 @@ public partial class App : Application
     private Forms.NotifyIcon? _tray;
     private MainWindow? _controller;
     private AcceptanceHost? _acceptance;
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
         try
@@ -32,12 +34,16 @@ public partial class App : Application
             _instance=new Mutex(true,@"Local\Pocket.Ghost.A1."+identity,out bool first);
             _reopen=new EventWaitHandle(false,EventResetMode.AutoReset,@"Local\Pocket.Ghost.Open."+identity);
             if(!first) { _reopen.Set(); Shutdown(); return; }
-            _controller=new MainWindow(); MainWindow=_controller;
+            int identityResult = SetCurrentProcessExplicitAppUserModelID("Invey.Desktop");
+            if (identityResult < 0) Trace.TraceWarning("Invey app identity could not be set: 0x{0:X8}", identityResult);
+            string profileParent = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var profile = await Task.Run(() => InveyProfile.Resolve(profileParent));
+            _controller=new MainWindow(profile); MainWindow=_controller;
             _wait=ThreadPool.RegisterWaitForSingleObject(_reopen,(_,_)=>Dispatcher.BeginInvoke(new Action(Open)),null,Timeout.Infinite,false);
             var menu=new Forms.ContextMenuStrip();
             menu.Items.Add("Open Invey",null,(_,_)=>Open());
             menu.Items.Add("Pocket · capture and references",null,(_,_)=>_controller.ShowPocket());
-            menu.Items.Add("Settings",null,(_,_)=>{Open();_controller.ShowSettings();});
+            menu.Items.Add("Settings",null,(_,_)=>{if(!_controller.CaptureInProgress){Open();_controller.ShowSettings();}});
             menu.Items.Add("Stop tracking",null,(_,_)=>_controller.Pause());
             menu.Items.Add("Exit Invey",null,async (_,_)=>await _controller.ExitAsync());
             _tray=new Forms.NotifyIcon { Text="Invey · Camera off",Icon=System.Drawing.SystemIcons.Application,ContextMenuStrip=menu,Visible=true };
@@ -48,6 +54,8 @@ public partial class App : Application
         }
         catch(Exception ex) { MessageBox.Show(ex.Message,"Invey startup failed"); Shutdown(1); }
     }
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SetCurrentProcessExplicitAppUserModelID(string appId);
     private async Task RunSmoke()
     {
         string outputDirectory=NativeSmoke.CreateRunDirectory();
@@ -77,7 +85,7 @@ public partial class App : Application
         }
         catch(Exception ex){Console.Error.WriteLine(ex);Shutdown(1);}
     }
-    private void Open() { if(_controller is null) return; _controller.Show(); _controller.WindowState=WindowState.Normal; _controller.Activate(); }
+    private void Open() { if(_controller is null || _controller.CaptureInProgress) return; _controller.Show(); _controller.WindowState=WindowState.Normal; _controller.Activate(); }
     protected override void OnExit(ExitEventArgs e)
     {
         _wait?.Unregister(null); _tray?.Dispose(); _controller?.Cleanup();

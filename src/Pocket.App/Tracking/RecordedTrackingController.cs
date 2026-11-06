@@ -8,7 +8,10 @@ using Pocket.Core.Tracking;
 
 namespace Pocket.App.Tracking;
 
-internal sealed record CameraDevice(string Id, string Name);
+internal sealed record CameraDevice(string Id, string Name)
+{
+    public override string ToString() => Name;
+}
 internal sealed record CameraInventory(IReadOnlyList<CameraDevice> Devices, string? Error = null);
 
 /// <summary>Owns one explicitly started tracking worker. Start and Stop are called by the WPF dispatcher.</summary>
@@ -25,7 +28,9 @@ internal sealed class RecordedTrackingController
     private Process? _unconfirmedWorker;
     private Guid _unconfirmedSession;
     private volatile bool _explicitStop;
-    private readonly string? _diagnostics = Environment.GetEnvironmentVariable("GHOST_CAMERA_DIAGNOSTICS");
+    internal static string? DiagnosticDirectory => Environment.GetEnvironmentVariable("INVEY_CAMERA_DIAGNOSTICS") ??
+        Environment.GetEnvironmentVariable("GHOST_CAMERA_DIAGNOSTICS");
+    private readonly string? _diagnostics = DiagnosticDirectory;
     public const int DiagnosticSeconds = 25;
     public bool HasDiagnostics => Directory.Exists(_diagnostics);
 

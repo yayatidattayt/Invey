@@ -4,7 +4,7 @@
  <TextBlock Text="invey." FontSize="24" FontWeight="SemiBold" AutomationProperties.Name="Invey"/>
  <Button Content="_Pocket · capture and references" Click="OpenPocket" HorizontalAlignment="Left" Margin="0,14,0,0"/>
  <TextBlock Margin="0,8,0,20" Text="Native input replay · Camera controls in Tracking lab" />
- <TextBlock TextWrapping="Wrap" Text="Start a replay, then focus another window during the five-second countdown. GHOST moves its own Pocket panel while your physical mouse stays available."/>
+ <TextBlock TextWrapping="Wrap" Text="Start a replay, then focus another window during the five-second countdown. Ghost moves its own Pocket panel while your physical mouse stays available."/>
  <WrapPanel Margin="0,20,0,0">
  <Button Content="_Show overlay" Click="ShowOverlay"/><Button Content="_Hide overlay" Click="HideOverlay"/>
  <Button x:Name="StartButton" Content="_Start timed replay" Click="StartReplay"/><Button x:Name="StopButton" Content="S_top replay" Click="StopReplay" IsEnabled="False"/>

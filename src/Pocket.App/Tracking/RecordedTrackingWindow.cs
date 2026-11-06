@@ -43,7 +43,8 @@ internal sealed class RecordedTrackingWindow : Window
     public event Action<string>? CameraStatusChanged;
 
     public RecordedTrackingWindow(string? fixtureFile = null, string? fixtureCameraFault = null,
-        string? testSettingsPath = null, bool acceptanceHost = false)
+        string? testSettingsPath = null, bool acceptanceHost = false, string? profileSettingsPath = null,
+        bool profileWritable = true)
     {
         _fixtureFile = fixtureFile;
         _fixtureCameraFault = fixtureCameraFault;
@@ -62,13 +63,12 @@ internal sealed class RecordedTrackingWindow : Window
         _devices.SelectionChanged += (_, _) => Render();
         _start.Click += (_, _) => Start();
         _stop.Click += async (_, _) => await StopAsync();
-        string? settings = acceptanceHost ? testSettingsPath : Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PocketDualGhost", "calibration.json");
+        string? settings = acceptanceHost ? testSettingsPath : profileSettingsPath;
         _calibration = new CalibrationPanel(async () =>
         {
             await StopAsync();
             _start.Focus();
-        }, settings is null ? null : new CalibrationPreferencesStore(settings));
+        }, settings is null ? null : new CalibrationPreferencesStore(settings, profileWritable));
         _calibrate.Click += (_, _) =>
         {
             var snapshot = _controller.Read();
