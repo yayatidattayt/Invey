@@ -52,11 +52,13 @@ The launcher recognizes RDP session naming when available. Other remote software
 
 ## J — Performance
 
-Supplemental fixture-to-ready timings were166.38 ms (seed73021) and193.58 ms (seed99173) in the expanded rehearsal. These are not cold app launch benchmarks: the fixture host was already running. No new physical camera FPS, motion accuracy or thermal claims are made. The verified executable starts successfully for bounded demo preparation with exit0.
+Final committed-build fixture-to-ready timings were162.12 ms (seed73021) and171.87 ms (seed99174). These are not cold app launch benchmarks: the fixture host was already running. No new physical camera FPS, motion accuracy or thermal claims are made. The verified executable starts successfully for bounded demo preparation with exit0.
 
 ## K — Debug/Release
 
 Final pinned Debug and Release builds passed with zero compiler warnings/errors and100/100 core tests in each configuration. Locked restore passed. Detailed logs/TRX remain in ignored artifacts/execution-17. A transient test build failed on missing System.IO imports in a new diagnostic test; repaired and retained in readiness-route-build.log, with the successful rerun also retained.
+
+The later verified-Debug.trx run retained two AccessDenied failures during temporary-file budget atomic moves (98 passed/2 failed). No guardian code or test was weakened. With TEMP/TMP explicitly set to an isolated workspace directory, verified-Debug-workspace.trx and verified-Release-workspace.trx each passed100/100. The underlying cause of the original temporary-directory access failures is not established. Hosted Windows verification also passed on the unchanged implementation.
 
 ## L — Worker tests
 
@@ -71,8 +73,10 @@ Final standard run20261108T150105106-d999c63fe7e54c02beca6d5782dc0746 passed its
 ## N — End-to-end rehearsal
 
 Supplemental ACTUAL_WPF_CONTROLS + GDI_CAPTURE; NO_NATIVE_INPUT:
-- Seed73021:20261108T150629861-8c6da1be54ca43029e59f906e798a91f — PASS.
-- Seed99173:20261108T150842613-dbfd0189fbb043afa7d27abbe55857e5 — PASS.
+- Seed73021:20261108T153622853-06f64c05e2e543eb8a85b033cf561e1a — PASS.
+- Seed99174:20261108T153915036-3783fac5a6d54c8d9df783ae8231d04c — PASS.
+
+Both final runs match the verified implementation DLL SHA256 below. Seed99174 selects the alternate synthetic Workspace reference. Earlier73021/99173 passes remain preserved as development evidence.
 
 These use actual window/control instances, WPF Invoke/Toggle providers, real capture/PNG save/decode, real model inference, explicit simulation, Settings and actual host-process exit/restart. They do not use store/model mocks. They do not establish native focus, mouse handling or remote-client shortcut compatibility. Native rehearsal remains MANUAL VERIFICATION REQUIRED.
 
@@ -102,7 +106,9 @@ Remote display/camera enumeration, native foreground behavior, tray/Explorer, ph
 
 ## R — GitHub delivery
 
-Stabilization branch: codex/execution-17-demo-stabilization, stacked on PR5's feature branch. Exact implementation commit, PR and final CI are recorded during delivery below. No parent PR is merged or rewritten. Hosted CI covers build/core/worker/native-file tests, not the blocked local native rehearsal.
+Stabilization branch: codex/execution-17-demo-stabilization, stacked on PR5's feature branch. Verified implementation commit:41c19de3aa84f47a76603aec3c5df9db3e68283f. [Draft PR6](https://github.com/yayatidattayt/Invey/pull/6) targets codex/execution-16-precision-finger-tracking. [Windows verification42495968595](https://github.com/yayatidattayt/Invey/actions/runs/42495968595) passed for that exact implementation. The final documentation-only review head is checked separately through [PR checks](https://github.com/yayatidattayt/Invey/pull/6/checks) and identified in delivery.
+
+The local Invey.dll reports1.0.0+41c19de3aa84f47a76603aec3c5df9db3e68283f and SHA256 0BB1E58E810A5A3BC2A1A01C44029487C4687CD20148CE630AD42A48FA910DEF. Both final rehearsal results record that same hash. The local executable and verification/linkage metadata are retained in artifacts/execution-17/verified-build.json and verified-rehearsal-linkage.json. The later documentation commit does not change the verified application code. No parent PR is merged or rewritten. Hosted CI covers build/core/worker/native-file tests, not the blocked local native rehearsal.
 
 ## S — Launch
 
