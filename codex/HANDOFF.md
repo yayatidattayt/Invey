@@ -1,5 +1,14 @@
 # Invey — Current handoff
 
+## Execution17 — camera-free demo stabilization,2026-11-08
+
+Branch codex/execution-17-demo-stabilization starts at ab619be with all five parent PRs preserved. See [demo quickstart](../docs/DEMO_QUICKSTART.md), [feature inventory](../docs/DEMO_FEATURE_INVENTORY.md) and [Execution17 report](../docs/EXECUTION_17_DEMO_REPORT.md).
+
+Camera remains OFF; prior execution device permissions do not authorize unattended tests here. The optional Invey-Demo/Execution17 profile is prepared with two synthetic references. Normal/legacy manifest and preference hashes were unchanged. Launcher supports CheckOnly, explicit demo preparation and safe rebuild refusal. Main navigation and existing simulated/recorded practice entry points are accessible. Pinning now responds to Checked/Unchecked, fixing its real accessibility Toggle path.
+
+Two supplemental actual-WPF-control/GDI/model/process-restart rehearsals passed with seeds73021 and99173; these are NOT native input passes. Native tests refused foreground ownership while GameInputSvc was foreground; no input guard or system service was bypassed. Final native standard regression stopped at initial focus validation. Read-only audit returned Default desktop, and scoped cleanup must stay confirmed. Readiness is PARTIAL until the creator completes the manual remote-session checklist. No webcam activation, parent merge or B2 actuation.
+
+
 ## Execution 16 continuation — active verification, 2026-11-08
 
 The real camera image and landmark alignment now have user confirmation. A bounded acquisition thread improves the no-hand combined workload to approximately29.6 unique frames/s; this is not hand-accuracy acceptance. An80 ms UI refresh cap was found and repaired to16 ms during preview. Optional overlay modes and independent camera-image mirroring are implemented.

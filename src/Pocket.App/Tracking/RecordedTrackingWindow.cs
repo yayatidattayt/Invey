@@ -20,6 +20,8 @@ internal sealed class RecordedTrackingWindow : Window
         TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0)
     };
     private readonly RadioButton _recorded = new() { Content = "Rec_orded tracking", IsChecked = true, Margin = new Thickness(0, 0, 12, 0) };
+    private readonly Label _recordedLabel = new() { Content = "Recorded se_quence" };
+    private readonly ComboBox _recordedDemo = new() { ItemsSource = new[] { "Recorded model sequence", "SIMULATED calibration practice" }, SelectedIndex = 0, MinHeight = 28 };
     private readonly RadioButton _live = new() { Content = "_Live camera" };
     private readonly Button _find = new() { Content = "_Find cameras", MinHeight = 30, Margin = new Thickness(0, 6, 0, 6) };
     private readonly ComboBox _devices = new() { DisplayMemberPath = nameof(CameraDevice.Name), MinHeight = 28 };
@@ -28,7 +30,7 @@ internal sealed class RecordedTrackingWindow : Window
     private readonly Button _stop = new() { Content = "S_top", MinHeight = 34, Padding = new Thickness(12, 4, 12, 4) };
     private readonly Button _calibrate = new() { Content = "_Calibrate", MinHeight = 34, Margin = new Thickness(8, 0, 0, 0) };
     private readonly CalibrationPanel _calibration;
-    private readonly CheckBox _showPreview = new() { Content = "Show local camera view and finger landmarks", Margin = new(0, 8, 0, 8) };
+    private readonly CheckBox _showPreview = new() { Content = "_Show local camera view and finger landmarks", Margin = new(0, 8, 0, 8) };
     private readonly CheckBox _mirrorCamera = new() { Content = "Mirror camera image", Margin = new(0, 4, 0, 4) };
     private readonly ComboBox _previewTiming = new() { ItemsSource = new[] { "Match landmarks to frame", "Latest completed image" }, SelectedIndex = 0, MinHeight = 28 };
     private readonly CameraPreviewView _liveView = new();
@@ -74,7 +76,10 @@ internal sealed class RecordedTrackingWindow : Window
         _previewTiming.SelectionChanged += (_, _) => Render();
         AutomationProperties.SetName(_overlayMode, "Camera landmark overlay");
         _overlayMode.SelectionChanged += (_, _) => { _liveView.OverlayMode = _overlayMode.SelectedIndex; Render(); };
-        _start.Click += (_, _) => Start();
+        AutomationProperties.SetName(_recordedDemo, "Recorded demonstration");
+        _recordedLabel.Target = _recordedDemo;
+        _recordedDemo.SelectionChanged += (_, _) => SourceChanged();
+        _start.Click += (_, _) => Start(_recorded.IsChecked == true && _recordedDemo.SelectedIndex == 1 ? "calibration-practice" : null);
         _stop.Click += async (_, _) => await StopAsync();
         string? settings = acceptanceHost ? testSettingsPath : profileSettingsPath;
         _calibration = new CalibrationPanel(async () =>
@@ -111,6 +116,8 @@ internal sealed class RecordedTrackingWindow : Window
             {
                 new TextBlock { Text = "Hand observation", FontSize = 20, FontWeight = FontWeights.SemiBold },
                 sources,
+                _recordedLabel,
+                _recordedDemo,
                 _sourceStatus,
                 new TextBlock
                 {
@@ -174,7 +181,7 @@ internal sealed class RecordedTrackingWindow : Window
         var device = _devices.SelectedItem as CameraDevice;
         bool started = !_stopping && !_closing && _scan is null && (!live || device is not null) &&
             _controller.Start(live ? device : null, live ? _fixtureFile : null,
-                live ? _fixtureCameraFault : fixtureFault, _showPreview.IsChecked == true);
+                live ? _fixtureCameraFault : fixtureFault, _showPreview.IsChecked == true && fixtureFault != "calibration-practice");
         _startedInMode |= started;
         Render();
         return started;
@@ -278,7 +285,11 @@ internal sealed class RecordedTrackingWindow : Window
         bool available = !_closing && !_stopping && _scan is null && _controller.CanStart;
         _live.IsEnabled = _recorded.IsEnabled = _find.IsEnabled = available;
         _devices.IsEnabled = available;
-        _showPreview.IsEnabled = available;
+        bool simulated = !live && _recordedDemo.SelectedIndex == 1;
+        _showPreview.IsEnabled = available && !simulated;
+        _showPreview.ToolTip = simulated ? "Simulated practice uses landmarks only, with no video." : null;
+        _recordedDemo.IsEnabled = available;
+        _recordedDemo.Visibility = _recordedLabel.Visibility = live ? Visibility.Collapsed : Visibility.Visible;
         _deviceOptions.Visibility = live ? Visibility.Visible : Visibility.Collapsed;
         bool budgetAvailable = !live || _fixtureFile is not null || _fixtureCameraFault is not null ||
             _controller.DiagnosticBudgetAvailable;
@@ -286,11 +297,11 @@ internal sealed class RecordedTrackingWindow : Window
         if (!budgetAvailable) _start.ToolTip = "The execution camera budget is missing or unavailable.";
         else _start.ToolTip = null;
         _stop.IsEnabled = !_stopping && _visible.SessionId.HasValue;
-        bool showing = _showPreview.IsChecked == true && _visible.SessionId.HasValue &&
+        bool showing = !simulated && _showPreview.IsChecked == true && _visible.SessionId.HasValue &&
             _visible.State is not (TrackingState.Stopping or TrackingState.Unavailable);
         var frame = showing ? _controller.ReadPreview(_previewTiming.SelectedIndex == 0 ? _visible.Observation?.Sequence : null) : null;
         _liveView.Update(frame, _visible.Observation, _mirrorCamera.IsChecked == true);
-        _previewStatus.Text = !showing ? "" : _controller.PreviewFailed ?
+        _previewStatus.Text = !showing ? (simulated ? "SIMULATED landmarks only. No camera image is used." : "") : _controller.PreviewFailed ?
             "Live view is unavailable. Tracking and Stop remain available." :
             frame is null ? "Waiting for the local camera view…" :
             $"Preview: {_liveView.UniquePresentedFps:F1} unique frames/s · local frame age: {Environment.TickCount64 - frame.ReceivedMs} ms. " +
@@ -309,7 +320,7 @@ internal sealed class RecordedTrackingWindow : Window
         _refresh.Interval = TimeSpan.FromMilliseconds(showing ? 16 :
             _calibration.Visibility == Visibility.Visible ? 25 : 80);
         _calibration.Update(_visible);
-        string source = !live ? "recorded tracking" : _fixtureFile is not null ? "test video" : "live camera";
+        string source = !live ? (_recordedDemo.SelectedIndex == 1 ? "simulated practice" : "recorded tracking") : _fixtureFile is not null ? "test video" : "live camera";
         _start.Content = (_startedInMode ? "_Restart " : "_Enable ") + source;
         string cameraStatus = _visible.Source == TrackingSource.Camera ? _visible.State switch
         {
@@ -322,7 +333,7 @@ internal sealed class RecordedTrackingWindow : Window
             _cameraStatus = cameraStatus;
             CameraStatusChanged?.Invoke(cameraStatus);
         }
-        _sourceStatus.Text = (!live ? "Recorded source" : _fixtureFile is not null ? "Native video fixture" : "Live camera")
+        _sourceStatus.Text = (!live ? (_recordedDemo.SelectedIndex == 1 ? "SIMULATED practice" : "Recorded source") : _fixtureFile is not null ? "Native video fixture" : "Live camera")
             + " · " + cameraStatus;
         string next = _visible.State switch
         {

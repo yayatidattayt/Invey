@@ -53,11 +53,21 @@ public partial class App : Application
             string identity=WindowsIdentity.GetCurrent().User!.Value+"."+Process.GetCurrentProcess().SessionId;
             _instance=new Mutex(true,@"Local\Pocket.Ghost.A1."+identity,out bool first);
             _reopen=new EventWaitHandle(false,EventResetMode.AutoReset,@"Local\Pocket.Ghost.Open."+identity);
-            if(!first) { _reopen.Set(); Shutdown(); return; }
+            if(!first) { if (e.Args.Contains("--prepare-only")) { Shutdown(2); return; } _reopen.Set(); Shutdown(); return; }
             int identityResult = SetCurrentProcessExplicitAppUserModelID("Invey.Desktop");
             if (identityResult < 0) Trace.TraceWarning("Invey app identity could not be set: 0x{0:X8}", identityResult);
             string profileParent = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var profile = await Task.Run(() => InveyProfile.Resolve(profileParent));
+            bool demo = e.Args.Contains("--demo-profile", StringComparer.Ordinal);
+            if (e.Args.Contains("--prepare-only", StringComparer.Ordinal) && !demo)
+                throw new InvalidOperationException("Preparation requires --demo-profile.");
+            var profile = demo
+                ? DemoProfile.Prepare(Path.Combine(profileParent, "Invey-Demo", "Execution17"))
+                : await Task.Run(() => InveyProfile.Resolve(profileParent));
+            if (e.Args.Contains("--prepare-only", StringComparer.Ordinal))
+            {
+                Shutdown(0);
+                return;
+            }
             _controller=new MainWindow(profile); MainWindow=_controller;
             _wait=ThreadPool.RegisterWaitForSingleObject(_reopen,(_,_)=>Dispatcher.BeginInvoke(new Action(Open)),null,Timeout.Infinite,false);
             var menu = new Forms.ContextMenuStrip();
@@ -87,7 +97,12 @@ public partial class App : Application
             _controller.Show();
             if(e.Args.Contains("--native-smoke")) _=RunSmoke();
         }
-        catch(Exception ex) { MessageBox.Show(ex.Message,"Invey startup failed"); Shutdown(1); }
+        catch(Exception ex)
+        {
+            if (e.Args.Contains("--prepare-only")) Console.Error.WriteLine("Demo preparation failed: " + ex.Message);
+            else MessageBox.Show(ex.Message,"Invey startup failed");
+            Shutdown(1);
+        }
     }
     [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
     private static extern int SetCurrentProcessExplicitAppUserModelID(string appId);

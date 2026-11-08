@@ -18,7 +18,7 @@ internal static class Input
     {
         Desktop.Guard();
         GetWindowThreadProcessId(GetForegroundWindow(),out uint pid);
-        if(pid!=ExpectedPid)throw new InvalidOperationException("Input target is not the controlled fixture process.");
+        if(pid!=ExpectedPid)throw new InvalidOperationException($"Input target is not the controlled fixture process: foreground PID={pid}, expected PID={ExpectedPid}.");
     }
     private static void Send(Event item)
     {
