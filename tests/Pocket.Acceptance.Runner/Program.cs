@@ -119,6 +119,18 @@ internal static partial class Program
             (host, client) = StartAcceptanceHost(app, output);
             await client.Connect();
             var initial=await client.Command("status");fixtureHandle=initial.GetProperty("FixtureHandle").GetInt64();overlayHandle=initial.GetProperty("OverlayHandle").GetInt64();
+            if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_FINGER_ONLY") == "1")
+            {
+                await RunFingerPreview(client);
+                await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
+                return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
+            }
+            if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_BUDGET_ONLY") == "1")
+            {
+                await RunCameraBudgetControls(client);
+                await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
+                return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
+            }
             if (PocketOnly)
             {
                 await RunPocketCapture(client, output);
@@ -133,6 +145,7 @@ internal static partial class Program
                 await RunRecordedTracking(client);
                 await RunCalibration(client);
                 await RunNativeTrackingFixture(client);
+                await RunFingerPreview(client);
                 await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
                 await RunCalibrationAfterRestart(app, output);
                 return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
@@ -239,6 +252,7 @@ internal static partial class Program
             await RunRecordedTracking(client);
             await RunCalibration(client);
             await RunNativeTrackingFixture(client);
+            await RunFingerPreview(client);
             await RunPocketCapture(client, output);
             await Measure("OVERLAY_CLOSED_DURING_PRESS","NATIVE_SOFTWARE_TEST","Closing owned overlay cancels claim and timer immediately",async()=>
             {

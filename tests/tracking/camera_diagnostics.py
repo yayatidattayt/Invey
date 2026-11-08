@@ -57,6 +57,15 @@ class CameraDiagnostics:
         kind = ("hand" if fields["tracked"] else "ambiguous" if fields.get("ambiguous")
                 else "partial" if fields.get("partial") else "empty")
         self.data["results"][kind] += 1
+        if fields.get("partial") and "points" in fields:
+            points = fields["points"]
+            self.count("partialModelObservations")
+            if points[8] is not None:
+                self.count("partialIndexInFrame")
+            if points[4] is not None:
+                self.count("partialThumbInFrame")
+        if (fields.get("tracked") or fields.get("partial")) and not fields.get("handedness"):
+            self.count("unknownHandedness")
         self.data.setdefault("firstResultMs", self.elapsed())
 
     def measure_tracker(self, tracker):
@@ -87,5 +96,7 @@ class CameraDiagnostics:
                 ordered = sorted(values)
                 self.data[name] = {"median": median(ordered) / 1e6,
                                    "p95": ordered[math.ceil(.95 * len(ordered)) - 1] / 1e6}
-        self.data.update(elapsedMs=self.elapsed(), cpuSeconds=time.process_time() - self.cpu, maxApplicationQueue=0)
+        self.data.update(elapsedMs=self.elapsed(), cpuSeconds=time.process_time() - self.cpu,
+                         maxApplicationQueue=1 if self.data.get("uniqueCapturedFrames", 0) else 0,
+                         maxCapturePendingFrames=1 if self.data.get("uniqueCapturedFrames", 0) else 0)
         self.save()

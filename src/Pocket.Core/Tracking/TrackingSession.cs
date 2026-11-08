@@ -9,7 +9,7 @@ public sealed record TrackingCounters(long Hand, long Loss, long Partial, long A
 public sealed record TrackingSnapshot(TrackingState State, Guid? SessionId, TrackingSource? Source,
     HandObservation? Observation, TimeSpan? HostObservationAge, TrackingFailure? Failure,
     bool CleanupUnconfirmed, long AcceptedObservations, long SupersededObservations,
-    long Continuity = 0, TrackingBreak LastBreak = TrackingBreak.None, long LastSequence = -1);
+    long Continuity = 0, TrackingBreak LastBreak = TrackingBreak.None, long LastSequence = -1, long PointerContinuity = 0);
 
 /// <summary>Owns a session and one latest observation. The caller owns the worker and resource teardown.</summary>
 public sealed class TrackingSession(TimeProvider? clock = null)
@@ -29,7 +29,7 @@ public sealed class TrackingSession(TimeProvider? clock = null)
     private long _stateSince, _lastContact, _receivedAt;
     private long _lastSequence = -1, _lastCapture, _lastResult;
     private long _accepted, _superseded;
-    private long _continuity;
+    private long _continuity, _pointerContinuity;
     private TrackingBreak _lastBreak;
     private bool _observedByConsumer;
     private readonly long[] _breakCounts = new long[Enum.GetValues<TrackingBreak>().Length];
@@ -56,7 +56,7 @@ public sealed class TrackingSession(TimeProvider? clock = null)
             _failure = null;
             _lastSequence = -1;
             _lastCapture = _lastResult = _accepted = _superseded = 0;
-            _continuity = 0;
+            _continuity = _pointerContinuity = 0;
             _lastBreak = TrackingBreak.None;
             _hand = _loss = _partial = _ambiguous = 0;
             Array.Clear(_breakCounts);
@@ -146,7 +146,7 @@ public sealed class TrackingSession(TimeProvider? clock = null)
             return new(_state, _session, _source, _latest,
                 _latest is null ? null : _clock.GetElapsedTime(_receivedAt, now), _failure,
                 _state == TrackingState.Stopping && _clock.GetElapsedTime(_stateSince, now) >= StopDeadline,
-                _accepted, _superseded, _continuity, _lastBreak, _lastSequence);
+                _accepted, _superseded, _continuity, _lastBreak, _lastSequence, _pointerContinuity);
         }
     }
 
@@ -181,7 +181,7 @@ public sealed class TrackingSession(TimeProvider? clock = null)
         else if (observation.Ambiguous) _ambiguous++;
         else if (observation.Partial) _partial++;
         else _loss++;
-        _latest = observation.Tracked ? observation : null;
+        _latest = observation.HasModelPoints ? observation : null;
         _observedByConsumer = false;
         _state = observation.Ambiguous ? TrackingState.Ambiguous : observation.Partial ? TrackingState.Partial :
             observation.Tracked ? TrackingState.Observing : TrackingState.Lost;
@@ -212,13 +212,14 @@ public sealed class TrackingSession(TimeProvider? clock = null)
     private void Break(TrackingBreak reason)
     {
         _continuity++;
+        if (reason != TrackingBreak.Partial) _pointerContinuity++;
         _lastBreak = reason;
         _breakCounts[(int)reason]++;
     }
 
     private static bool Jumped(HandObservation prior, HandObservation current, int index) =>
-        Math.Abs(prior.Landmarks[index].X - current.Landmarks[index].X) > .14 ||
-        Math.Abs(prior.Landmarks[index].Y - current.Landmarks[index].Y) > .14;
+        prior.Point(index) is { } a && current.Point(index) is { } b &&
+        (Math.Abs(a.X - b.X) > .14 || Math.Abs(a.Y - b.Y) > .14);
 
     private void BeginStop(long now, TrackingFailure? failure)
     {

@@ -66,3 +66,7 @@ Windows NT10.0.26200.0/x64 host and installed runtime metadata were inspected; n
 | Capture at 100%, 125% and 150% | Deterministic geometry at all three scales. Real WPF and GDI at the available 125% scale |
 | Physical mixed DPI and Explorer | BLOCKED in the isolated environment |
 | Camera diagnostics | ASUS FHD acquisition and shutdown observed. Cumulative test-budget failure and its containment are recorded in the [Execution 15 report](EXECUTION_15_REPORT.md) |
+
+## Execution 16 continuation — 2026-11-08
+
+See [Execution 16 evidence](EXECUTION_16_REPORT.md) and [finger research](FINGER_TRACKING_RESEARCH.md). The real camera preview and aligned finger dots have user confirmation. Bounded capture, sparse model points, explicit per-finger states and an independently supervised versioned diagnostic budget are implemented. Full physical B1, Gate A/M02 and sustained finger-accuracy acceptance remain open. The first full regression failure and its fixture-state repair are preserved; the rerun and final publication are not yet complete.

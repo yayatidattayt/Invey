@@ -16,7 +16,12 @@ class NormalizationTests(unittest.TestCase):
     def test_edge_prediction_is_partial_but_nonfinite_is_invalid(self):
         points = [SimpleNamespace(x=0.5, y=0.5, z=0)] * 20
         edge = points + [SimpleNamespace(x=-0.01, y=0.3, z=0)]
-        self.assertEqual(normalize(SimpleNamespace(hand_landmarks=[edge], handedness=[])), ([], {"partial": True}))
+        observed, fields = normalize(SimpleNamespace(hand_landmarks=[edge], handedness=[]))
+        self.assertEqual(observed, [])
+        self.assertEqual(fields["v"], 2)
+        self.assertTrue(fields["partial"])
+        self.assertIsNone(fields["points"][20])
+        self.assertEqual(fields["points"][8], [0.5, 0.5, 0])
         corrupt = points + [SimpleNamespace(x=0.5, y=0.5, z=math.nan)]
         with self.assertRaisesRegex(ValueError, "Invalid hand model geometry"):
             normalize(SimpleNamespace(hand_landmarks=[corrupt], handedness=[]))

@@ -20,6 +20,26 @@ public partial class App : Application
         base.OnStartup(e);
         try
         {
+            if (e.Args.Length == 2 && e.Args[0] == "--amend-camera-budget-continuation")
+            {
+                using var budget = new Pocket.Core.Tracking.CameraBudget(e.Args[1]);
+                budget.AmendContinuation();
+                Shutdown(0);
+                return;
+            }
+            if (e.Args.FirstOrDefault() == "--camera-budget-double")
+            {
+                AcceptanceHost.ValidateDesktop();
+                int code = await Task.Run(() => Tracking.CameraBudgetFixture.RunDoubleAsync(e.Args));
+                Shutdown(code);
+                return;
+            }
+            if (e.Args.FirstOrDefault() == "--camera-budget-supervisor")
+            {
+                int code = await Task.Run(() => Tracking.CameraBudgetGuard.RunSupervisorAsync(e.Args));
+                Shutdown(code);
+                return;
+            }
             int standardIndex=Array.IndexOf(e.Args,"--standard-provider");
             if(standardIndex>=0){AcceptanceHost.ValidateDesktop();StandardProviderFixture.Show(e.Args[standardIndex+1]);return;}
             int providerIndex=Array.IndexOf(e.Args,"--adverse-provider");
@@ -103,7 +123,17 @@ public partial class App : Application
             finally { await _acceptance!.CloseFixturesAsync(); }
             Shutdown();
         }
-        catch(Exception ex){Console.Error.WriteLine(ex);Shutdown(1);}
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            string? fixture = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE");
+            if (fixture is not null)
+            {
+                try { await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(fixture)!, "host-error.log"), ex.ToString()); }
+                catch (IOException) { }
+            }
+            Shutdown(1);
+        }
     }
     private void Open() { if(_controller is null || _controller.CaptureInProgress) return; _controller.Show(); _controller.WindowState=WindowState.Normal; _controller.Activate(); }
     protected override void OnExit(ExitEventArgs e)

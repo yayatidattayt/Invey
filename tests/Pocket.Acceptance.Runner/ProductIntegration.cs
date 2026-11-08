@@ -60,7 +60,7 @@ internal static partial class Program
                 await client.Connect();
                 var budget = await client.Command("product-diagnostic-budget");
                 Require(budget.GetProperty("DiagnosticReservations").EnumerateArray().Select(value => value.GetBoolean())
-                    .SequenceEqual(new[] { true, true, true, false }), "The diagnostic camera budget allowed a fourth start.");
+                    .SequenceEqual(new[] { true, true, true, true, true, true, false }), "The durable diagnostic budget allowed a seventh start.");
                 await client.Command("product-conflict");
                 var start = await client.Command("product-start");
                 long main = ProductHandle(start);
@@ -151,7 +151,7 @@ internal static partial class Program
             finally { FinishProductHost(restarted); }
             return new { ConflictOwned = true, InvalidRejected = true, SharedTrayCommand = true, Remapped = true,
                 NativeShelfHidden = true, FixtureClickDelivered = true, NoRepeat = true, CaptureCanceled = true,
-                CameraOff = true, ReRegisteredAfterExit = true, DiagnosticFourthStartRejected = true };
+                CameraOff = true, ReRegisteredAfterExit = true, DiagnosticSeventhStartRejected = true };
         });
     }
 

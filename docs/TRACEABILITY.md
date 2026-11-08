@@ -1,5 +1,8 @@
 # Invey — Requirement traceability
 
+Execution16 retains F06 partial model points through a strict v2 contract and adds bounded camera preview, frame-correlated landmarks, an independent durable diagnostic guardian, and an experimental F07 index pointer with separate action eligibility. Real image/overlay alignment is user-confirmed. Four released device sessions are documented in [Execution16 report](EXECUTION_16_REPORT.md); full B1, physical ownership/accuracy and Gate A/M02 remain open. No B2 actuation is added.
+
+
 Execution 15 advances F10 and F12–F15 through window-transition capture hardening, a tuckable shelf, configurable Windows shortcuts and an application-owned Workspace. The [Execution 15 report](EXECUTION_15_REPORT.md) separates isolated WPF and logical Ghost evidence from physical F06/F07 and full C09 acceptance.
 
 Execution 13 delivers the Pocket vertical slice for F10/F11 and camera-off retrieval. Its isolated capture checks cover C01–C05 and C11, with deterministic recovery evidence for C06. Full Gate C and real protected-content and mixed-DPI scenarios remain open. [Execution 13 report](EXECUTION_13_REPORT.md)

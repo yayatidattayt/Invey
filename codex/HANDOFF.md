@@ -1,5 +1,18 @@
 # Invey — Current handoff
 
+## Execution 16 continuation — active verification, 2026-11-08
+
+The real camera image and landmark alignment now have user confirmation. A bounded acquisition thread improves the no-hand combined workload to approximately29.6 unique frames/s; this is not hand-accuracy acceptance. An80 ms UI refresh cap was found and repaired to16 ms during preview. Optional overlay modes and independent camera-image mirroring are implemented.
+
+The existing ledger was explicitly amended to version2 under the new user directive:12 total sessions,180000 ms per new session,1800000 ms total. Prior charges remain intact. Four released sessions total244812 ms; no pending hardware reservation at this checkpoint. Never create a fresh ledger to renew the quota. Read [Execution16 report](../docs/EXECUTION_16_REPORT.md) and [research](../docs/FINGER_TRACKING_RESEARCH.md).
+
+The first full standard Windows run failed the new finger test because a prior test saved mirrored mapping; downstream checks then encountered an open lab. Fixture mapping is now explicit and cleanup uses finally. Full standard rerun is active. Preserve the failed run 20261108T111609122-63514e08ab604f31907e137745295f84. No camera launch during regression. The final physical preview refresh verification, performance comparisons, publication and exact CI remain unfinished.
+
+## Historical interruption — 2026-11-08
+
+User requested a visible camera view and finger overlay before the cold-start trial. Desktop control was then stopped with physical Escape; no further desktop input or camera launch was attempted. Camera was already stopped and the normal Invey windows closed. Read [Execution 16 checkpoint](../docs/EXECUTION_16_CHECKPOINT.md) before resuming. Preserve the existing two-session budget ledger; never initialize a replacement to renew the execution budget. Work is uncommitted on `codex/execution-16-precision-finger-tracking`. The strengthened preview acceptance controls still need a build and run after their final source correction.
+
+
 ## Execution 15 — Pocket shelf, shortcuts and Workspace
 
 The normal Invey window offers camera-off Capture, Pocket and Workspace. Pocket uses its existing library and independent pinned cards. Settings validates and persists global Windows shortcuts. Workspace has two local snapshot targets and an isolated logical test stream. Review the [Execution 15 report](../docs/EXECUTION_15_REPORT.md) for the diagnostic budget failure and containment, capture reproduction and acceptance evidence.

@@ -1,0 +1,116 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace Pocket.Core.Tracking;
+
+public sealed record CameraBudgetEntry([property: JsonRequired] Guid Session,
+    [property: JsonRequired] long ChargedMs, [property: JsonRequired] bool Released);
+public sealed record CameraBudgetState([property: JsonRequired] int Version,
+    [property: JsonRequired] string Execution, [property: JsonRequired] CameraBudgetEntry[] Sessions, string? Amendment = null);
+
+/// <summary>One durable execution budget. Unfinished reservations fail closed across restarts.</summary>
+public sealed class CameraBudget : IDisposable
+{
+    public const int MaxSessions = 6;
+    public const int SessionMilliseconds = 120_000;
+    public const int TotalMilliseconds = 720_000;
+    public const string ContinuationAmendment = "execution-16-continuation-2026-11-08";
+    public int SessionLimitMilliseconds => _state.Version == 2 ? 180_000 : SessionMilliseconds;
+    public int SessionLimitCount => _state.Version == 2 ? 12 : MaxSessions;
+    public int TotalLimitMilliseconds => _state.Version == 2 ? 1_800_000 : TotalMilliseconds;
+    private readonly string _path;
+    private readonly FileStream _lock;
+    private CameraBudgetState _state;
+    private static readonly JsonSerializerOptions Schema = new()
+    {
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow, AllowDuplicateProperties = false
+    };
+
+    public static void Initialize(string path)
+    {
+        ValidatePath(path);
+        using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        JsonSerializer.Serialize(stream, new CameraBudgetState(1, "execution-16", []), Schema);
+        stream.Flush(true);
+    }
+
+    public CameraBudget(string path)
+    {
+        _path = Path.GetFullPath(path);
+        ValidatePath(_path);
+        if (!File.Exists(_path)) throw new InvalidDataException("The diagnostic camera budget is missing.");
+        _lock = new FileStream(_path + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+        try
+        {
+            using var stream = File.OpenRead(_path);
+            if (stream.Length is <= 0 or > 8192) throw new InvalidDataException("Invalid camera budget size.");
+            _state = JsonSerializer.Deserialize<CameraBudgetState>(stream, Schema)
+                ?? throw new InvalidDataException("Invalid camera budget.");
+            if ((_state.Version != 1 && _state.Version != 2) ||
+                (_state.Version == 1 ? _state.Amendment is not null : _state.Amendment != ContinuationAmendment) ||
+                _state.Execution != "execution-16" || _state.Sessions is null ||
+                _state.Sessions.Length > SessionLimitCount || _state.Sessions.Any(row => row is null || row.Session == Guid.Empty ||
+                    row.ChargedMs < 0 || row.ChargedMs > SessionLimitMilliseconds) ||
+                _state.Sessions.Select(row => row.Session).Distinct().Count() != _state.Sessions.Length)
+                throw new InvalidDataException("Invalid camera budget values.");
+        }
+        catch { _lock.Dispose(); throw; }
+    }
+
+    public CameraBudgetState Read() => _state with { Sessions = _state.Sessions.ToArray() };
+
+    public void AmendContinuation()
+    {
+        if (_state.Version == 2) return;
+        if (_state.Sessions.Any(row => !row.Released))
+            throw new InvalidDataException("Cannot amend an active or unconfirmed reservation.");
+        Commit(_state with { Version = 2, Amendment = ContinuationAmendment });
+    }
+
+    public void Reserve(Guid session)
+    {
+        if (session == Guid.Empty || _state.Sessions.Any(row => !row.Released || row.Session == session) ||
+            _state.Sessions.Length >= SessionLimitCount ||
+            _state.Sessions.Sum(row => row.ChargedMs) + SessionLimitMilliseconds > TotalLimitMilliseconds)
+            throw new InvalidDataException("The diagnostic camera budget is exhausted or a prior release is unconfirmed.");
+        Commit(_state with { Sessions = [.. _state.Sessions, new(session, SessionLimitMilliseconds, false)] });
+    }
+
+    public void Complete(Guid session, long elapsedMs)
+    {
+        if (elapsedMs < 0 || elapsedMs > SessionLimitMilliseconds ||
+            !_state.Sessions.Any(row => row.Session == session && !row.Released))
+            throw new InvalidDataException("The diagnostic camera reservation cannot be completed.");
+        Commit(_state with { Sessions = _state.Sessions.Select(row =>
+            row.Session == session ? new CameraBudgetEntry(session, elapsedMs, true) : row).ToArray() });
+    }
+
+    private void Commit(CameraBudgetState next)
+    {
+        string stage = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            using (var file = new FileStream(stage, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                JsonSerializer.Serialize(file, next, Schema);
+                file.Flush(true);
+            }
+            File.Move(stage, _path, true);
+            _state = next;
+        }
+        finally { if (File.Exists(stage)) File.Delete(stage); }
+    }
+
+    private static void ValidatePath(string path)
+    {
+        for (var directory = new DirectoryInfo(Path.GetDirectoryName(Path.GetFullPath(path))!);
+             directory is not null; directory = directory.Parent)
+            if (directory.Exists && directory.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                throw new UnauthorizedAccessException("Linked camera budget directories are unsupported.");
+        foreach (string file in new[] { path, path + ".lock" })
+            if (File.Exists(file) && File.GetAttributes(file).HasFlag(FileAttributes.ReparsePoint))
+                throw new UnauthorizedAccessException("Linked camera budget files are unsupported.");
+    }
+
+    public void Dispose() => _lock.Dispose();
+}
