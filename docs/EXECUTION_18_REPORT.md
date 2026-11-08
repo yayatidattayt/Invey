@@ -82,7 +82,7 @@ Release deterministic microbenchmark: mean training0.1451ms over100 trials; mode
 
 Version3 amendment records the original five sessions unchanged:306999ms, all released, Execution18StartCount=5. Reservation permits at most three additional starts and preserves the older global limits. Guardian cutoff remains178 seconds and release must be confirmed. Atomic camera-ledger replacement now uses File.Replace. New deterministic sub-budget coverage preserves prior charges and denies the fourth new start. No ledger reinitialization.
 
-Native tests restored Default desktop and released test-owned app/worker processes. The first camera-off demo process was deliberately stopped before rebuilding the final feedback-summary fix; no camera, lesson or editing window was open. A visible camera-off manual-test app may be deliberately left available during participant handoff; that is not an active camera session.
+Native tests restored Default desktop and released test-owned app/worker processes. The first camera-off demo process was deliberately stopped before rebuilding the final feedback-summary fix; no camera, lesson or editing window was open. The committed verified app is deliberately open for participant handoff, with camera OFF and no worker. That one visible app is intentional; no active camera session or test-owned worker remains.
 
 ## Q. Pocket and Dual
 
@@ -114,11 +114,11 @@ The last small feedback-summary addition is covered by the delivery core/WPF lea
 
 ## V. GitHub CI and exact head
 
-Baseline PR6 head99a2646421d220a0d71fab05f1d19b237a660e18 has successful run42496720613. The new branch adds the PR6 base to the existing Windows workflow trigger list. Publication and exact-head CI evidence are recorded in the delivery addendum after publication. No hosted workflow result stands in for physical camera or isolated WPF evidence.
+Baseline PR6 head99a2646421d220a0d71fab05f1d19b237a660e18 has successful run42496720613. The new branch adds the PR6 base to the existing Windows workflow trigger list. Implementation commit e07d1d17da033dec94bd1842f70b05c3f370197b passed [Windows CI42520020144](https://github.com/yayatidattayt/Invey/actions/runs/42520020144). The final documentation-only head is verified separately through [PR7 checks](https://github.com/yayatidattayt/Invey/pull/7/checks) and the local delivery record. No hosted workflow result stands in for physical camera or isolated WPF evidence.
 
 ## W. Pull request
 
-Focused draft PR targets codex/execution-17-demo-stabilization. Parent PR1–6 are preserved. No automatic merge.
+[Draft PR7](https://github.com/yayatidattayt/Invey/pull/7) targets codex/execution-17-demo-stabilization, implementation e07d1d17da033dec94bd1842f70b05c3f370197b. The connector returned403 for PR creation; existing authenticated Git credentials completed the authorized publication. Parent PR1–6 are preserved. No automatic merge.
 
 ## X. Remaining limitations
 
@@ -131,5 +131,21 @@ All six parent heads have successful Windows CI and no submitted review or inlin
 ## Z. Next milestone
 
 Complete a user-enabled physical target comparison, camera release/restart, rollback/reapply and another labeled session under the remaining bounded allowance. Investigate wrist-out detector loss separately. Obtain canonical safety/integration review before any production gesture actuation.
+
+## Delivery verification addendum
+
+The launchable executable is src/Pocket.App/bin/Release/net10.0-windows/Invey.exe. Its accompanying Invey.dll reports1.0.0+e07d1d17da033dec94bd1842f70b05c3f370197b, SHA25643F0FC59924A028856E0D0622229D9363DF54A4C9694D3839692C3955ED54A86. Committed-binary actual-WPF learning run20261108T202517208-194d6b02457642caa21d25dde7012f59 PASS. The final feedback-summary delivery run20261108T202106186-b52b45a87d5d4e08b5c9eb8a582ab7ae also PASS. These supplement, rather than overwrite, the earlier native and seeded binary evidence.
+
+Both normal/legacy metadata hashes compared unchanged (two files). Ledger still has five released rows,306999ms and zero pending reservations. Text-only inspection of the visible demo home screen confirmed Ghost · Camera off. No webcam images were taken by inspection. The optional participant-readiness question has not received a response and no deliberate camera Enable has been observed; physical results remain NOT RUN, despite the authorized allowance.
+
+From the repository folder, launch after exiting an existing instance:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Start-Invey-Demo.ps1 -DemoProfile
+```
+
+The currently open manual-test instance already carries the bounded guardian configuration. A generic future normal launch does not renew the execution-specific test allowance. Exact final publication/CI linkage is retained in artifacts/execution-18/final-delivery.json and the PR checks; documentation-only follow-up commits do not change this verified executable's source.
+
+Final recommendation: **READY FOR ENGINEERING REVIEW, PHYSICALLY UNVALIDATED**. Retain the PR as draft pending physical learning evidence and parent-stack review. No claim of full B1, physical accuracy improvement, Explorer acceptance or release readiness.
 
 See PERSONAL_LEARNING_GUIDE.md for ordinary-language controls and data handling.
