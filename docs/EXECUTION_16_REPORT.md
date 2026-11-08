@@ -1,6 +1,6 @@
 # Execution 16 — engineering evidence
 
-Status: IN PROGRESS. This report is updated as verification completes. No release acceptance or merge is authorized by this report.
+Status: CHANGES REQUIRED for complete continuation acceptance. The implemented foundation is published as draft PR #5 for code review. No release acceptance or merge is authorized by this report.
 
 ## A. Recovery
 
@@ -56,6 +56,8 @@ Initial annotated preview session f8988c6e-d9d8-461e-b904-725e156c58c8: 1311 acc
 
 Decoupled capture trial bdbf3b48-7dbe-4ec2-b9da-a2c4848cc91d: 697 unique captures and completed inference calls; approximately29.6/s over23.495 seconds between first and last frames. No pending-frame replacements recorded. Median/p95 source-to-result41.004/50.850 ms; inference12.337/16.627 ms. CPU27.953 seconds over25.855 elapsed seconds. All accepted observations were empty: no physical hand-accuracy claim follows. This trial preceded the display-timer repair.
 
+Final mixed-hand trial c36804d9-b981-4a6a-81bb-2a8b6973fd47 on implementation455abf4:1812 unique captured frames,1750 completed inference calls,1749 accepted observations (458 full/443 partial/3 ambiguous/845 empty),424 partial index-in-frame samples. First/last native frame1504.082/62656.599 ms. Interval rates use count minus one:29.61 captured frames/s and28.60 completed calls/s. Sixty-two pending frames were superseded; maximum capture pending depth1. UI-reported unique preview-frame submission averages were sampled at25.3 and25.6/s after the16 ms refresh repair. This is not an independent scanout measurement or a continuously sampled whole-session preview distribution. Source-to-result median/p95 56.119/82.007 ms; inference21.778/28.037 ms; RGB/image8.967/11.661 ms; native copy2.249/3.099 ms. Timing distributions use the bounded prefix described below.
+
 These workloads differ; lower inference time is not attributed solely to architecture. Source timestamps are driver-clock estimates, not independent optical motion-to-photon measurements.
 
 ## N. Native conversion
@@ -68,7 +70,7 @@ VIDEO remains the qualified default. LIVE_STREAM's busy-input dropping, callback
 
 ## P. 30 FPS
 
-About29.6 unique capture and inference calls/s measured on a no-hand combined workload. Sustained annotated physical-hand 30 FPS after display refresh repair remains unproven. No rounded-up 30 FPS PASS.
+About29.6 unique capture and inference calls/s measured on a no-hand combined workload. The final mixed-hand trial reached29.61 capture and28.60 inference calls/s, with UI-reported preview25.6/s. The30 FPS preview target remains unmet. No rounded-up30 FPS PASS.
 
 ## Q. 60 FPS
 
@@ -88,7 +90,7 @@ Synthetic One Euro results: normalized RMS .000748172 versus raw .008; 90% step8
 
 ## U. Resources
 
-Annotated-session worker working set at cleanup211251200 bytes; cleanup487.661 ms. Independent capture uses one source on its owning MTA thread and one latest pending frame; no native source crosses threads. Synthetic tests verify superseding, monotonic identities, source-open failure, owner-thread release and cancellation. Sustained handles, thermal load and leak freedom require longer controlled measurement.
+Annotated-session worker working set at cleanup211251200 bytes; cleanup487.661 ms. Independent capture uses one source on its owning MTA thread and one latest pending frame; no native source crosses threads. Synthetic tests verify superseding, monotonic identities, source-open failure, owner-thread release and cancellation. In the final trial, a25.09-second independent process sample increased CPU time34.0625 seconds (about1.36 CPU cores), working set213835776 ->218271744 bytes, private bytes753860608 ->758059008, handles675 ->679 and threads46 ->47. Worker cleanup working set205885440 bytes and cleanup484.883 ms. This short change does not establish a leak. Sustained handles, thermal load and leak freedom require longer controlled measurement.
 
 ## V. Actual ledger
 
@@ -97,11 +99,13 @@ Annotated-session worker working set at cleanup211251200 bytes; cleanup487.661 m
 3. f8988c6e-d9d8-461e-b904-725e156c58c8:63781 ms, released.
 4. bdbf3b48-7dbe-4ec2-b9da-a2c4848cc91d:26047 ms, released.
 
-Total244812 ms charged; four of twelve starts. The ignored durable ledger remains authoritative for subsequent sessions. No quota reset occurred.
+5. c36804d9-b981-4a6a-81bb-2a8b6973fd47:63187 ms, released.
+
+Total307999 ms charged; five of twelve starts. The ignored durable ledger remains authoritative for subsequent sessions. No quota reset occurred.
 
 ## W. Shutdown
 
-All four reported sessions have nativeReleaseConfirmed=true, independent worker exit and released durable reservation. The third/fourth explicit Stops cleared UI images. Guardian refuses to refund unconfirmed termination. No device activation occurs on ordinary startup.
+All five reported sessions have nativeReleaseConfirmed=true, independent worker exit and released durable reservation. The third/fourth explicit Stops cleared UI images. Guardian refuses to refund unconfirmed termination. No device activation occurs on ordinary startup.
 
 ## X. Failures and repairs
 
@@ -119,23 +123,23 @@ Current Debug and Release builds passed with zero warnings/errors. Each configur
 
 ## AA. WPF and isolated Windows
 
-Frame-matched synthetic RGB/skeleton, seven malformed-header controls, pending-connect cancellation, moving sparse index marker, missing-index suppression, ambiguity/rearm and Stop cleanup passed. Evidence: 20261108T110406931-b645dab5eaf64ca8af07c458c98ffa7d and later focused reruns. Full standard regression is currently running; record its actual result before delivery.
+Frame-matched synthetic RGB/skeleton, seven malformed-header controls, pending-connect cancellation, moving sparse index marker, missing-index suppression, ambiguity/rearm and Stop cleanup passed. Evidence: 20261108T110406931-b645dab5eaf64ca8af07c458c98ffa7d and later focused reruns. Final full standard run20261108T113109452-a3d7193f437347a5b9f6c18c7f92f55e passed37 cases with zero failures and one blocked Explorer case. It includes native cursor controls, Pocket capture/restart, shelf/shortcuts, Workspace, provider containment, calibration and worker exit.
 
 ## AB. Pocket/Dual and cursor
 
-Prior focused preview runs confirmed no generated native cursor movement. Full Pocket, shortcuts, Workspace, containment and cleanup results are pending the active standard regression. Physical simultaneous-input and Explorer gaps remain separate.
+Prior focused preview runs confirmed no generated native cursor movement. Full Pocket, shortcuts, Workspace, containment and cleanup checks passed in the final standard regression, including independent worker exit while calibration was open. Physical simultaneous-input and Explorer gaps remain separate.
 
 ## AC. GitHub
 
-Recovered branch codex/execution-16-precision-finger-tracking; no parent merged. Publication and exact final Actions result are pending. Local checks do not substitute for hosted CI, and hosted CI cannot prove physical camera performance.
+Recovered branch codex/execution-16-precision-finger-tracking; no parent merged. [Draft PR #5](https://github.com/yayatidattayt/Invey/pull/5) is stacked on PR4. Implementation commit455abf491e8e931b6f77fe47f12c0d502656f741 passed [Windows verification42476414070](https://github.com/yayatidattayt/Invey/actions/runs/42476414070). The final documentation-only review head is independently checked on [PR checks](https://github.com/yayatidattayt/Invey/pull/5/checks); final delivery reports its exact SHA. Local checks do not substitute for hosted CI, and hosted CI cannot prove physical camera performance.
 
 ## AD. Remaining limitations and recommendation
 
-CHANGES REQUIRED for the complete continuation acceptance: post-timer-repair physical throughput, separate capture/preview/inference comparisons, real hand accuracy/jitter/selected-hand/two-hand trials, cold isolated-finger acquisition, VIDEO/LIVE_STREAM and native-conversion comparisons, meaningful selectable performance profiles, complete live stage metrics, final regression and hosted CI. Gate A, M02, full B1 and Gates C/D remain open. No B2 actuation or external-app gesture control was added.
+CHANGES REQUIRED for the complete continuation acceptance: 30 FPS annotated preview, separate capture/preview/inference comparisons, real hand accuracy/jitter/selected-hand/two-hand trials, cold isolated-finger acquisition, VIDEO/LIVE_STREAM and native-conversion comparisons, meaningful selectable performance profiles, complete live stage metrics, broader physical acceptance. Current core/worker/full standard regression and implementation CI are clean. Gate A, M02, full B1 and Gates C/D remain open. No B2 actuation or external-app gesture control was added.
 
 ## AE. Next milestone
 
-Complete the remaining measured performance comparisons under the same amended ledger, preserve useful live preview, then finish the reviewable Execution16 PR and exact CI verification. Physical acceptance remains evidence-driven.
+Complete the remaining measured performance comparisons under the same amended ledger, preserve useful live preview, then move draft PR5 toward completion after review. Physical acceptance remains evidence-driven.
 
 ### Additional regression attempts
 
