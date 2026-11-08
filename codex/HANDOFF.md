@@ -1,5 +1,11 @@
 # Invey — Current handoff
 
+## Execution18 — supervised local personal preview,2026-11-09
+
+Branch codex/execution-18-personalized-ghost-learning preserves PR1–6 at PR6 head99a2646. New bounded affine residual learning, independent validation, strict atomic profile persistence, rollback/reset and real WPF target controls are implemented. Corrections affect preview only; no MediaPipe retraining, gesture classifier or B2. See docs/EXECUTION_18_REPORT.md and docs/PERSONAL_LEARNING_GUIDE.md.
+
+121 core tests per configuration and20 worker tests pass. Two-seed actual WPF learning/restart/reversal and demo routes pass. Standard native regression:38 PASS, one Explorer BLOCKED; Default desktop restored. Physical personalization remains unvalidated until the creator deliberately Enables a camera and confirms real target observations. Explicit authorization amends the existing five-session ledger to version3, allowing only three more user-enabled sessions while retaining all306999ms charges and global caps. No new hardware session at this checkpoint. Never auto-start or reinitialize its budget.
+
 ## Execution17 — camera-free demo stabilization,2026-11-08
 
 Branch codex/execution-17-demo-stabilization starts at ab619be with all five parent PRs preserved. See [demo quickstart](../docs/DEMO_QUICKSTART.md), [feature inventory](../docs/DEMO_FEATURE_INVENTORY.md) and [Execution17 report](../docs/EXECUTION_17_DEMO_REPORT.md).

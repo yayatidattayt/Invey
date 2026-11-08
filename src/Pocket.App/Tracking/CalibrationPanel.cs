@@ -119,6 +119,49 @@ internal sealed class CalibrationPanel : StackPanel
         RestoreSaved();
     }
 
+    internal (LearningContext? Context, DipPoint? Point) LearningInput(TrackingSnapshot snapshot, string device)
+    {
+        if (Visibility != Visibility.Visible || _mapping is null || _hand.SelectedIndex == 0 ||
+            _display.SelectedItem is not CalibrationDisplayChoice choice ||
+            snapshot.Observation is not { FrameSize: { IsValid: true } frame } hand) return (null, null);
+        var context = new LearningContext(snapshot.Source?.ToString() ?? "", LearningContext.HashDevice(device),
+            frame.Width, frame.Height, choice.Geometry, _hand.SelectedIndex, _mirror.IsChecked == true,
+            (int)_margin.Value, (int)_sensitivity.Value);
+        DipPoint? point = null;
+        if (snapshot.State == TrackingState.Observing && hand is { Tracked: true, IsValid: true } &&
+            hand.Handedness == (_hand.SelectedIndex == 1 ? HandSide.Left : HandSide.Right) &&
+            snapshot.HostObservationAge is { } age && age >= TimeSpan.Zero &&
+            age.TotalMilliseconds + hand.ResultMonoMs - hand.CaptureMonoMs < 150 &&
+            hand.Point(8) is { } tip && _mapping.Map(new(tip.X, tip.Y)) is { } logical)
+        {
+            var physical = _mapping.ToPhysical(logical);
+            point = new((physical.X - choice.Geometry.X) / (choice.Geometry.Width - 1),
+                (physical.Y - choice.Geometry.Y) / (choice.Geometry.Height - 1));
+        }
+        return (context, point);
+    }
+
+    internal TrackingSnapshot LearningFixtureObservation(Guid session, long sequence, DipPoint normalized)
+    {
+        AcceptanceHost.ValidateDesktop();
+        _hand.SelectedIndex = 2;
+        _mirror.IsChecked = false;
+        _margin.Value = 12; _sensitivity.Value = 100;
+        if (_mapping is null || _display.SelectedItem is not CalibrationDisplayChoice choice)
+            throw new InvalidOperationException("No fixture display.");
+        var camera = _mapping.Inverse(new(normalized.X * (choice.Geometry.Width - 1) * 96 / choice.Geometry.Dpi,
+            normalized.Y * (choice.Geometry.Height - 1) * 96 / choice.Geometry.Dpi)) ?? throw new InvalidOperationException("Invalid fixture point.");
+        var points = Enumerable.Repeat(new ImageLandmark(camera.X, camera.Y, 0), 21).ToArray();
+        points[4] = new(Math.Clamp(camera.X + .1, 0, 1), camera.Y, 0);
+        points[5] = new(Math.Clamp(camera.X - .08, 0, 1), camera.Y, 0);
+        points[17] = new(Math.Clamp(camera.X + .08, 0, 1), camera.Y, 0);
+        var hand = new HandObservation(session, sequence, sequence * 20, sequence * 20,
+            System.Collections.Immutable.ImmutableArray.Create(points), HandSide.Right, FrameSize: new(640, 480));
+        return new(TrackingState.Observing, session, TrackingSource.Simulation, hand, TimeSpan.Zero, null, false,
+            sequence + 1, 0, LastSequence: sequence);
+    }
+
+    internal bool PracticeHeld => _practice.State == PracticeState.Held;
     internal bool MirrorPreview => _mirror.IsChecked == true;
 
     public void Begin(Guid? diagnosticSession)

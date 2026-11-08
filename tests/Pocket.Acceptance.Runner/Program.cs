@@ -124,6 +124,12 @@ internal static partial class Program
             (host, client) = StartAcceptanceHost(app, output);
             await client.Connect();
             var initial=await client.Command("status");fixtureHandle=initial.GetProperty("FixtureHandle").GetInt64();overlayHandle=initial.GetProperty("OverlayHandle").GetInt64();
+            if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_LEARNING_CONTROLS_ONLY") == "1")
+            {
+                var learningHost = host; var learningClient = client; host = null; client = null;
+                await RunLearningControls(app, output, learningHost, learningClient);
+                return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
+            }
             if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_DEMO_CONTROLS_ONLY") == "1")
             {
                 var demoHost = host;

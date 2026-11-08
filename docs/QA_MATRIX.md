@@ -105,3 +105,15 @@ See [Execution 16 evidence](EXECUTION_16_REPORT.md) and [finger research](FINGER
 ## Execution17 — camera-free demo stabilization (2026-11-08)
 
 Main navigation, explicit isolated sample profile, launcher and labeled recorded/simulated entry points reuse existing implementations. Pinning now handles checked-state changes, including accessibility Toggle. Two seeded supplemental WPF-control/GDI/model/restart rehearsals passed. They do not replace native input acceptance: the final standard run was refused at foreground ownership by the existing safety guard. Debug/Release100 core tests and20 worker tests pass; readiness is PARTIAL with a manual remote-session checklist. No webcam acquisition or normal/legacy library migration was performed. See docs/EXECUTION_17_DEMO_REPORT.md and docs/DEMO_FEATURE_INVENTORY.md.
+
+## Execution18 — personal preview learning (experimental)
+
+| Case | Evidence | Result |
+|---|---|---|
+| L18 deterministic update/holdout rejection | delivery-Debug.trx; delivery-Release.trx |121 total core PASS/configuration |
+| L18 actual-WPF save/restart/reuse/reversal/reset | final learning seeds73021/99174; delivery rerun | PASS, synthetic labeled observations only |
+| D17 actual-control demo regression | final seeds73021/99174 | PASS, GDI fixture plus recorded model |
+| Native standard Windows |20261108T201144706-ac276dd29a4e402abfea11f0a4b71894 |38 PASS; Explorer BLOCKED |
+| Physical before/after personalization | Requires deliberate user Enable and confirmed independent targets | NOT RUN at publication checkpoint |
+
+Learning affects only its labeled preview. Existing F06 lifecycle, F07 readiness/practice, partial-preview restrictions, Gate A/M02 and B1 acceptance boundaries remain authoritative. See EXECUTION_18_REPORT.md for preserved failures, binary linkage and remaining physical gaps.

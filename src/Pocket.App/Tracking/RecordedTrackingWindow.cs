@@ -9,7 +9,7 @@ using Pocket.Core.Tracking;
 
 namespace Pocket.App.Tracking;
 
-internal sealed class RecordedTrackingWindow : Window
+internal sealed partial class RecordedTrackingWindow : Window
 {
     private readonly RecordedTrackingController _controller = new();
     private readonly DispatcherTimer _refresh = new() { Interval = TimeSpan.FromMilliseconds(80) };
@@ -30,6 +30,7 @@ internal sealed class RecordedTrackingWindow : Window
     private readonly Button _stop = new() { Content = "S_top", MinHeight = 34, Padding = new Thickness(12, 4, 12, 4) };
     private readonly Button _calibrate = new() { Content = "_Calibrate", MinHeight = 34, Margin = new Thickness(8, 0, 0, 0) };
     private readonly CalibrationPanel _calibration;
+    private readonly PersonalLearningPanel _learning;
     private readonly CheckBox _showPreview = new() { Content = "_Show local camera view and finger landmarks", Margin = new(0, 8, 0, 8) };
     private readonly CheckBox _mirrorCamera = new() { Content = "Mirror camera image", Margin = new(0, 4, 0, 4) };
     private readonly ComboBox _previewTiming = new() { ItemsSource = new[] { "Match landmarks to frame", "Latest completed image" }, SelectedIndex = 0, MinHeight = 28 };
@@ -87,6 +88,7 @@ internal sealed class RecordedTrackingWindow : Window
             await StopAsync();
             _start.Focus();
         }, settings is null ? null : new CalibrationPreferencesStore(settings, profileWritable));
+        _learning = new PersonalLearningPanel(settings is null ? null : Path.GetDirectoryName(settings), profileWritable);
         _calibrate.Click += (_, _) =>
         {
             var snapshot = _controller.Read();
@@ -134,11 +136,12 @@ internal sealed class RecordedTrackingWindow : Window
                 _overlayMode,
                 _liveView,
                 _previewStatus,
-                _calibration
+                _calibration,
+                _learning
             }
         } };
         MaxHeight = Math.Max(380, SystemParameters.WorkArea.Height - 32);
-        _visible = _controller.Read();
+        _visible = _learningFixture ?? _controller.Read();
         _inventoryStatus.Text = "Find connected cameras, then choose one to enable.";
         Render();
         _refresh.Tick += (_, _) => Render();
@@ -280,7 +283,7 @@ internal sealed class RecordedTrackingWindow : Window
 
     private void Render()
     {
-        _visible = _controller.Read();
+        _visible = _learningFixture ?? _controller.Read();
         bool live = _live.IsChecked == true;
         bool available = !_closing && !_stopping && _scan is null && _controller.CanStart;
         _live.IsEnabled = _recorded.IsEnabled = _find.IsEnabled = available;
@@ -320,6 +323,9 @@ internal sealed class RecordedTrackingWindow : Window
         _refresh.Interval = TimeSpan.FromMilliseconds(showing ? 16 :
             _calibration.Visibility == Visibility.Visible ? 25 : 80);
         _calibration.Update(_visible);
+        var input = _calibration.LearningInput(_visible, _visible.Source == TrackingSource.Camera
+            ? (_devices.SelectedItem as CameraDevice)?.Id ?? "unknown" : _recordedDemo.SelectedIndex == 1 ? "simulated-practice" : "recorded-model");
+        _learning.Observe(_visible, input.Context, input.Point, _calibration.PracticeHeld);
         string source = !live ? (_recordedDemo.SelectedIndex == 1 ? "simulated practice" : "recorded tracking") : _fixtureFile is not null ? "test video" : "live camera";
         _start.Content = (_startedInMode ? "_Restart " : "_Enable ") + source;
         string cameraStatus = _visible.Source == TrackingSource.Camera ? _visible.State switch
@@ -387,7 +393,7 @@ internal sealed class RecordedTrackingWindow : Window
             Sequence = sample?.Sequence, WristX = sample?.Point(0)?.X,
             SourceMs = sample is null ? (long?)null : sample.ResultMonoMs - sample.CaptureMonoMs,
             HostAgeMs = _visible.HostObservationAge?.TotalMilliseconds,
-            Calibration = _calibration.TestSnapshot(), IndexX = sample?.Point(8)?.X, Title
+            Calibration = _calibration.TestSnapshot(), Learning = _learning.TestSnapshot(), IndexX = sample?.Point(8)?.X, Title
         };
     }
 }

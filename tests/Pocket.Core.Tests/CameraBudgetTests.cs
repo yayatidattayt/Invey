@@ -93,6 +93,24 @@ public sealed class CameraBudgetTests
         Assert.Equal(1, budget.Read().Version);
     }
 
+    [Fact]
+    public void LearningAmendmentCarriesAllChargesAndAllowsOnlyThreeNewSessions()
+    {
+        using var f = new Fixture();
+        using var budget = new CameraBudget(f.Path);
+        var first = Guid.NewGuid(); budget.Reserve(first); budget.Complete(first, 81609);
+        budget.AmendContinuation();
+        var history = budget.Read().Sessions;
+        budget.AmendLearning(); budget.AmendLearning();
+        Assert.Equal(history, budget.Read().Sessions);
+        for (int i = 0; i < 3; i++)
+        {
+            var session = Guid.NewGuid(); budget.Reserve(session); budget.Complete(session, 17000);
+        }
+        Assert.Throws<InvalidDataException>(() => budget.Reserve(Guid.NewGuid()));
+        Assert.Equal(81609 + 51000, budget.Read().Sessions.Sum(x => x.ChargedMs));
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly string _root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "InveyBudget-" + Guid.NewGuid().ToString("N"));

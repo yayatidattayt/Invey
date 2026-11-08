@@ -1,5 +1,7 @@
 # Codex repository rules — POCKET × DUAL × GHOST v2
 
+Execution18 adds opt-in local supervised mapping personalization, preview only. Read docs/EXECUTION_18_REPORT.md and docs/PERSONAL_LEARNING_GUIDE.md. Preserve every existing feature and gesture safety reducer. No B2 or ordinary-desktop automated input. The user explicitly authorized an Execution18 amendment carrying forward all five existing camera charges, at most three additional user-enabled sessions≤180s, with the original12-session/1,800-second caps unchanged. The guardian ledger is artifacts/execution-16/camera-budget.json; never reset it. Camera activation remains a deliberate user action. Synthetic/WPF learning improvement is not physical accuracy evidence.
+
 Execution17 authorizes camera-free demo stabilization, explicit isolated demo data and bounded isolated-desktop verification. Do not reuse Execution16 camera-test permission. No ordinary-desktop input injection, remote-session disruption or automatic PR merge. Read the current handoff and docs/EXECUTION_17_DEMO_REPORT.md. A foreground-ownership guard has blocked native remote rehearsal; do not weaken it or modify the system input service. Supplemental WPF control-route checks must never be described as native input acceptance.
 
 

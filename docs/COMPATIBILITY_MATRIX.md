@@ -1,5 +1,7 @@
 # Windows compatibility evidence
 
+Execution18: Windows11 build26200, pinned.NET10.0.403, available125% display, local model/persistence and WPF learning verified camera-free. Native standard38 PASS, Explorer shell case BLOCKED. No new physical accuracy or mixed-DPI claim. Camera-off startup remains valid; wrong device/source/hand/frame/mirror/display context uses original mapping. See EXECUTION_18_REPORT.md.
+
 Execution 11 verified the recorded calibration panel on the available display, with deterministic coverage for negative desktop origins and 125% scaling. Physical mixed-DPI alignment, hand labels, two-hand detection and live practice remain open. Execution 10 verified existing Pocket.App identity and single-instance behavior, plus acquisition and release on the ASUS FHD setup. [Execution 11 evidence](EXECUTION_11_REPORT.md)
 
 Execution 09 verified ASUS FHD webcam on Windows 11 x64 build 26200. The active reader exposed YUY2 1920 × 1080 at nominal 30 Hz and delivered RGB32 at about 10 frames/s in the bounded final test. The separate ASUS IR camera was outside the selected source. Physical loss, actual denial and other devices remain unverified. [Hardware report](EXECUTION_09_REPORT.md)

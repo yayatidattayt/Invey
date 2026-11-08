@@ -1,5 +1,9 @@
 # Architecture Decision Records — initialize from v2 design
 
+## Execution18 — 2026-11-09
+
+**ADR-18-learning — Verified local preview correction.** Use bounded regularized affine residuals, user-confirmed targets and an independent holdout, with incumbent comparison and per-context activation. Persist coefficients/aggregates only. Default learning OFF; camera Enable independent. Keep learned preview disconnected from gesture authority, require real physical evidence before physical accuracy claims, and preserve prior/identity rollback. No gesture classifier is claimed from unaligned general feedback. See EXECUTION_18_REPORT.md.
+
 ## Execution 10 — 2026-11-06
 
 **ADR-37 — Separate geometry, practice and source activation.** Map to one display's local DIPs and physical bounds, with explicit mirror and invertible sensitivity. Persist only numeric calibration settings. A continuity break disarms practice, and a new valid open-hand dwell is required. Two detected hands produce an ambiguity marker. [Execution 11 report](EXECUTION_11_REPORT.md)

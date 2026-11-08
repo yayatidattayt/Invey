@@ -234,6 +234,12 @@ internal sealed class AcceptanceHost : IDisposable
                 _simulation.Stop();if(NativeWindow.Exists(_overlay.Handle))_overlay.Hide();break;
             case "close-overlay":_overlay.Close();break;
             default:
+                if (command.StartsWith("learning-fixture|", StringComparison.Ordinal))
+                {
+                    ValidateDesktop();
+                    Application.Current.Windows.OfType<RecordedTrackingWindow>().Single().LearningFixture(command.Split('|')[1]);
+                    break;
+                }
                 if (command.StartsWith("demo-ui|", StringComparison.Ordinal) ||
                     command.StartsWith("demo-toggle|", StringComparison.Ordinal) ||
                     command.StartsWith("demo-select|", StringComparison.Ordinal))
