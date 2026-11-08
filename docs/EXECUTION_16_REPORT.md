@@ -101,7 +101,7 @@ Annotated-session worker working set at cleanup211251200 bytes; cleanup487.661 m
 
 5. c36804d9-b981-4a6a-81bb-2a8b6973fd47:63187 ms, released.
 
-Total307999 ms charged; five of twelve starts. The ignored durable ledger remains authoritative for subsequent sessions. No quota reset occurred.
+Total306999 ms charged; five of twelve starts. The ignored durable ledger remains authoritative for subsequent sessions. No quota reset occurred.
 
 ## W. Shutdown
 

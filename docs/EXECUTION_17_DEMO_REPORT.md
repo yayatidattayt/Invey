@@ -88,7 +88,7 @@ The existing isolated harness restores the original desktop and bounds owned pro
 
 ## P — Privacy and safety
 
-Camera startup is off. No Execution16 device permission was reused. Its durable ledger remains five released sessions totaling307999 ms. No raw webcam frames or hand-landmark histories were recorded or uploaded.
+Camera startup is off. No Execution16 device permission was reused. Its durable ledger remains five released sessions totaling306999 ms. No raw webcam frames or hand-landmark histories were recorded or uploaded.
 
 Demo samples are labeled synthetic and initialized only after explicit demo selection, outside normal and legacy libraries. Before/after SHA256 checks of the normal/legacy manifests and normal calibration/shortcut files matched (four paths; absent files remain absent). No migration or deletion of the normal library occurs in demo preparation.
 
@@ -123,3 +123,7 @@ Verified application path: src/Pocket.App/bin/Release/net10.0-windows/Invey.exe.
 ## T — Final demo readiness
 
 PARTIAL. A launchable camera-free build, isolated two-reference demo profile, clear guide and twice-passing actual-control rehearsal are available. Core/worker tests are clean and pinning is repaired. The final native suite is blocked at foreground ownership in this remote environment, so the creator must perform the short manual rehearsal before presenting. This is not a release-readiness, physical-camera or complete native-acceptance PASS.
+
+### Ledger arithmetic correction
+
+The final independent audit summed the unchanged five durable rows to306999 ms. Earlier prose overstated the four-session subtotal and five-session total by1000 ms; corrected to243812 and306999 respectively. No ledger entry, reservation, authorization limit or device state was changed. The ledger, not report prose, always enforces the budget.
