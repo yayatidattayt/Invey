@@ -302,6 +302,12 @@ internal sealed class DualWorkspace : Window
     public void ReferenceRestored(Guid id) => _deleted.Remove(id);
     public bool InteractionActive => _scene.Pointer(PointerOwner.Mouse).Target is not null;
 
+    internal void StopSimulation()
+    {
+        _demo.Stop();
+        CancelGhost();
+    }
+
     // Used by the explicitly labeled simulation and private-desktop fixture; live tracking is not routed here.
     internal bool PressGhost()
     {

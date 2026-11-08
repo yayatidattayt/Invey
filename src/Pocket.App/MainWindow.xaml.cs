@@ -310,6 +310,7 @@ public partial class MainWindow : Window
     internal bool CaptureInProgress => _pocket?.CaptureInProgress == true;
     public async void Pause()
     {
+        _workspace?.StopSimulation();
         _simulation?.Stop();
         _overlay?.Hide();
         Status.Text = "Stopping from tray.";

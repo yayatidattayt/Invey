@@ -22,7 +22,7 @@ Four main destinations reuse existing windows: Pocket, Workspace, Ghost Tracking
 
 The actual WPF accessibility Toggle provider changed the card checkbox without applying Topmost: pinning listened only to Click. Pinning now listens to Checked/Unchecked, verified through actual toggle, unpin, repin, shelf tuck and restoration.
 
-Previously the normal UI had no entry to the existing controlled practice sequence or logical Workspace stream. Explicitly labeled controls expose those existing bounded paths. Workspace simulation ends after about two seconds, can be canceled with the same button and stops on close. It cannot dispatch native input.
+Previously the normal UI had no entry to the existing controlled practice sequence or logical Workspace stream. Explicitly labeled controls expose those existing bounded paths. Workspace simulation ends after about two seconds, can be canceled with the same button and stops on close. It cannot dispatch native input. Main Pause also cancels this new Workspace simulation; the supplemental route verifies immediate release and no late rearming.
 
 Simulated practice is labeled landmarks-only, disables its image option and never fabricates video. Switching recorded sequences resets Enable labeling. Demo-only preparation validates its flag before resolving the normal profile. Missing optional tracking does not prevent Pocket startup.
 

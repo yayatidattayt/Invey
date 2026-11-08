@@ -77,6 +77,12 @@ internal static partial class Program
                 await client.Command("demo-ui|workspace|Simulated Ghost demo");
                 await Until(client, s => Claim(s, "Ghost") == "B" && Slot(s, "B").GetProperty("X").GetDouble() > startB);
                 await Until(client, s => Claim(s, "Ghost") is null, 4000);
+                await client.Command("demo-ui|workspace|Simulated Ghost demo");
+                await Until(client, s => Claim(s, "Ghost") == "B");
+                await client.Command("demo-ui|main|Pause Ghost");
+                await Until(client, s => Claim(s, "Ghost") is null);
+                await Task.Delay(300);
+                Require(Claim(await client.Command("status"), "Ghost") is null, "Pause left a late simulation callback armed.");
 
                 await client.Command("demo-ui|main|Ghost Tracking");
                 var lab = await Until(client, s => Product(s).GetProperty("Tracking").ValueKind == JsonValueKind.Object);
