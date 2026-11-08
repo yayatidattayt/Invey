@@ -76,7 +76,14 @@ internal sealed class AcceptanceHost : IDisposable
             using var json=JsonDocument.Parse(line);
             if(json.RootElement.GetProperty("token").GetString()!=_token)throw new InvalidOperationException("Invalid test token.");
             string command=json.RootElement.GetProperty("command").GetString()??"";
-            string response=await (await Application.Current.Dispatcher.InvokeAsync(()=>DispatchAsync(command)));
+            string response;
+            try { response=await (await Application.Current.Dispatcher.InvokeAsync(()=>DispatchAsync(command))); }
+            catch (Exception error)
+            {
+                string? fixture = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE");
+                if (fixture is not null) await File.WriteAllTextAsync(Path.Combine(Path.GetDirectoryName(fixture)!, "dispatch-error.log"), error.ToString());
+                throw;
+            }
             await writer.WriteLineAsync(response);
             if(command=="exit")break;
         }
@@ -108,6 +115,19 @@ internal sealed class AcceptanceHost : IDisposable
                     throw new InvalidOperationException("Could not reserve the test shortcut.");
                 _fixtureHotKey = true;
                 source.AddHook(ObserveFixtureShortcut);
+                break;
+            case "demo-start":
+                string demoRoot = Path.Combine(Path.GetDirectoryName(Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE"))!, "demo-profile");
+                var demoProfile = DemoProfile.Prepare(demoRoot);
+                _capturePattern ??= CreatePocketPattern();
+                _product = new MainWindow(demoProfile, _capturePattern);
+                _product.StartShortcuts();
+                _product.Show();
+                _product.Activate();
+                break;
+            case "demo-close":
+                if (_product is not null) await _product.CloseAcceptanceAsync();
+                _product = null;
                 break;
             case "product-start":
                 string fixtureRoot = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;
@@ -213,7 +233,12 @@ internal sealed class AcceptanceHost : IDisposable
                 if (_pocket is { } workspace) await workspace.PrepareExitAsync();
                 _simulation.Stop();if(NativeWindow.Exists(_overlay.Handle))_overlay.Hide();break;
             case "close-overlay":_overlay.Close();break;
-            default:throw new InvalidOperationException("Unsupported acceptance operation.");
+            default:
+                if (command.StartsWith("demo-ui|", StringComparison.Ordinal) ||
+                    command.StartsWith("demo-toggle|", StringComparison.Ordinal) ||
+                    command.StartsWith("demo-select|", StringComparison.Ordinal))
+                { DemoControlFixture.Apply(_product ?? throw new InvalidOperationException("No demo product."), command); break; }
+                throw new InvalidOperationException("Unsupported acceptance operation.");
         }
         return JsonSerializer.Serialize(new { Fixture=_fixture.AcceptanceSnapshot(),FixtureHandle=new WindowInteropHelper(_fixture).Handle.ToInt64(),
             OverlayHandle=_overlay.Handle.ToInt64(),_overlay.Dpi,_overlay.Monitor,Styles=NativeWindow.ReadStyles(_overlay.Handle),
@@ -319,7 +344,7 @@ internal sealed class AcceptanceHost : IDisposable
             grid.Children.Add(stripe);
         }
         var pattern = new Window { WindowStyle = WindowStyle.None, ResizeMode = ResizeMode.NoResize,
-            WindowStartupLocation = WindowStartupLocation.Manual, Content = grid, ShowInTaskbar = false };
+            WindowStartupLocation = WindowStartupLocation.Manual, Content = grid, ShowInTaskbar = false, ShowActivated = false };
         ScreenSnapshot.Place(pattern, bounds);
         pattern.Loaded += (_, _) => ScreenSnapshot.Place(pattern, bounds);
         pattern.Show();

@@ -8,6 +8,10 @@
 
 GHOST was the former product name; the public product name is now Invey. Open **Tracking and calibration** to select a source, explicitly enable tracking, and inspect the calibration preview.
 
+## Demonstration
+
+For the camera-free demo workflow, start with [Demo quickstart](docs/DEMO_QUICKSTART.md), the [short demonstration script](docs/DEMO_SCRIPT.md) and the [Execution17 report](docs/EXECUTION_17_DEMO_REPORT.md). The optional demo profile contains two labeled synthetic references and is separate from your normal library. Native remote-session rehearsal still requires manual confirmation; the report distinguishes it from passing control-route checks.
+
 ## Current status
 
 The Tracking lab includes an optional memory-only live camera image with clean, fingertip and full-landmark overlays, plus a selected-display mapping, local numeric preferences and a Move/Pinch/Release practice target. The camera starts off and requires explicit Enable. Authorized hardware sessions have displayed live Ready and verified camera release. Physical rectangle routing, selected-hand behavior and physical two-hand cancellation remain open.

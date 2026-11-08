@@ -107,7 +107,7 @@ def open_landmarker(mp, asset):
 
 
 def practice_fixture(send, stop):
-    """Bounded synthetic landmarks for the isolated acceptance host."""
+    """Bounded, explicitly simulated local calibration-practice sequence."""
     send("ready")
     for sequence in range(120):
         if stop.is_set():

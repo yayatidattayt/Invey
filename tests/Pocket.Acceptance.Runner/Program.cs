@@ -19,6 +19,11 @@ internal static partial class Program
     [STAThread] public static int Main(string[] args)
     {
         Input.InitializeDpi();
+        if (args.Length == 1 && args[0] == "--environment-audit")
+        {
+            Console.WriteLine(JsonSerializer.Serialize(new { InputDesktop = Desktop.InputDesktopName() }));
+            return 0;
+        }
         if(args.Length==4 && args[0]=="--fixture-pid")return WorkerDouble(); // explicit IPC/worker fault double
         if(args.Length==2 && args[0]=="--session")return Session(args[1]).GetAwaiter().GetResult();
         string output=Path.GetFullPath(Path.Combine("artifacts","automated-acceptance",DateTime.UtcNow.ToString("yyyyMMddTHHmmssfff")+"-"+Guid.NewGuid().ToString("N")));
@@ -119,6 +124,24 @@ internal static partial class Program
             (host, client) = StartAcceptanceHost(app, output);
             await client.Connect();
             var initial=await client.Command("status");fixtureHandle=initial.GetProperty("FixtureHandle").GetInt64();overlayHandle=initial.GetProperty("OverlayHandle").GetInt64();
+            if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_DEMO_CONTROLS_ONLY") == "1")
+            {
+                var demoHost = host;
+                var demoClient = client;
+                host = null;
+                client = null;
+                await RunDemoControlRoute(app, output, demoHost, demoClient);
+                return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
+            }
+            if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_DEMO_ONLY") == "1")
+            {
+                var demoHost = host;
+                var demoClient = client;
+                host = null;
+                client = null;
+                await RunDemoWorkflow(app, output, demoHost, demoClient);
+                return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
+            }
             if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_FINGER_ONLY") == "1")
             {
                 await RunFingerPreview(client);
@@ -137,6 +160,7 @@ internal static partial class Program
                 await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
                 await RunPocketRestart(app, output);
                 await RunProductIntegration(app, output);
+            await RunDemoWorkflow(app, output);
                 CleanPocketFixture(output);
                 return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
             }
@@ -265,6 +289,7 @@ internal static partial class Program
             await RunCalibrationAfterRestart(app, output);
             await RunPocketRestart(app, output);
             await RunProductIntegration(app, output);
+            await RunDemoWorkflow(app, output);
         }
         catch(Exception ex){Cases.Add(new("SESSION","NATIVE_SOFTWARE_TEST","Complete bounded isolated session",ex.ToString(),"FAIL",0));}
         finally

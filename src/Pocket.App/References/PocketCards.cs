@@ -204,7 +204,8 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
             };
             Window.LocationChanged += (_, _) => Schedule();
             Window.SizeChanged += (_, _) => Schedule();
-            _pin.Click += (_, _) => ApplyPin();
+            _pin.Checked += (_, _) => ApplyPin();
+            _pin.Unchecked += (_, _) => ApplyPin();
             _placementTimer.Tick += (_, _) => { _placementTimer.Stop(); Save(visible: true); };
             Window.Closed += (_, _) =>
             {

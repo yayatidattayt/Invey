@@ -1,10 +1,19 @@
 # Invey — Current handoff
 
+## Execution17 — camera-free demo stabilization,2026-11-08
+
+Branch codex/execution-17-demo-stabilization starts at ab619be with all five parent PRs preserved. See [demo quickstart](../docs/DEMO_QUICKSTART.md), [feature inventory](../docs/DEMO_FEATURE_INVENTORY.md) and [Execution17 report](../docs/EXECUTION_17_DEMO_REPORT.md).
+
+Camera remains OFF; prior execution device permissions do not authorize unattended tests here. The optional Invey-Demo/Execution17 profile is prepared with two synthetic references. Normal/legacy manifest and preference hashes were unchanged. Launcher supports CheckOnly, explicit demo preparation and safe rebuild refusal. Main navigation and existing simulated/recorded practice entry points are accessible. Pinning now responds to Checked/Unchecked, fixing its real accessibility Toggle path.
+
+Verified application source is41c19de3aa84f47a76603aec3c5df9db3e68283f (product version embeds that SHA); draft PR6 is stacked on PR5. Implementation CI run42495968595 passed. Two final supplemental actual-WPF-control/GDI/model/process-restart rehearsals passed with seeds73021 and99174, with native topmost-style and Pause/no-late-rearm checks; these are NOT native input passes. Native tests refused foreground ownership while GameInputSvc was foreground; no input guard or system service was bypassed. Final native standard regression stopped at initial focus validation. Read-only audit returned Default desktop, and scoped cleanup is confirmed with zero owned app/worker processes. Readiness is PARTIAL until the creator completes the manual remote-session checklist. No webcam activation, parent merge or B2 actuation.
+
+
 ## Execution 16 continuation — active verification, 2026-11-08
 
 The real camera image and landmark alignment now have user confirmation. A bounded acquisition thread improves the no-hand combined workload to approximately29.6 unique frames/s; this is not hand-accuracy acceptance. An80 ms UI refresh cap was found and repaired to16 ms during preview. Optional overlay modes and independent camera-image mirroring are implemented.
 
-The existing ledger was explicitly amended to version2 under the new user directive:12 total sessions,180000 ms per new session,1800000 ms total. Prior charges remain intact. Five released sessions total307999 ms; no pending hardware reservation at this checkpoint. Never create a fresh ledger to renew the quota. Read [Execution16 report](../docs/EXECUTION_16_REPORT.md) and [research](../docs/FINGER_TRACKING_RESEARCH.md).
+The existing ledger was explicitly amended to version2 under the new user directive:12 total sessions,180000 ms per new session,1800000 ms total. Prior charges remain intact. Five released sessions total306999 ms; no pending hardware reservation at this checkpoint. Never create a fresh ledger to renew the quota. Read [Execution16 report](../docs/EXECUTION_16_REPORT.md) and [research](../docs/FINGER_TRACKING_RESEARCH.md).
 
 The first full standard Windows run failed the new finger test because a prior test saved mirrored mapping; downstream checks then encountered an open lab. Fixture mapping is now explicit and cleanup uses finally. Final standard rerun20261108T113109452-a3d7193f437347a5b9f6c18c7f92f55e passed37 cases, zero failures, Explorer blocked. Preserve the failed run 20261108T111609122-63514e08ab604f31907e137745295f84. No camera launch during regression. Final mixed-hand trial measured29.61 capture/28.60 inference calls per second; UI preview sampled25.6/s. All five camera sessions released. Draft PR5 is published; implementation455abf4 passed hosted Windows CI. Full continuation status remains CHANGES REQUIRED: the user observed wrist-out index loss,30 FPS preview is unmet, separate comparisons and performance profiles remain unfinished.
 

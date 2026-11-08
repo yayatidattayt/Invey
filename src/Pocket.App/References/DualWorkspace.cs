@@ -25,6 +25,8 @@ internal sealed class DualWorkspace : Window
     private string? _selection;
     private FrameworkElement? _mouseHandle;
     private bool _closed, _busy;
+    private readonly System.Windows.Threading.DispatcherTimer _demo = new() { Interval = TimeSpan.FromMilliseconds(100) };
+    private int _demoTick;
 
     private sealed record Choice(PocketReference Item)
     {
@@ -50,6 +52,19 @@ internal sealed class DualWorkspace : Window
         tools.Children.Add(Command("Load _A", async () => await LoadAsync(First)));
         tools.Children.Add(Command("Load _B", async () => await LoadAsync(Second)));
         tools.Children.Add(Command("Re_fresh library", async () => await RefreshAsync()));
+        tools.Children.Add(Command("Simulated _Ghost demo", () =>
+        {
+            if (_demo.IsEnabled) { _demo.Stop(); CancelGhost(); return; }
+            if (!_tiles.ContainsKey(First) || !PressGhost()) { _status.Text = "Load A and B first; release B before starting the simulation."; return; }
+            _demoTick = 0;
+            _demo.Start();
+        }));
+        _demo.Tick += (_, _) =>
+        {
+            if (_closed || !_tiles.ContainsKey(Second) || _scene.Pointer(PointerOwner.Ghost).Target is null || ++_demoTick > 20)
+            { _demo.Stop(); CancelGhost(); return; }
+            MoveGhost(_demoTick <= 10 ? 8 : -8, 0);
+        };
         var selectionTools = _selectionTools = new WrapPanel { Margin = new(0, 0, 0, 8), IsEnabled = false };
         selectionTools.Children.Add(Command("Move _left", () => Adjust(-16, 0)));
         selectionTools.Children.Add(Command("Move _right", () => Adjust(16, 0)));
@@ -64,7 +79,8 @@ internal sealed class DualWorkspace : Window
         _board.Background = SystemColors.ControlBrush;
         var surface = new ScrollViewer { Content = _board, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-        var header = new StackPanel { Children = { tools, selectionTools, _status } };
+        var header = new StackPanel { Children = { tools, selectionTools,
+            new TextBlock { Text = "Simulated Ghost moves B only; this action never starts a camera. Live hand actuation is not connected.", TextWrapping = TextWrapping.Wrap }, _status } };
         var layout = new DockPanel { Margin = new(16) };
         DockPanel.SetDock(header, Dock.Top);
         layout.Children.Add(header);
@@ -80,6 +96,7 @@ internal sealed class DualWorkspace : Window
         Closed += (_, _) =>
         {
             _closed = true;
+            _demo.Stop();
             EndMouse();
             CancelGhost();
             foreach (string slot in _tiles.Keys.ToArray()) Remove(slot);
@@ -285,7 +302,13 @@ internal sealed class DualWorkspace : Window
     public void ReferenceRestored(Guid id) => _deleted.Remove(id);
     public bool InteractionActive => _scene.Pointer(PointerOwner.Mouse).Target is not null;
 
-    // This logical stream is called only by the private-desktop fixture. Production Ghost is not routed here.
+    internal void StopSimulation()
+    {
+        _demo.Stop();
+        CancelGhost();
+    }
+
+    // Used by the explicitly labeled simulation and private-desktop fixture; live tracking is not routed here.
     internal bool PressGhost()
     {
         if (!_tiles.ContainsKey(Second) || _scene.Pointer(PointerOwner.Ghost).Target is not null) return false;

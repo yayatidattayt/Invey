@@ -2,17 +2,20 @@
  Title="Invey" Width="560" Height="480" MinWidth="400" MinHeight="320" WindowStartupLocation="CenterScreen">
  <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24">
  <TextBlock Text="invey." FontSize="24" FontWeight="SemiBold" AutomationProperties.Name="Invey"/>
+ <TextBlock x:Name="ProfileNotice" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,8,0,4"/>
  <TextBlock Margin="0,8,0,20" Text="Capture and keep screen references. Use Pocket with the camera off." TextWrapping="Wrap"/>
  <WrapPanel>
-  <Button Content="_Capture region" Click="CaptureClick"/>
-  <Button Content="_Pocket shelf" Click="OpenPocket"/>
+  <Button x:Name="PocketButton" Content="_Pocket" Click="OpenPocket"/>
   <Button Content="_Workspace" Click="WorkspaceClick"/>
+  <Button Content="Ghost _Tracking" Click="OpenTrackingLab"/>
+  <Button Content="_Settings" Click="OpenSettings"/>
  </WrapPanel>
+ <TextBlock Margin="0,8,0,8" TextWrapping="Wrap" Text="Pocket saves screen references. Workspace compares them. Ghost shows local tracking and practice."/>
+ <Button Content="_Capture region" Click="CaptureClick" HorizontalAlignment="Left"/>
+ <Expander Header="Demo guide · camera off" Margin="0,8,0,0"><TextBlock Margin="0,8,0,8" TextWrapping="Wrap" Text="1. Pocket: capture, preview, save, open and pin a reference.&#10;2. Workspace: load A and B, then move, resize or zoom. Try the labeled simulated Ghost demo.&#10;3. Ghost Tracking: choose recorded tracking or simulated practice. Live camera is optional and requires Enable.&#10;4. Exit and reopen to show saved references. Demo-profile samples are synthetic, not screen captures."/></Expander>
  <TextBlock x:Name="GhostState" Text="Ghost · Camera off" FontWeight="SemiBold" Margin="0,12,0,8" AutomationProperties.LiveSetting="Polite"/>
  <WrapPanel>
-  <Button Content="_Tracking and calibration" Click="OpenTrackingLab"/>
   <Button Content="Pa_use Ghost" Click="PauseClick"/>
-  <Button Content="_Settings" Click="OpenSettings"/>
  </WrapPanel>
  <Expander Header="_Diagnostics" Margin="0,12,0,0">
   <StackPanel Margin="0,8,0,0">

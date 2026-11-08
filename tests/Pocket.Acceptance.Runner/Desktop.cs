@@ -13,6 +13,13 @@ internal static class Desktop
         if(!GetUserObjectInformation(handle,2,name,512,out _))throw new Win32Exception(Marshal.GetLastPInvokeError());
         return name.ToString();
     }
+    internal static string InputDesktopName()
+    {
+        nint input = OpenInputDesktop(0, false, 1);
+        if (input == 0) throw new Win32Exception(Marshal.GetLastPInvokeError());
+        try { return Name(input); }
+        finally { CloseDesktop(input); }
+    }
     public static void Guard()
     {
         nint input=OpenInputDesktop(0,false,0x100);

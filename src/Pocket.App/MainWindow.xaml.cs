@@ -39,6 +39,12 @@ public partial class MainWindow : Window
             _cards = new PocketCards(_store, profile.Writable);
         }
         InitializeComponent();
+        if (profile.Notice?.StartsWith("DEMO PROFILE", StringComparison.Ordinal) == true)
+        {
+            Title = "Invey · Demo";
+            ProfileNotice.Text = profile.Notice;
+            ProfileNotice.Visibility = Visibility.Visible;
+        }
         SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(this);
         if (profile.Notice is not null) Status.Text = profile.Notice;
         CameraStatusChanged += status => GhostState.Text = $"Ghost · {status}";
@@ -251,6 +257,14 @@ public partial class MainWindow : Window
     {
         Handle = new System.Windows.Interop.WindowInteropHelper(this).Handle.ToInt64(),
         Pocket = _pocket?.TestState(), Workspace = _workspace?.TestState(), Camera = GhostState.Text,
+        Tracking = _tracking?.TestSnapshot(),
+        TrackingHandle = _tracking is null ? 0 : new System.Windows.Interop.WindowInteropHelper(_tracking).Handle.ToInt64(),
+        SettingsVisible = _settings?.IsVisible == true,
+        SettingsHandle = _settings is null ? 0 : new System.Windows.Interop.WindowInteropHelper(_settings).Handle.ToInt64(),
+        DemoProfile = Title == "Invey · Demo",
+        WindowLoaded = IsLoaded,
+        PocketButtonPoint = IsLoaded && PocketButton.IsVisible
+            ? PocketButton.PointToScreen(new Point(PocketButton.ActualWidth / 2, PocketButton.ActualHeight / 2)) : (Point?)null,
         Bindings = Enum.GetValues<ShortcutAction>().Select(action => new
         {
             Action = action.ToString(), Chord = _shortcuts?.Binding(action), Status = _shortcuts?.Status(action)
@@ -267,6 +281,7 @@ public partial class MainWindow : Window
     internal async Task CloseAcceptanceAsync()
     {
         if (_pocket is { } pocket) await pocket.PrepareExitAsync();
+        if (_tracking is not null && !await _tracking.CloseAsync()) throw new IOException("Tracking cleanup was not confirmed.");
         if (_cards is not null) await _cards.CloseAsync();
         _workspace?.Close();
         _pocket?.Close();
@@ -295,6 +310,7 @@ public partial class MainWindow : Window
     internal bool CaptureInProgress => _pocket?.CaptureInProgress == true;
     public async void Pause()
     {
+        _workspace?.StopSimulation();
         _simulation?.Stop();
         _overlay?.Hide();
         Status.Text = "Stopping from tray.";

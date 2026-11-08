@@ -1,5 +1,8 @@
 # Codex repository rules — POCKET × DUAL × GHOST v2
 
+Execution17 authorizes camera-free demo stabilization, explicit isolated demo data and bounded isolated-desktop verification. Do not reuse Execution16 camera-test permission. No ordinary-desktop input injection, remote-session disruption or automatic PR merge. Read the current handoff and docs/EXECUTION_17_DEMO_REPORT.md. A foreground-ownership guard has blocked native remote rehearsal; do not weaken it or modify the system input service. Supplemental WPF control-route checks must never be described as native input acceptance.
+
+
 Execution 10 names the public product Invey while preserving Pocket, Dual, and Ghost and the existing Windows identities. F07 starts with a provisional, landmark-only calibration preview. The single authorized ASUS FHD test was specific to this execution. Gate A, M02 and full B1 acceptance remain separate.
 
 Execution 09 authorized bounded, visible testing of the selected laptop webcam. ASUS FHD capture, inference, Stop and same-device reacquisition were verified. Hardware authorization was specific to this execution. Gate A, M02 and release acceptance remain separate. See `docs/EXECUTION_09_REPORT.md`.
