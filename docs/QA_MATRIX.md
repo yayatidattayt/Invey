@@ -97,3 +97,7 @@ Store a short anonymized screen recording or screenshot for visual Windows tests
 
 ## Competition baseline
 Before publicly claiming novelty, compare to Microsoft PowerToys Crop and Lock, OnTopReplica and MouseMux: (a) how quickly a reference can be recalled without mouse focus, (b) whether gesture actions preserve the physical cursor, (c) how accessible shortcuts compare, (d) whether the proposed workflow saves enough attention/time to justify camera use. This is a product validation test, not a patent/originality finding.
+
+## Execution 16 continuation — 2026-11-08
+
+See [Execution 16 evidence](EXECUTION_16_REPORT.md) and [finger research](FINGER_TRACKING_RESEARCH.md). The real camera preview and aligned finger dots have user confirmation. Bounded capture, sparse model points, explicit per-finger states and an independently supervised versioned diagnostic budget are implemented. Full physical B1, Gate A/M02 and sustained finger-accuracy acceptance remain open. All failed runs and repairs are preserved. The final standard regression passed37 cases with zero failures and Explorer blocked; both configurations passed100 core tests and all20 worker tests passed. Draft PR5 is published and implementation455abf4 passed Windows CI. The user reported wrist-out index loss. Complete continuation acceptance remains CHANGES REQUIRED.

@@ -26,19 +26,33 @@ public sealed record TrackerError(Guid SessionId, TrackingFailure Failure) : Tra
 /// <summary>Single selected hand in normalized image coordinates. Empty landmarks mean tracking loss.</summary>
 public sealed record HandObservation(Guid SessionId, long Sequence, long CaptureMonoMs, long ResultMonoMs,
     ImmutableArray<ImageLandmark> Landmarks, HandSide? Handedness = null, double? HandednessScore = null,
-    bool Partial = false, TrackingFrameSize? FrameSize = null, bool Ambiguous = false)
+    bool Partial = false, TrackingFrameSize? FrameSize = null, bool Ambiguous = false,
+    ImmutableArray<ImageLandmark?> PartialLandmarks = default, int ProtocolVersion = 1)
     : TrackerMessage(SessionId)
 {
     public bool Tracked => !Landmarks.IsDefault && Landmarks.Length == 21;
 
+    public bool HasModelPoints => Tracked || (Partial && !PartialLandmarks.IsDefaultOrEmpty && PartialLandmarks.Length == 21);
+    public ImageLandmark? Point(int index) => index is >= 0 and < 21
+        ? Tracked ? Landmarks[index] : PartialLandmarks.IsDefaultOrEmpty ? null : PartialLandmarks[index]
+        : null;
+
     public bool IsValid =>
+        ProtocolVersion is 1 or 2 &&
+        (PartialLandmarks.IsDefaultOrEmpty ||
+            (ProtocolVersion == 2 && Partial && !Ambiguous && Landmarks.IsEmpty && PartialLandmarks.Length == 21 &&
+             PartialLandmarks.Any(p => p is null) &&
+             PartialLandmarks.All(p => p is null || ValidPoint(p.Value)))) &&
         SessionId != Guid.Empty && Sequence >= 0 && CaptureMonoMs >= 0 && ResultMonoMs >= CaptureMonoMs &&
         !Landmarks.IsDefault && (Landmarks.IsEmpty || Tracked) &&
         (!(Partial || Ambiguous) || Landmarks.IsEmpty) && !(Partial && Ambiguous) &&
         (FrameSize is null || FrameSize.Value.IsValid) &&
         Landmarks.All(p => p.X is >= 0 and <= 1 && p.Y is >= 0 and <= 1 && double.IsFinite(p.Z)) &&
-        (Handedness is null || (Tracked && Enum.IsDefined(Handedness.Value))) &&
+        (Handedness is null || (HasModelPoints && Enum.IsDefined(Handedness.Value))) &&
         (HandednessScore is null || (Handedness.HasValue && HandednessScore is >= 0 and <= 1));
+
+    private static bool ValidPoint(ImageLandmark p) =>
+        p.X is >= 0 and <= 1 && p.Y is >= 0 and <= 1 && double.IsFinite(p.Z);
 }
 
 /// <summary>Decodes the landmark-only v1 worker stream. Fields outside the schema are rejected.</summary>
@@ -57,7 +71,8 @@ public static class TrackingProtocol
             _ = Utf8.GetCharCount(utf8.Span);
             using var document = JsonDocument.Parse(utf8, new JsonDocumentOptions { MaxDepth = 6 });
             var fields = ReadFields(document.RootElement);
-            if (fields["v"].GetInt32() != 1 || !fields["session"].TryGetGuid(out var session) || session == Guid.Empty)
+            int version = fields["v"].GetInt32();
+            if (version is not (1 or 2) || !fields["session"].TryGetGuid(out var session) || session == Guid.Empty)
                 throw new InvalidDataException("Invalid tracker version or session.");
 
             return fields["kind"].GetString() switch
@@ -66,7 +81,7 @@ public static class TrackingProtocol
                 "health" when fields.Count == 3 => new TrackerHealth(session),
                 "stopped" when fields.Count == 3 => new TrackerStopped(session),
                 "error" when fields.Count == 4 => new TrackerError(session, ReadFailure(fields["code"].GetString())),
-                "observation" => ReadObservation(session, fields),
+                "observation" => ReadObservation(session, fields, version),
                 _ => throw new InvalidDataException("Invalid tracker message kind or fields.")
             };
         }
@@ -87,10 +102,10 @@ public static class TrackingProtocol
         return fields;
     }
 
-    private static HandObservation ReadObservation(Guid session, Dictionary<string, JsonElement> fields)
+    private static HandObservation ReadObservation(Guid session, Dictionary<string, JsonElement> fields, int version)
     {
         if (fields.Keys.Any(name => name is not ("v" or "kind" or "session" or "seq" or "captureMonoMs" or
-            "resultMonoMs" or "tracked" or "landmarks" or "handedness" or "quality" or "partial" or "ambiguous" or "frame")))
+            "resultMonoMs" or "tracked" or "landmarks" or "handedness" or "quality" or "partial" or "ambiguous" or "frame" or "points")))
             throw new InvalidDataException("Unknown observation field.");
 
         bool tracked = fields["tracked"].GetBoolean();
@@ -127,8 +142,25 @@ public static class TrackingProtocol
             if (dimensions.Count != 2) throw new InvalidDataException("Invalid frame dimensions.");
             size = new(dimensions["width"].GetInt32(), dimensions["height"].GetInt32());
         }
+        var sparse = ImmutableArray<ImageLandmark?>.Empty;
+        if (fields.TryGetValue("points", out var partialPoints))
+        {
+            if (version != 2 || !partial || tracked || ambiguous || partialPoints.GetArrayLength() != 21)
+                throw new InvalidDataException("Invalid partial model points.");
+            var builder = ImmutableArray.CreateBuilder<ImageLandmark?>(21);
+            foreach (var point in partialPoints.EnumerateArray())
+            {
+                if (point.ValueKind == JsonValueKind.Null) { builder.Add(null); continue; }
+                if (point.GetArrayLength() != 3) throw new InvalidDataException("Invalid partial point.");
+                builder.Add(new ImageLandmark(point[0].GetDouble(), point[1].GetDouble(), point[2].GetDouble()));
+            }
+            sparse = builder.MoveToImmutable();
+        }
+        if (version == 2 && partial && sparse.IsEmpty)
+            throw new InvalidDataException("Version 2 partial observations require explicit points.");
+
         var observation = new HandObservation(session, fields["seq"].GetInt64(), fields["captureMonoMs"].GetInt64(),
-            fields["resultMonoMs"].GetInt64(), landmarks.MoveToImmutable(), side, score, partial, size, ambiguous);
+            fields["resultMonoMs"].GetInt64(), landmarks.MoveToImmutable(), side, score, partial, size, ambiguous, sparse, version);
         if (!observation.IsValid) throw new InvalidDataException("Invalid hand observation.");
         return observation;
     }

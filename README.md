@@ -10,11 +10,17 @@ GHOST was the former product name; the public product name is now Invey. Open **
 
 ## Current status
 
-The Tracking lab includes a landmark-only calibration preview, selected-display mapping, local numeric preferences and a Move/Pinch/Release practice target. The camera starts off and requires explicit Enable. Authorized hardware sessions have displayed live Ready and verified camera release. Physical rectangle routing, selected-hand behavior and physical two-hand cancellation remain open.
+The Tracking lab includes an optional memory-only live camera image with clean, fingertip and full-landmark overlays, plus a selected-display mapping, local numeric preferences and a Move/Pinch/Release practice target. The camera starts off and requires explicit Enable. Authorized hardware sessions have displayed live Ready and verified camera release. Physical rectangle routing, selected-hand behavior and physical two-hand cancellation remain open.
 
 The isolated acceptance runner verifies the camera-off shelf, shortcuts and Workspace on controlled content. A1 physical acceptance remains blocked. A2 remains provisional and fixture-scoped. B1 and release acceptance remain open.
 
 See [verification and evidence availability](VERIFICATION.md), the [Execution 15 report](docs/EXECUTION_15_REPORT.md) and the [current handoff](codex/HANDOFF.md).
+
+## See your hand locally
+
+Open **Tracking and calibration**, choose **Live camera**, find and select the webcam, then select **Show local camera view and finger landmarks** before **Enable**. Overlay mode can change while running. **Mirror camera image** mirrors the video and its matching landmarks together; **Mirror horizontal pointer mapping** changes only the calibration pointer direction. **Stop** releases the worker and clears the image. No video is recorded or uploaded.
+
+The experimental finger pointer can retain an in-frame model index point when the wrist is outside. This does not guarantee isolated-finger cold acquisition or grant partial observations permission to pinch. See [Execution16 evidence](docs/EXECUTION_16_REPORT.md) for measured scope and open acceptance.
 
 ## Build and development
 

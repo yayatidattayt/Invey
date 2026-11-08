@@ -28,14 +28,24 @@ internal sealed class RecordedTrackingController
     private Process? _unconfirmedWorker;
     private Guid _unconfirmedSession;
     private volatile bool _explicitStop;
+    private CameraPreviewChannel? _previewChannel;
+    public CameraPreviewFrame? ReadPreview(long? matchSequence = null)
+    {
+        var channel = Volatile.Read(ref _previewChannel);
+        var frame = matchSequence is { } sequence ? channel?.Matching(sequence) ?? channel?.Latest : channel?.Latest;
+        return frame is not null && Environment.TickCount64 - frame.ReceivedMs < 500 ? frame : null;
+    }
+    public bool PreviewFailed => Volatile.Read(ref _previewChannel)?.Failed == true;
     internal static string? DiagnosticDirectory => Environment.GetEnvironmentVariable("INVEY_CAMERA_DIAGNOSTICS") ??
         Environment.GetEnvironmentVariable("GHOST_CAMERA_DIAGNOSTICS");
     private readonly string? _diagnostics = DiagnosticDirectory;
-    public const int DiagnosticSeconds = 16;
-    private const int DiagnosticMaxStarts = 3;
-    private static int _diagnosticStarts;
-    public bool HasDiagnostics => !string.IsNullOrWhiteSpace(_diagnostics);
-    public bool DiagnosticBudgetAvailable => !HasDiagnostics || _diagnosticStarts < DiagnosticMaxStarts;
+    public const int DiagnosticSeconds = 178;
+
+    public bool HasDiagnostics => !string.IsNullOrWhiteSpace(_diagnostics) ||
+        !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("INVEY_CAMERA_EXECUTION")) ||
+        !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("INVEY_CAMERA_BUDGET"));
+    public bool DiagnosticBudgetAvailable => !HasDiagnostics ||
+        (Directory.Exists(_diagnostics) && File.Exists(Environment.GetEnvironmentVariable("INVEY_CAMERA_BUDGET")));
 
     public RecordedTrackingController(string? root = null) =>
         _root = root ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
@@ -47,11 +57,11 @@ internal sealed class RecordedTrackingController
     public string? WorkerNativeCode => _workerNativeCode;
     public bool CanStart => _run.IsCompleted && _session.Tick() is TrackingState.Off or TrackingState.Stopped or TrackingState.Unavailable;
 
-    public bool Start(CameraDevice? device, string? fixtureFile = null, string? testFault = null)
+    public bool Start(CameraDevice? device, string? fixtureFile = null, string? testFault = null, bool preview = false)
     {
         var source = device is null || fixtureFile is not null ? TrackingSource.Recorded : TrackingSource.Camera;
         bool boundedCamera = source == TrackingSource.Camera && testFault is null && HasDiagnostics;
-        if (!CanStart || (boundedCamera && !TryReserveDiagnosticStart()) || _session.Enable(source) is not { } id) return false;
+        if (!CanStart || (boundedCamera && !DiagnosticBudgetAvailable) || _session.Enable(source) is not { } id) return false;
         _stop?.Dispose();
         _stop = new CancellationTokenSource();
         _explicitStop = false;
@@ -62,15 +72,7 @@ internal sealed class RecordedTrackingController
         _workerPhase = null;
         _workerNativeCode = null;
         var token = _stop.Token;
-        _run = Task.Run(() => RunAsync(id, device, fixtureFile, testFault, diagnostics, token));
-        return true;
-    }
-
-    // Both the lab and the isolated budget test call this on their WPF dispatcher.
-    internal static bool TryReserveDiagnosticStart()
-    {
-        if (_diagnosticStarts >= DiagnosticMaxStarts) return false;
-        _diagnosticStarts++;
+        _run = Task.Run(() => RunAsync(id, device, fixtureFile, testFault, diagnostics, preview, token));
         return true;
     }
 
@@ -90,9 +92,11 @@ internal sealed class RecordedTrackingController
     }
 
     private async Task RunAsync(Guid id, CameraDevice? device, string? fixtureFile, string? testFault,
-        string? diagnostics, CancellationToken stop)
+        string? diagnostics, bool preview, CancellationToken stop)
     {
         Process? worker = null;
+        CameraBudgetGuard? budgetGuard = null;
+        CameraPreviewChannel? previewChannel = null;
         SafeFileHandle? job = null;
         using var readCancellation = CancellationTokenSource.CreateLinkedTokenSource(stop);
         NamedPipeServerStream? pipe = null;
@@ -112,13 +116,25 @@ internal sealed class RecordedTrackingController
                 start.ArgumentList.Add("--diagnostics");
                 start.ArgumentList.Add(Path.Combine(diagnostics, id + ".worker.json"));
             }
+            if (preview)
+            {
+                previewChannel = new CameraPreviewChannel();
+                Volatile.Write(ref _previewChannel, previewChannel);
+                start.ArgumentList.Add("--preview-pipe");
+                start.ArgumentList.Add(previewChannel.Name);
+            }
             pipe = new NamedPipeServerStream("GhostTracking-" + id.ToString("N"), PipeDirection.In, 1,
                 PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly, 4096, 0);
             job = RecordedWorkerJob.Create();
             worker = Process.Start(start) ?? throw new IOException("Tracker did not start.");
             _lastPid = worker.Id;
             RecordedWorkerJob.Assign(job, worker);
+            previewChannel?.Start(worker.Id);
             stderrDrain = DrainAsync(worker.StandardError);
+            if (device is not null && fixtureFile is null && testFault is null &&
+                (HasDiagnostics || !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("INVEY_CAMERA_BUDGET"))))
+                budgetGuard = await CameraBudgetGuard.StartAsync(worker, id, diagnostics ??
+                    throw new InvalidDataException("Camera diagnostics are required for the execution budget."), stop);
             stop.ThrowIfCancellationRequested();
             await worker.StandardInput.WriteLineAsync("start".AsMemory(), stop).ConfigureAwait(false);
             await worker.StandardInput.FlushAsync(stop).ConfigureAwait(false);
@@ -174,6 +190,11 @@ internal sealed class RecordedTrackingController
                 catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { }
             }
             _session.Stop();
+            if (previewChannel is not null)
+            {
+                await previewChannel.DisposeAsync();
+                Volatile.Write(ref _previewChannel, null);
+            }
             readCancellation.Cancel();
             try { pipe?.Dispose(); }
             catch (IOException ex) { Trace.TraceWarning("Tracking pipe close failed: 0x{0:X8}", ex.HResult); }
@@ -222,6 +243,7 @@ internal sealed class RecordedTrackingController
                     _unconfirmedSession = id;
                 }
             }
+            if (budgetGuard is not null) await budgetGuard.DisposeAsync();
             if (diagnostics is not null)
             {
                 var final = _session.Read();

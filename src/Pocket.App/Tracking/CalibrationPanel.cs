@@ -29,7 +29,7 @@ internal sealed class CalibrationPanel : StackPanel
     private readonly TextBlock _practiceStatus = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _settingsStatus = new() { TextWrapping = TextWrapping.Wrap };
     private readonly ComboBox _display = new() { DisplayMemberPath = nameof(CalibrationDisplayChoice.Label) };
-    private readonly CheckBox _mirror = new() { Content = "_Mirror preview", Margin = new Thickness(0, 0, 12, 0) };
+    private readonly CheckBox _mirror = new() { Content = "_Mirror horizontal pointer mapping", Margin = new Thickness(0, 0, 12, 0) };
     private readonly ComboBox _hand = new() { ItemsSource = new[] { "Any hand", "Left hand", "Right hand" }, SelectedIndex = 0 };
     private readonly Slider _margin = new() { Minimum = 5, Maximum = 30, Value = 12, TickFrequency = 1, IsSnapToTickEnabled = true };
     private readonly Slider _sensitivity = new() { Minimum = 50, Maximum = 200, Value = 100, TickFrequency = 5, IsSnapToTickEnabled = true };
@@ -41,6 +41,13 @@ internal sealed class CalibrationPanel : StackPanel
     private CalibrationSample _sample;
     private DipPoint? _mapped;
     private bool _completed;
+    private readonly CheckBox _pointerPreview = new() { Content = "Experimental _finger pointer preview" };
+    private readonly TextBlock _fingerStatus = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly FingerPointer _fingerEngine = new();
+    private FingerPointerSample _fingerSample = new(FingerPointerState.Off, null, []);
+    private readonly Dictionary<string, long> _pointerCounts = [];
+    private long _pointerSequence = -1;
+    private PointMoments _rawMoments = new(), _filteredMoments = new();
 
     public CalibrationPanel(Func<Task> stop, CalibrationPreferencesStore? store)
     {
@@ -89,6 +96,10 @@ internal sealed class CalibrationPanel : StackPanel
         Children.Add(_margin);
         Children.Add(new Label { Content = "_Sensitivity", Target = _sensitivity, Padding = new Thickness(0, 4, 0, 0) });
         Children.Add(_sensitivity);
+        _pointerPreview.Click += (_, _) => Reset();
+        AutomationProperties.SetLiveSetting(_fingerStatus, AutomationLiveSetting.Polite);
+        Children.Add(_pointerPreview);
+        Children.Add(_fingerStatus);
         Children.Add(_preview);
         Children.Add(_status);
         Children.Add(new TextBlock { Text = "Display practice", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 8, 0, 0) });
@@ -108,9 +119,15 @@ internal sealed class CalibrationPanel : StackPanel
         RestoreSaved();
     }
 
+    internal bool MirrorPreview => _mirror.IsChecked == true;
+
     public void Begin(Guid? diagnosticSession)
     {
         _diagnosticSession = diagnosticSession;
+        _pointerCounts.Clear();
+        _pointerSequence = -1;
+        _rawMoments = new();
+        _filteredMoments = new();
         _endReason = "SourceEnded";
         _readiness = new();
         RestoreSaved();
@@ -118,6 +135,13 @@ internal sealed class CalibrationPanel : StackPanel
         _readyDisplayed = 0;
         Visibility = Visibility.Visible;
         _mirror.Focus();
+    }
+
+    internal void EnableFixturePreview()
+    {
+        _mirror.IsChecked = false; // Explicit synthetic fixture mapping, independent of earlier saved test preferences.
+        _pointerPreview.IsChecked = true;
+        Reset();
     }
 
     public void End()
@@ -130,6 +154,9 @@ internal sealed class CalibrationPanel : StackPanel
     private void Reset()
     {
         _readiness.Invalidate();
+        _fingerEngine.Reset();
+        _fingerSample = new(FingerPointerState.Searching, null, []);
+        _pointerSequence = -1;
         _practice = new();
         _sample = default;
         _mapped = null;
@@ -198,8 +225,29 @@ internal sealed class CalibrationPanel : StackPanel
         HandSide? side = _hand.SelectedIndex switch { 1 => HandSide.Left, 2 => HandSide.Right, _ => null };
         _sample = _readiness.Observe(snapshot, side, _mirror.IsChecked == true, _margin.Value / 100);
         var hand = snapshot.Observation;
-        _mapped = (_sample.State is CalibrationState.Ready or CalibrationState.Stabilizing) && hand is { Tracked: true }
-            ? _mapping?.Map(new(hand.Landmarks[8].X, hand.Landmarks[8].Y)) : null;
+        if (_pointerPreview.IsChecked == true)
+        {
+            _fingerSample = _fingerEngine.Observe(snapshot, side);
+            if (snapshot.LastSequence != _pointerSequence)
+            {
+                _pointerSequence = snapshot.LastSequence;
+                string state = _fingerSample.State.ToString();
+                _pointerCounts[state] = _pointerCounts.GetValueOrDefault(state) + 1;
+                if (_fingerSample.Position is { } filtered && snapshot.Observation?.Point(8) is { } rawTip)
+                {
+                    _rawMoments.Add(new(rawTip.X, rawTip.Y));
+                    _filteredMoments.Add(filtered);
+                }
+            }
+            string fingers = string.Join(" · ", _fingerSample.Fingers.Select(f => $"{f.Finger} {f.Evidence.ToString().ToLowerInvariant()}"));
+            Announce(_fingerStatus, $"Pointer {_fingerSample.State.ToString().ToLowerInvariant()}. {fingers}");
+        }
+        else _fingerStatus.Text = "";
+        DipPoint? anchor = _pointerPreview.IsChecked == true ? _fingerSample.Position :
+            hand?.Point(8) is { } raw ? new(raw.X, raw.Y) : null;
+        _mapped = (_sample.State is CalibrationState.Ready or CalibrationState.Stabilizing) &&
+            hand is { Tracked: true } && anchor is { } point
+            ? _mapping?.Map(point) : null;
         var logical = WorkspaceFraction();
         bool overTarget = logical is { X: >= .38 and <= .62, Y: >= .32 and <= .68 };
         var practice = _practice.Update(snapshot, _sample.State == CalibrationState.Ready && logical.HasValue, overTarget);
@@ -248,9 +296,10 @@ internal sealed class CalibrationPanel : StackPanel
         }
     }
 
-    private DipPoint? WorkspaceFraction()
+    private DipPoint? WorkspaceFraction(bool fingerPreview = false)
     {
-        if (_mapped is not { } point || _mapping is null ||
+        var mapped = fingerPreview ? _fingerSample.Position is { } raw ? _mapping?.Map(raw) : null : _mapped;
+        if (mapped is not { } point || _mapping is null ||
             _display.SelectedItem is not CalibrationDisplayChoice { Geometry: var display }) return null;
         var physical = _mapping.ToPhysical(point);
         return new((physical.X - display.X) / (display.Width - 1), (physical.Y - display.Y) / (display.Height - 1));
@@ -267,7 +316,7 @@ internal sealed class CalibrationPanel : StackPanel
         Place(_screen, box.X, box.Y, box.Width, box.Height);
         Place(_target, box.X + .38 * box.Width, box.Y + .32 * box.Height, .24 * box.Width, .36 * box.Height);
         _target.Fill = _practice.State == PracticeState.Held ? SystemColors.HighlightBrush : null;
-        if (WorkspaceFraction() is not { } point) return;
+        if (WorkspaceFraction(_pointerPreview.IsChecked == true) is not { } point) return;
         _ghost.Visibility = Visibility.Visible;
         Place(_ghost, box.X + point.X * box.Width - 4.5, box.Y + point.Y * box.Height - 4.5, 9, 9);
     }
@@ -291,7 +340,10 @@ internal sealed class CalibrationPanel : StackPanel
         if (_diagnosticSession is not { } session || !Directory.Exists(directory)) return;
         try { File.WriteAllText(System.IO.Path.Combine(directory!, session + ".calibration.json"),
             JsonSerializer.Serialize(new { Session = session, EndReason = _endReason,
-                Mirror = _mirror.IsChecked == true, HandSelection = _hand.SelectedIndex, UiObserved = Counts() })); }
+                Mirror = _mirror.IsChecked == true, HandSelection = _hand.SelectedIndex, UiObserved = Counts(),
+                PointerPreview = _pointerPreview.IsChecked == true, PointerUiCounts = _pointerCounts,
+                PointerMoments = new { Samples = _rawMoments.Samples, RawNormalizedRms = _rawMoments.RmsRadius,
+                    FilteredNormalizedRms = _filteredMoments.RmsRadius } })); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { System.Diagnostics.Trace.TraceWarning("Calibration diagnostic write failed: 0x{0:X8}", ex.HResult); }
     }
@@ -310,5 +362,11 @@ internal sealed class CalibrationPanel : StackPanel
         Mapped = _mapped, Physical = _mapped is { } point ? _mapping?.ToPhysical(point) : null,
         Status = _status.Text, Practice = _practice.State.ToString(), PracticeStatus = _practiceStatus.Text,
         SettingsStatus = _settingsStatus.Text, Counts = Counts(),
+        PointerPreview = _pointerPreview.IsChecked == true,
+        PointerToggle = _pointerPreview.IsVisible ? _pointerPreview.PointToScreen(new Point(24, _pointerPreview.ActualHeight / 2)) : default,
+        PointerState = _fingerSample.State.ToString(),
+        PointerPosition = _fingerSample.Position, PointerMarkerVisible = _ghost.IsVisible,
+        PointerMarkerX = _ghost.IsVisible && double.IsFinite(Canvas.GetLeft(_ghost)) ? (double?)Canvas.GetLeft(_ghost) : null,
+        PointerActionEligible = _fingerSample.ActionEligible, FingerStatus = _fingerStatus.Text,
         Focus = _mirror.IsKeyboardFocused ? "Mirror" : _hand.IsKeyboardFocused ? "Hand" : null };
 }

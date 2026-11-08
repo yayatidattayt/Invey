@@ -32,6 +32,12 @@ internal static class RecordedWorkerJob
     public static bool IsPeer(NamedPipeServerStream pipe, int expectedPid) =>
         GetNamedPipeClientProcessId(pipe.SafePipeHandle, out uint pid) && pid == expectedPid;
 
+    public static bool IsServer(NamedPipeClientStream pipe, int expectedPid) =>
+        GetNamedPipeServerProcessId(pipe.SafePipeHandle, out uint pid) && pid == expectedPid;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GetNamedPipeServerProcessId(SafePipeHandle pipe, out uint pid);
+
     [StructLayout(LayoutKind.Sequential)]
     private struct BasicLimits
     {

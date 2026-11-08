@@ -2,7 +2,7 @@ name: Windows verification
 
 on:
   pull_request:
-    branches: [main, codex/execution-11-calibration-ci, codex/execution-13-pocket-capture, codex/execution-14-invey-cards-migration]
+    branches: [main, codex/execution-11-calibration-ci, codex/execution-13-pocket-capture, codex/execution-14-invey-cards-migration, codex/execution-15-workspace-shortcuts-reliability]
   push:
     branches: [main]
 

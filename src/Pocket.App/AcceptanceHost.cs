@@ -8,6 +8,7 @@ using Pocket.Overlay;
 using Pocket.App.Tracking;
 using Pocket.App.References;
 using Pocket.Core.References;
+using Pocket.Core.Tracking;
 using System.Windows.Controls;
 using System.Windows.Media;
 
@@ -40,6 +41,8 @@ internal sealed class AcceptanceHost : IDisposable
     private int _profileCycle;
     private bool _profileStarted;
     private bool[]? _diagnosticReservations;
+    private object? _budgetResult;
+    private object? _previewResult;
     public AcceptanceHost(string pipeName,string token)
     {
         ValidateDesktop();
@@ -84,8 +87,20 @@ internal sealed class AcceptanceHost : IDisposable
         {
             case "status":break;
             case "product-diagnostic-budget":
-                _diagnosticReservations = Enumerable.Range(0, 4)
-                    .Select(_ => RecordedTrackingController.TryReserveDiagnosticStart()).ToArray();
+                _diagnosticReservations = ReserveFixtureBudget();
+                break;
+            case "preview-protocol-controls":
+                _previewResult = await CameraPreviewFixture.ExerciseAsync();
+                break;
+            case "budget-amended-series":
+            case "budget-series":
+            case "budget-corrupt":
+            case "budget-missing":
+            case "budget-directory":
+            case "budget-deadline":
+            case "budget-interrupted":
+            case "budget-canceled":
+                _budgetResult = await CameraBudgetFixture.ExerciseAsync(command[7..]);
                 break;
             case "product-conflict":
                 var source = (HwndSource)PresentationSource.FromVisual(_fixture)!;
@@ -169,9 +184,12 @@ internal sealed class AcceptanceHost : IDisposable
             case "tracking-start-bad-model": _tracking!.Start("bad-model"); break;
             case "tracking-start-gap": _tracking!.Start("result-gap"); break;
             case "tracking-start-ignore-stop": _tracking!.Start("ignore-stop"); break;
+            case "tracking-finger-preview-open": _tracking!.OpenFingerFixture(); break;
+            case "tracking-enable-video-fixture": _tracking!.EnablePreviewFixture(); break;
+            case "tracking-start-finger-preview": _tracking!.Start("finger-preview"); break;
             case "tracking-start-calibration-practice": _tracking!.Start("calibration-practice"); break;
             case "tracking-display-disconnect": _tracking!.SimulateDisplayDisconnect(); break;
-            case "tracking-stop": await _tracking!.StopAsync(); break;
+            case "tracking-stop": if (_tracking is not null) await _tracking.StopAsync(); break;
             case "tracking-close": if (_tracking is not null) await _tracking.CloseAsync(); break;
             case "automation-open":_automation??=new AutomationFixtureWindow();_automation.Show();break;
             case "recovery-open":
@@ -204,7 +222,7 @@ internal sealed class AcceptanceHost : IDisposable
             Pocket = _pocket?.TestState(), Product = _product?.TestState(),
             FixtureHotKeyHits = _fixtureHotKeyHits, ShortcutResult = _shortcutResult,
             Resources = _profileStarted ? _product?.FixtureResources() : null,
-            DiagnosticReservations = _diagnosticReservations,
+            DiagnosticReservations = _diagnosticReservations, BudgetResult = _budgetResult, PreviewResult = _previewResult,
             TimerScheduled=_simulation.IsScheduled,OverlayVisible=_overlay.IsVisible,Running=_simulation.IsRunning,Events=_simulation.Observations.Count,
             GhostClaim=_overlay.Scene.Pointer(Pocket.Core.PointerOwner.Ghost).Target,Panel=_overlay.Scene.Target("panel"),
             Native=NativeWindow.Observe() });
@@ -238,6 +256,33 @@ internal sealed class AcceptanceHost : IDisposable
         _pocket.Show();
         _pocket.Activate();
     }
+    private static bool[] ReserveFixtureBudget()
+    {
+        string store = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;
+        string directory = Path.Combine(Path.GetDirectoryName(store)!, "budget-fixture-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "budget.json");
+        CameraBudget.Initialize(path);
+        var result = new List<bool>();
+        try
+        {
+            for (int i = 0; i < 7; i++)
+            {
+                using var budget = new CameraBudget(path);
+                Guid id = Guid.NewGuid();
+                try { budget.Reserve(id); budget.Complete(id, 0); result.Add(true); }
+                catch (InvalidDataException) { result.Add(false); }
+            }
+            return result.ToArray();
+        }
+        finally
+        {
+            File.Delete(path);
+            File.Delete(path + ".lock");
+            Directory.Delete(directory);
+        }
+    }
+
     private static async Task SeedProfileImagesAsync()
     {
         string fixture = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;
@@ -291,6 +336,7 @@ internal sealed class AcceptanceHost : IDisposable
     {
         try
         {
+            CameraBudgetFixture.Cleanup();
             if (_product is { } product) await product.CloseAcceptanceAsync();
             if (_pocket is { } shelf) await shelf.PrepareExitAsync();
             if (_recovery is not null) await _recovery.ShutdownAsync();

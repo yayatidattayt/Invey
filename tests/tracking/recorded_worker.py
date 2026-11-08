@@ -41,6 +41,10 @@ class ParentPipe:
             time.sleep(min(remaining, 0.025))
 
 
+class InvalidLandmarkOutput(ValueError):
+    pass
+
+
 def normalize(result):
     if not result.hand_landmarks:
         return [], {}
@@ -48,17 +52,50 @@ def normalize(result):
         return [], {"ambiguous": True}
     points = [[point.x, point.y, point.z] for point in result.hand_landmarks[0]]
     if len(points) != 21 or any(not all(map(math.isfinite, point)) for point in points):
-        raise ValueError("Invalid hand model geometry.")
-    if any(not (0 <= x <= 1 and 0 <= y <= 1) for x, y, _ in points):
-        return [], {"partial": True}
-
+        raise InvalidLandmarkOutput("Invalid hand model geometry.")
+    partial = any(not (0 <= x <= 1 and 0 <= y <= 1) for x, y, _ in points)
     fields = {}
     if len(result.handedness) == 1 and len(result.handedness[0]) == 1:
         category = result.handedness[0][0]
         side = category.category_name.lower()
         if side in {"left", "right"} and 0 <= category.score <= 1:
             fields = {"handedness": side, "quality": {"handednessScore": category.score}}
+    if partial:
+        # In-frame model estimates are useful for preview. Null does not invent an unseen joint.
+        return [], {**fields, "v": 2, "partial": True,
+                    "points": [p if 0 <= p[0] <= 1 and 0 <= p[1] <= 1 else None for p in points]}
     return points, fields
+
+
+def finger_preview_fixture(send, stop, preview=None):
+    send("ready")
+    base = time.monotonic_ns() // 1_000_000
+    for sequence in range(90):
+        if stop.is_set():
+            return
+        points = [[.50, .8, 0.0]]
+        for finger in range(5):
+            for joint in range(4):
+                points.append([.3 + sequence * .002 + finger * .035, .65 - joint * .04, 0.0])
+        fields = {"tracked": True, "landmarks": points, "handedness": "right"}
+        if 15 <= sequence < 55:
+            sparse = [None, *points[1:]]
+            if sequence >= 40:
+                sparse[8] = None
+            fields = {"v": 2, "tracked": False, "landmarks": [], "points": sparse,
+                      "partial": True, "handedness": "right"}
+        elif 55 <= sequence < 65:
+            fields = {"tracked": False, "landmarks": [], "ambiguous": True}
+        stamp = base + sequence * 80
+        send("observation", seq=sequence, captureMonoMs=stamp, resultMonoMs=stamp + 1,
+             frame={"width": 640, "height": 480}, **fields)
+        if preview is not None:
+            import numpy as np
+            image = np.zeros((360, 640, 3), dtype=np.uint8)
+            image[:] = (30, 80, 120)
+            preview.offer(sequence, image)
+        stop.wait(.08)
+    send("stopped")
 
 
 def open_landmarker(mp, asset):
@@ -102,6 +139,15 @@ def stream(args, pipe, stop, diagnostic=None):
     if args.fault == "startup-hang":
         stop.wait(30)
         return
+    if args.fault == "finger-preview":
+        if args.camera or args.fixture_file:
+            raise ValueError("Pointer fixture requires the recorded source.")
+        sys.path.insert(0, str(args.site_packages))
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from preview_pipeline import PreviewSender
+        with PreviewSender(args.preview_pipe) if args.preview_pipe else nullcontext() as preview:
+            finger_preview_fixture(send, stop, preview)
+        return
     if args.fault == "calibration-practice":
         if args.camera or args.fixture_file:
             raise ValueError("Practice fixture requires the recorded test source.")
@@ -123,6 +169,8 @@ def stream(args, pipe, stop, diagnostic=None):
 
     try:
         with ExitStack() as resources:
+            from preview_pipeline import PreviewSender
+            preview = resources.enter_context(PreviewSender(args.preview_pipe)) if args.preview_pipe else None
             try:
                 phase("opening-model")
                 asset = checked_bytes(args.model, MODEL_HASH)
@@ -142,7 +190,12 @@ def stream(args, pipe, stop, diagnostic=None):
                 if args.fault in ("camera-denied", "camera-busy", "camera-missing"):
                     raise CameraError({"camera-denied": "permission-denied", "camera-busy": "device-busy",
                                        "camera-missing": "no-device"}[args.fault])
-                source = resources.enter_context(open_source(np, args.camera, args.fixture_file, diagnostic))
+                if args.camera:
+                    from latest_capture import LatestCapture
+                    source = resources.enter_context(LatestCapture(
+                        lambda: open_source(np, args.camera, None, diagnostic), stop, diagnostic))
+                else:
+                    source = resources.enter_context(open_source(np, None, args.fixture_file, diagnostic))
             send("ready")
             phase("ready")
             if args.fault == "crash":
@@ -161,7 +214,12 @@ def stream(args, pipe, stop, diagnostic=None):
             measured = diagnostic.measure_tracker(tracker) if diagnostic else tracker
             run_frames(source, stop, measured, mp, np, normalize, send,
                        diagnostic.sample if diagnostic else delay_result if args.fault == "result-gap" else None,
-                       diagnostic)
+                       diagnostic, preview)
+    except InvalidLandmarkOutput:
+        if diagnostic:
+            diagnostic.count("invalidModelOutputs")
+        send("error", code="invalid-model")
+        return
     except CameraError as error:
         if diagnostic:
             diagnostic.data["error"] = error.code
@@ -189,12 +247,13 @@ def main():
     parser.add_argument("--model", type=Path)
     parser.add_argument("--palm", type=Path)
     parser.add_argument("--diagnostics", type=Path)
+    parser.add_argument("--preview-pipe")
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--camera")
     source.add_argument("--fixture-file", type=Path)
     parser.add_argument("--fault", choices=["startup-hang", "crash", "malformed", "ignore-stop",
                                           "bad-model", "result-gap", "camera-denied", "camera-busy",
-                                          "camera-missing", "calibration-practice"])
+                                          "camera-missing", "calibration-practice", "finger-preview"])
     args = parser.parse_args()
     if not args.list_cameras and not all((args.pipe, args.session, args.site_packages, args.model, args.palm)):
         parser.error("The tracking worker requires a pipe, session, runtime, and asset paths.")

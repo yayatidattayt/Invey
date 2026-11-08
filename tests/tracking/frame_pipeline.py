@@ -9,6 +9,7 @@ class Frame:
     pixels: object
     acquired_ns: int
     bgr: bool = False
+    sequence: int | None = None
 
 
 class RecordedFrameSource:
@@ -49,7 +50,7 @@ def to_srgb(frame, np):
     return np.ascontiguousarray(pixels[:, :, ::-1] if frame.bgr else pixels)
 
 
-def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diagnostic=None):
+def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diagnostic=None, preview=None):
     """Read one frame at a time. None means end of source, with no observation emitted."""
     sequence = 0
     previous_ns = -1
@@ -65,6 +66,8 @@ def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diag
             if diagnostic:
                 diagnostic.count("cancelBeforeSubmission")
             return
+        if frame.sequence is not None:
+            sequence = frame.sequence
         before_conversion = time.perf_counter_ns()
         pixels = to_srgb(frame, np)
         if not previous_ns < frame.acquired_ns <= before_conversion:
@@ -100,6 +103,11 @@ def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diag
             raise
         if diagnostic:
             diagnostic.timing("pipeWriteMs", time.perf_counter_ns() - finished)
+        if preview is not None:
+            preview_at = time.perf_counter_ns()
+            preview.offer(sequence, pixels)
+            if diagnostic:
+                diagnostic.timing("previewCopyMs", time.perf_counter_ns() - preview_at)
         if sample is not None:
             sample(sequence, before_inference - before_conversion,
                    after_inference - before_inference, finished - frame.acquired_ns)

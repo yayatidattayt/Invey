@@ -147,3 +147,7 @@ For each gate, append a dated entry with: Windows build and architecture; proces
 ## Execution 15 — 2026-11-07
 
 The pinned Debug and Release builds passed 82 core cases each, and the worker suite passed all 15 including the Media Foundation file reader. The final isolated Windows suite passed 36 cases, with zero failures and one blocked Explorer case. This includes 30 dual-target Workspace trials with native fixture mouse input and a separate logical Ghost stream. The camera diagnostic scope failure, retained attempts, and remaining physical gates are documented separately. [Execution 15 report](EXECUTION_15_REPORT.md)
+
+## Execution 16 continuation — 2026-11-08
+
+See [Execution 16 evidence](EXECUTION_16_REPORT.md) and [finger research](FINGER_TRACKING_RESEARCH.md). The real camera preview and aligned finger dots have user confirmation. Bounded capture, sparse model points, explicit per-finger states and an independently supervised versioned diagnostic budget are implemented. Full physical B1, Gate A/M02 and sustained finger-accuracy acceptance remain open. All failed runs and repairs are preserved. The final standard regression passed37 cases with zero failures and Explorer blocked; both configurations passed100 core tests and all20 worker tests passed. Draft PR5 is published and implementation455abf4 passed Windows CI. The user reported wrist-out index loss. Complete continuation acceptance remains CHANGES REQUIRED.
