@@ -66,7 +66,7 @@ The camera-free controlled pointer and product routes pass isolated Windows acce
 - Release apphost: `src/Pocket.App/bin/Release/net10.0-windows/Invey.exe`, SHA-256 `443B3E4C026468DA6244883CB23CCE1159CDCEC177AC6F16A78DA61B9734392B`.
 - Acceptance-hosted WPF app assembly: `src/Pocket.App/bin/Release/net10.0-windows/Invey.dll`, SHA-256 `78BD7DEC16797E75C5AA6E3083136F5F9C6A2D11EE169FB0FA5783026316E86F` (matches the recorded hash in the isolated result JSON).
 - Isolated desktop audit returned `Default` after each completed run. No Invey, worker, Python or dotnet process remained. No ordinary desktop input injection or camera activation occurred.
-- Source commit, PR head, final launcher preflight and exact-head CI result are recorded in the delivery addendum after publication. PR #9 metadata is known to reject integration updates with HTTP 403; do not retry through alternate authentication. Keep the PR open and unmerged.
+- Source commit `0578f63ff2765f66df3a5166b71d0eed95fe7463` was published to PR #9. GitHub Actions run `42660005352` passed for this exact commit. PR #9 remains open, draft and unmerged. Its metadata update was previously rejected with HTTP 403; title/body were left unchanged.
 
 ## Final state
 
@@ -75,3 +75,11 @@ The camera-free controlled pointer and product routes pass isolated Windows acce
 - **REAL CAMERA PREVIEW:** UNVERIFIED; no camera session authorized or run.
 - **LIVE HAND POCKET CONTROL:** UNVERIFIED and disconnected from production actions.
 - **Explorer/Alt+Tab:** BLOCKED in isolated desktop; manual check remains.
+
+## Published delivery record
+
+- PR: https://github.com/yayatidattayt/Invey/pull/9 (open, draft, unmerged).
+- Published commit:  578f63ff2765f66df3a5166b71d0eed95fe7463 on codex/execution-20-interaction-engine.
+- Exact-head GitHub Actions run 42660005352: **SUCCESS**; all steps including SDK, locked restore, Debug/Release build and tests, and synthetic worker tests passed.
+- Launcher -CheckOnly passed on the clean committed tree. It reports the isolated demo profile, camera off, tracking runtime available, zero running Invey instances and the Release apphost hash in this report.
+- PR metadata update remains unavailable (HTTP 403); no merge performed.
