@@ -214,7 +214,7 @@ def configure(reader, platform, diagnostic=None, live=False):
             size = get_number(native, FRAME_SIZE, U64, 8) or 0
             width, height = size >> 32, size & 0xFFFFFFFF
             rate = get_number(native, FRAME_RATE, U64, 8) or 0
-            fps = (rate >> 32) / (rate & 0xFFFFFFFF) if rate & 0xFFFFFFFF else float('nan')
+            fps = (rate >> 32) / (rate & 0xFFFFFFFF) if rate & 0xFFFFFFFF else None
             subtype = (c.c_ubyte * 16)()
             check(call(native, 10, (PTR, PTR), SUBTYPE, subtype), "unsupported-format")
             kind = uuid.UUID(bytes_le=bytes(subtype))

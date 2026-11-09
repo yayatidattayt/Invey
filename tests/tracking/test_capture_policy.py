@@ -14,6 +14,7 @@ class CapturePolicyTests(unittest.TestCase):
         modes=[dict(width=640,height=480,fps=10),dict(width=1280,height=720,fps=30),dict(width=640,height=480,fps=30),dict(width=640,height=480,fps=float('nan')),dict(width=640,height=480,fps=60,supported=False)]
         self.assertEqual(ranked_modes(modes),[2,1,0])
         self.assertEqual(ranked_modes([dict(width=1920,height=1080,fps=30)]),[0])
+        self.assertEqual(ranked_modes([dict(width=640,height=480,fps=None)]),[])
     def test_direct_rgb_matches_baseline_signed_stride_and_owns_memory(self):
         for stride in (16,-16):
             memory=(c.c_ubyte*32)(*range(32));start=c.addressof(memory);first=start+(16 if stride<0 else 0)
