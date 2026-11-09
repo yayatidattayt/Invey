@@ -25,7 +25,7 @@ public partial class MainWindow
         var point=_desktopMapper.Map(snapshot,context,model);
         DesktopGhost.LastMappingMs=watch.Elapsed.TotalMilliseconds;
         if(snapshot.Observation is not { } hand || point is null)
-        { DesktopGhost.Gestures.Stop();DesktopGhost.Engine.Lose("Tracking lost or mapping unavailable — released");return; }
+        { DesktopGhost.Gestures.Stop();DesktopGhost.Engine.Lose(_desktopMapper.Status+" · actions disabled");return; }
         if(hand.Sequence==_desktopSequence)return;
         _desktopSequence=hand.Sequence;
         long age=(long)(snapshot.HostObservationAge?.TotalMilliseconds??150)+hand.ResultMonoMs-hand.CaptureMonoMs;

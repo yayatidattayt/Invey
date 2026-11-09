@@ -29,7 +29,6 @@ internal sealed class GhostDesktopHost : IDisposable
     private string _displaySignature="";
     private bool _disposed;
     private bool _revealRegistered;
-    private readonly Pocket.Core.Tracking.GhostPreviewMotion _previewMotion=new();
     private readonly Dictionary<string,string> _labels=[];
     public event Action? Stopped;
     public double LastDispatchMs { get; private set; }
@@ -42,7 +41,6 @@ internal sealed class GhostDesktopHost : IDisposable
         Gestures=new(Engine);
         Engine.WindowReachable=Reachable;
         Engine.Changed+=Render;
-        CompositionTarget.Rendering+=PreviewRendering;
         _timer.Tick+=(_,_)=>
         {
             var signature=string.Join(";",System.Windows.Forms.Screen.AllScreens.Select(s=>s.Bounds.ToString()));
@@ -155,9 +153,7 @@ internal sealed class GhostDesktopHost : IDisposable
         try
         {
         if(Engine.Position is not { } p || Engine.Mode is GhostControlMode.Off or GhostControlMode.Paused or GhostControlMode.Lost)
-        { _previewMotion.Reset();_overlay?.Hide(); return; }
-        if(Engine.Source!=GhostSourceKind.Controlled&&Engine.Session is {} session)
-            p=_previewMotion.Present(session,Engine.Sequence,p,Environment.TickCount64);
+        { _overlay?.Hide(); return; }
         _overlay??=new PointerWindow(()=>Engine.Lose("Display changed — released"));
         _overlay.Show(); _overlay.Draw(p,Engine.Mode,Engine.Source==GhostSourceKind.Controlled&&Engine.HoverTarget is not null);
         }
@@ -167,8 +163,6 @@ internal sealed class GhostDesktopHost : IDisposable
             if(Engine.Position.HasValue)Engine.Lose("Pointer presentation unavailable — released");
         }
     }
-    private void PreviewRendering(object? sender,EventArgs args)
-    {if(!_disposed&&Engine.Source!=GhostSourceKind.Controlled&&Engine.Position.HasValue){Engine.Tick();Render();}}
     public void ShowControls()
     {
         if(_controls is not null) { _controls.Show(); _controls.Activate(); return; }
@@ -271,7 +265,7 @@ internal sealed class GhostDesktopHost : IDisposable
         OverlayVisible=_overlay?.IsVisible==true, OverlayStyles=_overlay?.Styles??0,
         RenderedPoint=_overlay?.RenderedPoint,
         Targets=Engine.Targets.Select(t=>new{t.Id,t.Geometry.Bounds,t.Geometry.Window,t.Geometry.ZOrder}).ToArray(),LastDispatchMs,LastMovementMs,MaxMovementMs,LastMappingMs,PointerUpdates };
-    public void Dispose(){if(_disposed)return;_disposed=true;CompositionTarget.Rendering-=PreviewRendering;Stop();_timer.Stop();_controls?.Close();_overlay?.Close();Engine.Changed-=Render;}
+    public void Dispose(){if(_disposed)return;_disposed=true;Stop();_timer.Stop();_controls?.Close();_overlay?.Close();Engine.Changed-=Render;}
     [DllImport("user32.dll")] private static extern nint GetTopWindow(nint hwnd);
     [DllImport("user32.dll")] private static extern nint GetWindow(nint hwnd,uint command);
     [DllImport("user32.dll")] [return:MarshalAs(UnmanagedType.Bool)] private static extern bool IsWindowVisible(nint hwnd);

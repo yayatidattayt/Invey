@@ -1,3 +1,5 @@
+Current outcome: both approved Execution23 pointer sessions are complete. The ledger has12 released sessions and no remaining starts under the existing cap. Motion quality remains FAILED. The instructions below describe the procedure; they do not permit another attempt. Final preview recovery is camera-free verified only.
+
 # Your first real Ghost pointer test
 
 Reading this guide does not authorize the camera. The current allowance is exhausted. Wait for the separate one-session approval and audited amendment before Enable. This first test is **pointer preview only**; gesture proposals and live Pocket actions are separate later decisions.

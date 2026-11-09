@@ -94,6 +94,8 @@ internal static partial class Program
                 var feedback=await Send("feedback-open");
                 Require(Product(feedback).GetProperty("FeedbackVisible").GetBoolean()&&Product(feedback).GetProperty("FeedbackButtonVisible").GetBoolean(),"Built-in feedback form did not open.");
                 await Send("feedback-close");
+                var image=await Send("preview-protocol-controls");
+                Require(image.GetProperty("PreviewResult").GetProperty("RepeatedImagePollsDeduplicated").GetBoolean(),"WPF preview repeated-image regression failed.");
                 var practice=await Send("ghost-practice-ui");
                 Require(practice.GetProperty("PreviewResult").GetProperty("GuidedLesson").GetBoolean(),"Tracking UI gesture lesson failed.");
 

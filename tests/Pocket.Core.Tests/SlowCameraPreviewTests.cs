@@ -21,15 +21,6 @@ public class SlowCameraPreviewTests
         Assert.Null(mapper.Map(Snapshot(6,200),context,null));
         Assert.Null(mapper.Map(Snapshot(7,0) with{State=TrackingState.Lost,Observation=null},context,null));
     }
-    [Fact] public void PreviewInterpolationNeverExtrapolatesAndResetDoesNotBridgeSources()
-    {
-        var motion=new GhostPreviewMotion();var id=Guid.NewGuid();
-        Assert.Equal(new DipPoint(0,0),motion.Present(id,0,new(0,0),0));
-        Assert.Equal(new DipPoint(0,0),motion.Present(id,1,new(100,50),100));
-        Assert.Equal(new DipPoint(50,25),motion.Present(id,1,new(100,50),125));
-        Assert.Equal(new DipPoint(100,50),motion.Present(id,1,new(100,50),300));
-        motion.Reset();Assert.Equal(new DipPoint(900,700),motion.Present(Guid.NewGuid(),0,new(900,700),301));
-    }
     [Fact] public void PreviewExpiresFromCaptureAndCannotArmOrExtendItself()
     {
         long now=1000;var desktop=new GhostDesktop(()=>now);var id=desktop.Begin(GhostSourceKind.Camera);

@@ -157,15 +157,16 @@ internal sealed partial class RecordedTrackingWindow : Window
                 _status,
                 _showPreview,
                 _desktopPreview,
-                _qualification,
-                _calibrationDetails,
-                _mirrorCamera,
+                _desktopStatus,
                 _liveView,
                 _previewStatus,
+                _mirrorCamera,
+                _qualification,
+                _calibrationDetails,
                 new TextBlock{Text="3. Optional practice · Pocket actions stay disabled",FontWeight=FontWeights.SemiBold,Margin=new Thickness(0,12,0,8)},
                 _gesturePractice,
                 _learning,
-                new Expander{Header="Preview options and diagnostics",Margin=new Thickness(0,12,0,0),Content=new StackPanel{Children={_previewTiming,_overlayMode,_desktopStatus}}}
+                new Expander{Header="Preview options and diagnostics",Margin=new Thickness(0,12,0,0),Content=new StackPanel{Children={_previewTiming,_overlayMode}}}
             }
         };
         // An explicit star-sized viewport avoids unbounded content measurement in SizeToContent.
@@ -222,6 +223,7 @@ internal sealed partial class RecordedTrackingWindow : Window
             _controller.Start(live ? device : null, live ? _fixtureFile : null,
                 live ? _fixtureCameraFault : fixtureFault, _showPreview.IsChecked == true && fixtureFault != "calibration-practice");
         _startedInMode |= started;
+        if(started&&live){_calibrationDetails.IsExpanded=false;_trackingScroll.ScrollToTop();}
         Render();
         return started;
     }
@@ -229,6 +231,7 @@ internal sealed partial class RecordedTrackingWindow : Window
     private void SourceChanged()
     {
         _startedInMode = false;
+        if(_live.IsChecked==true)_showPreview.IsChecked=true;
         Render();
     }
 
@@ -344,7 +347,7 @@ internal sealed partial class RecordedTrackingWindow : Window
             _visible.State is not (TrackingState.Stopping or TrackingState.Unavailable);
         var frame = showing ? _controller.ReadPreview(_previewTiming.SelectedIndex == 0 ? _visible.Observation?.Sequence : null) : null;
         _liveView.Update(frame, _visible.Observation, _mirrorCamera.IsChecked == true);
-        _previewStatus.Text = !showing ? (simulated ? "SIMULATED landmarks only. No camera image is used." : "") : _controller.PreviewFailed ?
+        _previewStatus.Text = !showing ? (simulated ? "SIMULATED landmarks only. No camera image is used." : live&&_showPreview.IsChecked==true?"Camera off · Enable shows the local image here.":"") : _controller.PreviewFailed ?
             "Live view is unavailable. Tracking and Stop remain available." :
             frame is null ? "Waiting for the local camera view…" :
             $"Preview: {_liveView.UniquePresentedFps:F1} unique frames/s · local frame age: {Environment.TickCount64 - frame.ReceivedMs} ms. " +

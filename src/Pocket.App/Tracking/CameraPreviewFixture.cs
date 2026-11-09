@@ -7,6 +7,7 @@ internal static class CameraPreviewFixture
 {
     internal static async Task<object> ExerciseAsync()
     {
+        AcceptanceHost.ValidateDesktop();
         var header = new byte[24];
         void Set(int magic = 0x49565031, long sequence = 1, int width = 640, int height = 360, int length = 691200)
         {
@@ -54,6 +55,19 @@ internal static class CameraPreviewFixture
         }
         if (channel.Matching(1) is not null || channel.Matching(2)?.Sequence != 2 || channel.Matching(3)?.Sequence != 3)
             throw new InvalidDataException("Bounded preview frame correlation failed.");
-        return new { RejectedHeaders = rejected, UnconnectedStop = true, BoundedFrameMatch = true };
+        var view=new CameraPreviewView();
+        var window=new System.Windows.Window{Content=view,Width=360,Height=300,ShowActivated=false};
+        try
+        {
+            window.Show();view.Update(channel.Latest,null,false);window.UpdateLayout();
+            var visible=System.Text.Json.JsonSerializer.SerializeToElement(view.TestState()).GetProperty("FrameVisible").GetBoolean();
+            long updates=view.UpdateCount;
+            for(int i=0;i<100;i++)view.Update(channel.Latest,null,false);
+            if(!visible||view.UpdateCount!=updates)throw new InvalidOperationException("Unchanged camera image polls caused redraw or lost the WPF image.");
+            view.Update(null,null,false);window.UpdateLayout();
+            if(System.Text.Json.JsonSerializer.SerializeToElement(view.TestState()).GetProperty("FrameVisible").GetBoolean())throw new InvalidOperationException("Stop retained the camera image.");
+        }
+        finally {window.Close();}
+        return new { RejectedHeaders = rejected, UnconnectedStop = true, BoundedFrameMatch = true,RepeatedImagePollsDeduplicated=true };
     }
 }

@@ -21,6 +21,8 @@ internal sealed class CameraPreviewView : Grid
     private CameraPreviewFrame? _frame;
     private HandObservation? _observation;
     private bool _mirror;
+    private int _drawnMode=-1;
+    private long _updates,_unchanged;
     public int OverlayMode { get; set; } = 2;
     private long _lastRendered = -1, _renderStarted, _uniqueRendered;
     public double UniquePresentedFps => _renderStarted == 0 ? 0 :
@@ -33,6 +35,7 @@ internal sealed class CameraPreviewView : Grid
         _uniqueRendered++;
     }
     public long? Sequence => _frame?.Sequence;
+    internal long UpdateCount=>_updates;
 
     public CameraPreviewView()
     {
@@ -43,6 +46,7 @@ internal sealed class CameraPreviewView : Grid
         Visibility = Visibility.Collapsed;
         Children.Add(_image);
         Children.Add(_overlay);
+        _image.RenderTransformOrigin=new(.5,.5);
         _bones = Edges.Select(_ => new Line { Stroke = SystemColors.HighlightBrush, StrokeThickness = 1.5 }).ToArray();
         _points = Enumerable.Range(0, 21).Select(i => new Ellipse
         {
@@ -58,13 +62,16 @@ internal sealed class CameraPreviewView : Grid
 
     public void Update(CameraPreviewFrame? frame, HandObservation? hand, bool mirror)
     {
+        var matched=hand is not null&&hand.Sequence==frame?.Sequence?hand:null;
+        if(ReferenceEquals(_frame,frame)&&ReferenceEquals(_observation,matched)&&_mirror==mirror&&_drawnMode==OverlayMode)
+        {_unchanged++;return;}
+        _updates++;
         if (frame is null) { _renderStarted = 0; _uniqueRendered = 0; _lastRendered = -1; }
         _frame = frame;
-        _observation = hand is not null && hand.Sequence == frame?.Sequence ? hand : null;
+        _observation = matched;
+        if(_mirror!=mirror)_image.RenderTransform=mirror?new ScaleTransform(-1,1):Transform.Identity;
         _mirror = mirror;
         _image.Source = frame?.Image;
-        _image.RenderTransformOrigin = new(.5, .5);
-        _image.RenderTransform = mirror ? new ScaleTransform(-1, 1) : Transform.Identity;
         Visibility = frame is null ? Visibility.Collapsed : Visibility.Visible;
         Draw();
     }
@@ -80,6 +87,7 @@ internal sealed class CameraPreviewView : Grid
 
     private void Draw()
     {
+        _drawnMode=OverlayMode;
         for (int i = 0; i < _points.Length; i++)
         {
             var visual = _points[i];
@@ -107,5 +115,6 @@ internal sealed class CameraPreviewView : Grid
     }
 
     internal object TestState() => new { FrameVisible = _image.IsVisible && _image.Source is not null,
+        Updates=_updates,UnchangedPolls=_unchanged,
         Sequence, OverlaySequence = _observation?.Sequence, VisiblePoints = _points.Count(point => point.IsVisible) };
 }
