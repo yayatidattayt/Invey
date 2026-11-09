@@ -235,3 +235,5 @@ Next actionable task when implementation is requested: establish supported .NET1
 Required review: A01–A05/A10 plus coordinate/ownership tests; record actual app/build/monitor/DPI, cursor/focus/counters, continuous physical drag. Native checks remain NOT RUN until observed. Stop at A1 review. If SDK/human hardware checks remain unavailable, retain blocker and complete safe current-gate work without claiming pass.
 
 Canonical research: docs/research.md, root mirror via scripts/Sync-Research.ps1. Stable feature/test traceability: docs/TRACEABILITY.md. Runtime evidence: docs/TEST_RESULTS.md. No SHIPPED features yet.
+
+Execution22 delivery receipt: implementation2868afa8bfdd5d03a267513984165dce01b7d3ed published to existing PR9; exact Actions42675757404 passed. Committed-source final core167/167 each, builds0 warnings/errors, launcher preflight passed camera off. Final report-only publication is separately verified; see artifacts/execution-22/final-delivery.json and final response for exact final SHA/run. PARTIAL remains: final native foreground blocker and human/physical qualification pending. No auto-merge or camera permission.
