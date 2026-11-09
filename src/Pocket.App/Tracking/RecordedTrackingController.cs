@@ -39,13 +39,31 @@ internal sealed class RecordedTrackingController
     internal static string? DiagnosticDirectory => Environment.GetEnvironmentVariable("INVEY_CAMERA_DIAGNOSTICS") ??
         Environment.GetEnvironmentVariable("GHOST_CAMERA_DIAGNOSTICS");
     private readonly string? _diagnostics = DiagnosticDirectory;
-    public const int DiagnosticSeconds = 178;
+    private readonly string? _budgetLedger = Environment.GetEnvironmentVariable("INVEY_CAMERA_BUDGET");
+    public const int DiagnosticSeconds = 170; // Leave eight seconds before the unchanged independent hard cutoff.
 
     public bool HasDiagnostics => !string.IsNullOrWhiteSpace(_diagnostics) ||
         !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("INVEY_CAMERA_EXECUTION")) ||
         !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("INVEY_CAMERA_BUDGET"));
-    public bool DiagnosticBudgetAvailable => !HasDiagnostics ||
-        (Directory.Exists(_diagnostics) && File.Exists(Environment.GetEnvironmentVariable("INVEY_CAMERA_BUDGET")));
+    private CameraBudgetAvailability? _budgetStatus;
+    private long _budgetReadAt;
+    public CameraBudgetAvailability DiagnosticBudget(bool refresh = false)
+    {
+        if (!HasDiagnostics) return new(true, 0, 0, 0, "");
+        if (!refresh && _budgetStatus is not null && Environment.TickCount64 - _budgetReadAt < 1000) return _budgetStatus;
+        try
+        {
+            if (!Directory.Exists(_diagnostics) || _budgetLedger is not { Length: > 0 } ledger)
+                return Cache(new(false, 0, 0, 0, "Camera test configuration is unavailable. Camera stays off."));
+            using var budget = new CameraBudget(ledger);
+            return Cache(budget.Availability);
+        }
+        catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
+        { return Cache(new(false, 0, 0, 0, "Camera allowance cannot be verified. Camera stays off; inspect the saved ledger.")); }
+    }
+    private CameraBudgetAvailability Cache(CameraBudgetAvailability value)
+    { _budgetReadAt = Environment.TickCount64; return _budgetStatus = value; }
+    public bool DiagnosticBudgetAvailable => DiagnosticBudget().Available;
 
     public RecordedTrackingController(string? root = null) =>
         _root = root ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
@@ -61,7 +79,7 @@ internal sealed class RecordedTrackingController
     {
         var source = device is null || fixtureFile is not null ? TrackingSource.Recorded : TrackingSource.Camera;
         bool boundedCamera = source == TrackingSource.Camera && testFault is null && HasDiagnostics;
-        if (!CanStart || (boundedCamera && !DiagnosticBudgetAvailable) || _session.Enable(source) is not { } id) return false;
+        if (!CanStart || (boundedCamera && !DiagnosticBudget(refresh: true).Available) || _session.Enable(source) is not { } id) return false;
         _stop?.Dispose();
         _stop = new CancellationTokenSource();
         _explicitStop = false;
@@ -190,6 +208,10 @@ internal sealed class RecordedTrackingController
                 catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) { }
             }
             _session.Stop();
+            // Signal cooperative native release before closing optional preview/observation channels.
+            try { worker?.StandardInput.Close(); }
+            catch (Exception error) when (error is IOException or InvalidOperationException)
+            { Trace.TraceWarning("Tracking stop signal close failed: 0x{0:X8}", error.HResult); }
             if (previewChannel is not null)
             {
                 await previewChannel.DisposeAsync();
@@ -244,6 +266,7 @@ internal sealed class RecordedTrackingController
                 }
             }
             if (budgetGuard is not null) await budgetGuard.DisposeAsync();
+            _budgetReadAt = 0;
             if (diagnostics is not null)
             {
                 var final = _session.Read();
@@ -258,7 +281,8 @@ internal sealed class RecordedTrackingController
                         final.SupersededObservations, final.Continuity, HostCounters = _session.ReadCounters(),
                         CurrentObservationCleared = final.Observation is null,
                         State = final.State.ToString(), Failure = final.Failure?.ToString(),
-                        ExitConfirmed = !final.SessionId.HasValue, ForcedStop, WorkerPhase, WorkerNativeCode,
+                        ExitConfirmed = !final.SessionId.HasValue, BudgetReleaseConfirmed = budgetGuard?.ReleaseConfirmed,
+                        ForcedStop, WorkerPhase, WorkerNativeCode,
                         Stop = _explicitStop ? "Explicit" : stop.IsCancellationRequested ? "DiagnosticLimit" : "Failure",
                         CleanupMs = clock.Elapsed.TotalMilliseconds - cleanupStartMs, WorkerWorkingSetBytes = workingSet
                     }, new JsonSerializerOptions { WriteIndented = true }));

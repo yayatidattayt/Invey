@@ -102,6 +102,41 @@ internal static class CameraBudgetFixture
         }
     }
 
+    internal static RecordedTrackingWindow CreateBudgetPreview(string mode)
+    {
+        AcceptanceHost.ValidateDesktop();
+        string store = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;
+        string root = Path.Combine(Path.GetDirectoryName(store)!, "camera-budget-fixture");
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, Guid.NewGuid().ToString("N") + ".json");
+        CameraBudget.Initialize(path);
+        using (var b = new CameraBudget(path))
+        {
+            b.AmendContinuation(); b.AmendLearning(); b.AmendLearningTargets();
+            int count = mode == "pending" ? 1 : 5;
+            for (int i = 0; i < count; i++)
+            {
+                var id = Guid.NewGuid(); b.Reserve(id);
+                if (mode != "pending") b.Complete(id, 1);
+            }
+        }
+        string? oldBudget = Environment.GetEnvironmentVariable("INVEY_CAMERA_BUDGET");
+        string? oldDiagnostics = Environment.GetEnvironmentVariable("INVEY_CAMERA_DIAGNOSTICS");
+        try
+        {
+            Environment.SetEnvironmentVariable("INVEY_CAMERA_BUDGET", path);
+            Environment.SetEnvironmentVariable("INVEY_CAMERA_DIAGNOSTICS", root);
+            var window = new RecordedTrackingWindow(acceptanceHost: true, testSettingsPath: Path.Combine(root, "calibration.json"));
+            window.ConfigureBudgetPreviewFixture();
+            return window;
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("INVEY_CAMERA_BUDGET", oldBudget);
+            Environment.SetEnvironmentVariable("INVEY_CAMERA_DIAGNOSTICS", oldDiagnostics);
+        }
+    }
+
     internal static void Cleanup()
     {
         string store = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;

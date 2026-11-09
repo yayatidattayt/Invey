@@ -1,50 +1,52 @@
-# Personal Learning in Ghost
+# Personal Learning
 
-Experimental local mapping correction; gesture practice and the Windows mouse remain on their existing safety paths.
+Ghost can learn a small local pointer correction from targets you confirm. This remains an experimental preview, separate from gesture actions.
 
-## Enable and teach
+## The short route
 
-1. Open Invey → Ghost Tracking. Nothing starts automatically. You can open Calibrate with the camera off, select your display and Left/Right hand, and explicitly Save settings before enabling a source.
-2. Choose Recorded, or deliberately select and Enable a live camera when appropriate. Recorded and simulated results are not physical tracking evidence.
-3. Open Calibration. Select a connected display and **Left hand** or **Right hand**. “Any hand” cannot teach. Check pointer direction and mirroring first.
-4. In **Personal Learning**, turn on **Learn from my tracking sessions**. This preference persists independently of camera Enable.
-5. Choose **Improve my tracking**. The selected-display diagram shows an outlined intended target, a gray baseline marker and a blue personal preview. It is a diagram of the selected display, not an OS cursor.
-6. Intentionally point at each target and hold one full hand steady. Confirm **Correct target — confirm** only when the outlined target represents your intended position. Do not chase the predicted dots and then call that ground truth.
-7. There are nine baseline targets, nine teaching targets and nine different validation targets. Eight fresh stable observations are pooled into one example per confirmed target. Retry clears the current window; Skip adds no label; Cancel discards the in-memory lesson.
-8. Choose **Evaluate candidate**. Training runs away from the rendering thread. An improvement must survive the separate validation set and conservative regional checks. A rejected update leaves your accepted model unchanged.
+1. Open **Ghost Tracking → Calibrate** with the camera off. Choose your display and **Left hand** or **Right hand**, then **Save settings**.
+2. Check **Learn from my tracking sessions**. Select Recorded or deliberately select and Enable your live camera. Nothing activates the camera automatically.
+3. Press **Start lesson**. Saved calibration is opened internally. If your hand is temporarily out of view, the app waits for a fresh full-hand observation instead of making you hit Start at exactly the right moment.
+4. Keep the selected hand and wrist fully visible, inside the working region. Use your other hand for the mouse/keyboard. Follow the outlined target and press **Confirm target** only when it represents where you intended to point.
+5. Complete nine baseline, nine teaching and nine separate validation targets. The same main button guides the whole lesson. At the end it becomes **Evaluate lesson**.
+6. Read the accepted/rejected result, then press **Stop** above to release tracking.
 
-A short camera session may not be enough to complete all targets. Stop at any time. Missing, stale, partial, ambiguous and wrong-hand observations cannot teach. A session/display/mapping change cancels the lesson. The learning section is below the existing calibration controls; use the tracking window's scroll bar.
+The outline is the intended target; gray is the original mapping and blue is the personal preview. Do not chase a dot and label that as independent ground truth. Eight fresh steady observations make one example. Missing, stale, partial, ambiguous and wrong-hand observations cannot supply labels.
 
-## What changes
+Temporary tracking loss pauses confirmation without erasing already confirmed targets from the same session/setup. Stop, Cancel lesson, a replaced session or incompatible geometry discards the in-memory lesson. No label is fabricated.
 
-Six small coefficients correct systematic position error in the central 20–80% of the mapped display. Outside that region, the original mapping is used. Device hash, source, image dimensions, selected hand, display geometry/DPI, mapping mirror, inset and sensitivity must match.
+## Fewer controls
 
-The correction affects **only the clearly labeled personal preview**. It does not change MediaPipe weights, recover an undetected finger, authorize a pinch, change dwell thresholds or control other applications. Existing practice and Dual safety remain authoritative.
+The normal section shows one main action, a progress message and **Cancel lesson** when needed. **Calibration settings & practice** and **Learning details** keep the optional controls available without filling the lesson screen.
 
-**View learning results** shows measured normalized errors and physical pixel errors for confirmed targets. These are not a general accuracy guarantee. Physical improvement requires real confirmed independent observations. A synthetic test is labeled as such.
+Expand **Learning details** for:
 
-## Feedback
+- **Retry target** or **Skip target**. Skip supplies no label and may leave too little evidence to accept a model.
+- **View learning results**, comparison with the original preview, rollback/reapply and Reset.
+- Separate **practice feedback**. Its Correct/MissedPinch/etc. dropdown does not confirm a lesson target. Feedback contributes counts only; there is not enough time-aligned gesture evidence to train a gesture classifier.
 
-Select Correct, MissedPinch, FalsePinch, MissedRelease, TrackingLoss, WrongHand or WrongDirection and choose **Give feedback** during tracking. These reports are not target coordinates. Pinch/loss feedback contributes bounded local summaries only. The interface explicitly reports insufficient time-labeled gesture evidence; it does not pretend that a gesture classifier was trained.
+Turn learning off to stop collection/training while ordinary tracking continues. **Cancel lesson** cancels learning; the separate **Stop** button stops tracking and releases its worker.
 
-## Saved data and reversal
+## What is learned
 
-The selected Invey profile contains `Learning/personal.json`, a checksum-protected file with accepted and previous coefficients, context and bounded aggregate metrics. The normal profile is under `%LOCALAPPDATA%/Invey`; the explicit demo profile is under `%LOCALAPPDATA%/Invey-Demo/Execution17`. Demo data stays separate.
+Six bounded coefficients correct mapping in the central20–80% of the selected display. A new model must improve independent target errors against both the original mapping and a compatible existing model, including regional/tail checks. Worse or insufficiently supported updates are rejected.
 
-No teaching examples, raw landmark streams, camera images or videos are retained by learning. No cloud training or export occurs. In-memory examples are discarded after evaluation, Cancel, Stop or session replacement.
+The correction does not change MediaPipe weights, recover an undetected finger, change pinch/dwell safety or control other applications. Source, device hash, image dimensions, hand, display geometry/DPI, mapping mirror, inset and sensitivity must match; otherwise the original preview is used.
 
-- Turn off **Learn from my tracking sessions** to stop collection and training while ordinary tracking continues.
-- Turn off **Use accepted personal correction (preview only)** to compare the original preview without deleting a model.
-- **Restore previous model** swaps current and previous. Press it again to reapply. When no previous model exists, rollback returns to the default mapping.
-- **Reset learning** removes learned parameters and the backup and disables learning. It never resets Pocket or calibration. A newer unsupported schema is preserved rather than overwritten.
-- Unreadable or incompatible data falls back visibly to defaults. Original data remains preserved until explicit supported reset. Read-only or concurrent-write failures are shown; no silent success is claimed.
+Measured errors describe the confirmed targets. Synthetic tests are not physical accuracy evidence.
 
-There may be no update because targets were skipped, coverage was poor, direction was wrong, no fresh full-hand examples existed, corrections were too large, a context changed, or the candidate did not beat both baseline and the current model safely. Unlabeled sessions save quality counts, not invented learning.
+## Data and reversal
 
-## Supervised Execution18 check
+The selected profile stores Learning/personal.json with current/previous coefficients, context and bounded aggregate metrics. Teaching samples stay in memory only. No camera images, video or raw landmark streams are retained or uploaded by learning.
 
-The owner authorized at most three additional user-enabled sessions, each bounded to180 seconds, carrying forward the five prior ledger charges. The independent guardian uses a178-second cutoff and retains the original12-session/1,800-second totals. This is a test-specific allowance; do not renew it by replacing the ledger.
+Normal data is under %LOCALAPPDATA%/Invey; the explicitly selected demo profile is separate under %LOCALAPPDATA%/Invey-Demo/Execution17.
 
-A later explicit amendment authorized two more sessions after the original three were used and released. The version4 ledger preserves all eight prior rows (625498ms), the original start count and global caps; it allows five total Execution18 starts, not five fresh starts.
+**Restore previous model** swaps the current and previous correction; press again to reapply. If no previous model exists, rollback returns to the original mapping. **Reset learning** removes the learned parameters/backup and disables learning without touching Pocket or calibration. Corrupt data falls back visibly to defaults; newer unsupported schemas are preserved.
 
-Use deliberate Enable only. Complete baseline → teach → independent validation, then Stop and confirm release. Restart with the camera off, inspect persisted results, compare rollback/reapply, then deliberately Enable again only if another session is needed. Report “physically unvalidated” unless real confirmed observations support the comparison.
+## Timed engineering sessions
+
+The current supervised test build shows remaining authorized sessions before Enable. Exhausted or unverifiable allowances disable Start with a specific reason. Normal recorded demonstration remains camera-free.
+
+The original three Execution18 starts were explicitly extended by two; prior charges and the overall12-session/1,800-second limits remain intact. There is no automatic reset or hidden quota renewal. Cooperative stop now starts at170 seconds, leaving eight seconds before the unchanged178-second hard guardian cutoff, within the authorized180-second ceiling.
+
+If a release acknowledgement is missing, the camera stays blocked pending independent review. An explicit review may use matching process-exit evidence and the participant's camera-indicator-off confirmation, with a durable receipt and the full reserved time charged. This is not a claim that the missing native API acknowledgement was received, and it grants no new start.

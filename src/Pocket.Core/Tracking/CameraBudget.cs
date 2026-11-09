@@ -3,6 +3,18 @@ using System.Text.Json.Serialization;
 
 namespace Pocket.Core.Tracking;
 
+public sealed record CameraReleaseEvidence(Guid Session, Guid WorkerSession, int HostWorkerPid, int WorkerPid,
+    bool ExitConfirmed, bool ObservationCleared, string HostState, DateTimeOffset HostStarted,
+    DateTimeOffset WorkerStarted, bool WorkerStillExists, bool IndicatorOffConfirmed)
+{
+    public bool IsSufficient => Session != Guid.Empty && Session == WorkerSession &&
+        HostWorkerPid > 0 && HostWorkerPid == WorkerPid && ExitConfirmed && ObservationCleared &&
+        HostState == "Stopped" && Math.Abs((WorkerStarted - HostStarted).TotalSeconds) < 15 &&
+        !WorkerStillExists && IndicatorOffConfirmed;
+}
+
+public sealed record CameraBudgetAvailability(bool Available, int Used, int Allowed, int Remaining, string Message);
+
 public sealed record CameraBudgetEntry([property: JsonRequired] Guid Session,
     [property: JsonRequired] long ChargedMs, [property: JsonRequired] bool Released);
 public sealed record CameraBudgetState([property: JsonRequired] int Version,
@@ -64,6 +76,22 @@ public sealed class CameraBudget : IDisposable
         catch { _lock.Dispose(); throw; }
     }
 
+    public CameraBudgetAvailability Availability
+    {
+        get
+        {
+            int used = _state.Version >= 3 ? _state.Sessions.Length - _state.Execution18StartCount!.Value : _state.Sessions.Length;
+            int allowed = _state.Version == 4 ? 5 : _state.Version == 3 ? 3 : SessionLimitCount;
+            int remaining = Math.Max(0, Math.Min(allowed - used, Math.Min(SessionLimitCount - _state.Sessions.Length,
+                (int)((TotalLimitMilliseconds - _state.Sessions.Sum(r => r.ChargedMs)) / SessionLimitMilliseconds))));
+            if (_state.Sessions.Any(r => !r.Released))
+                return new(false, used, allowed, remaining, "Previous camera release needs verification. Camera stays off.");
+            return remaining == 0
+                ? new(false, used, allowed, 0, $"Test allowance used ({used}/{allowed} sessions). A new bounded authorization is needed.")
+                : new(true, used, allowed, remaining, $"{remaining} authorized test session(s) remaining. Enable starts the timer; automatic stop at170 seconds.");
+        }
+    }
+
     public CameraBudgetState Read() => _state with { Sessions = _state.Sessions.ToArray() };
 
     public void AmendContinuation()
@@ -99,6 +127,14 @@ public sealed class CameraBudget : IDisposable
             _state.Sessions.Sum(row => row.ChargedMs) + SessionLimitMilliseconds > TotalLimitMilliseconds)
             throw new InvalidDataException("The diagnostic camera budget is exhausted or a prior release is unconfirmed.");
         Commit(_state with { Sessions = [.. _state.Sessions, new(session, SessionLimitMilliseconds, false)] });
+    }
+
+    public void ConfirmIndependentlyVerifiedRelease(CameraReleaseEvidence evidence)
+    {
+        if (!evidence.IsSufficient || !_state.Sessions.Any(r => r.Session == evidence.Session && !r.Released))
+            throw new InvalidDataException("Independent release verification is incomplete.");
+        // Manual recovery does not refund time, remove a row or grant another start.
+        Complete(evidence.Session, SessionLimitMilliseconds);
     }
 
     public void Complete(Guid session, long elapsedMs)

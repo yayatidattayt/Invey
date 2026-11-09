@@ -271,9 +271,10 @@ internal static partial class Program
                 int worker = Tracking(started).GetProperty("LastWorkerPid").GetInt32();
                 AccessKey(0x43);
                 static JsonElement Calibration(JsonElement s) => Tracking(s).GetProperty("Calibration");
-                var setup = Calibration(await Until(client, s => Calibration(s).GetProperty("Open").GetBoolean()));
+                var setup = Calibration(await Until(client, s => Calibration(s).GetProperty("Open").GetBoolean() &&
+                    Calibration(s).GetProperty("Focus").GetString() == "Mirror"));
                 Require(setup.GetProperty("Mirrored").GetBoolean() && setup.GetProperty("Focus").GetString() == "Mirror",
-                    "Saved mirror or initial calibration focus did not survive process restart.");
+                    "Saved mirror or initial calibration focus did not survive process restart: " + setup.GetRawText());
                 Input.Key(0x09, false);
                 Input.Key(0x09, true);
                 await Until(client, s => Calibration(s).GetProperty("Focus").GetString() == "Hand");

@@ -155,6 +155,18 @@ public sealed class PersonalLearningTests(Xunit.Abstractions.ITestOutputHelper o
         lesson.Observe(Snapshot(8, state), Context, new(.25, .25));
         Assert.False(lesson.Confirm()); Assert.Empty(lesson.Baseline);
     }
+    [Fact] public void TemporaryLossClearsStabilityButKeepsAlreadyConfirmedLabelsInTheSameContext()
+    {
+        var lesson = Lesson();
+        for (int i = 0; i < 8; i++) lesson.Observe(Snapshot(i), Context, new(.25, .25));
+        Assert.True(lesson.Confirm()); Assert.Single(lesson.Baseline);
+        lesson.Observe(Snapshot(8, TrackingState.Lost) with { Observation = null }, Context, null);
+        Assert.Equal(LessonPhase.Baseline, lesson.Phase);
+        Assert.Single(lesson.Baseline); Assert.False(lesson.CanConfirm);
+        lesson.Observe(Snapshot(9), Context with { Mirror = true }, new(.5, .25));
+        Assert.Equal(LessonPhase.Idle, lesson.Phase); Assert.Empty(lesson.Baseline);
+    }
+
     [Fact] public void RepeatsStaleReorderWrongHandAndReplacementCannotLabel()
     {
         var l = Lesson();

@@ -54,7 +54,17 @@ internal static partial class Program
                     Require(!result.GetProperty("Permit").GetBoolean() && !result.GetProperty("Started").GetBoolean(),
                         "Invalid configuration or startup cancellation permitted activation: " + result.GetRawText());
             }
-            return new { Outcomes = outcomes, RealCameraActivations = 0 };
+            foreach (string mode in new[] { "pending", "exhausted" })
+            {
+                var state = await client.Command("budget-ui-" + mode);
+                var lab = state.GetProperty("Tracking");
+                Require(lab.GetProperty("DeviceSelected").GetBoolean(), "Budget fixture must have a selected dummy device.");
+                Require(!lab.GetProperty("CanStart").GetBoolean(), "Blocked budget offered an enabled Start button.");
+                Require(lab.GetProperty("LastWorkerPid").ValueKind == JsonValueKind.Null, "Budget preflight launched a worker.");
+                string message = lab.GetProperty("BudgetStatus").GetString() ?? "";
+                Require(message.Contains(mode == "pending" ? "verification" : "allowance used"), "Budget reason was not specific: " + message);
+            }
+            return new { Outcomes = outcomes, RealCameraActivations = 0, BudgetUiPreflight = true };
         });
     }
 }

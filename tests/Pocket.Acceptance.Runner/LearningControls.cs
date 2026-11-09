@@ -18,6 +18,7 @@ internal static partial class Program
                 var opened = await Until(client, s => DemoTracking(s).ValueKind == JsonValueKind.Object && DemoTracking(s).GetProperty("WindowLoaded").GetBoolean());
                 Require(DemoTracking(opened).GetProperty("State").GetString() == "Off", "Unexpected camera/source startup.");
                 Require(!Learning(opened).GetProperty("Enabled").GetBoolean(), "New profile learning should default off.");
+                Require(!Learning(opened).GetProperty("DetailsExpanded").GetBoolean() && !Learning(opened).GetProperty("FeedbackVisible").GetBoolean(), "Advanced learning controls should start tucked away.");
                 await client.Command("demo-ui|tracking|Calibrate");
                 await Until(client, s => DemoTracking(s).GetProperty("Calibration").GetProperty("Open").GetBoolean());
                 await client.Command("demo-hand|tracking|2");
@@ -28,23 +29,37 @@ internal static partial class Program
                 await client.Command("demo-toggle|tracking|Learn from my tracking sessions");
                 await Until(client, s => Learning(s).GetProperty("Enabled").GetBoolean());
                 await client.Command("learning-fixture|begin");
-                await client.Command("demo-ui|tracking|Improve my tracking");
-                await client.Command("demo-ui|tracking|Cancel learning");
+                await client.Command("learning-fixture|loss");
+                await client.Command("demo-ui|tracking|Start lesson");
+                await Until(client, s => Learning(s).GetProperty("PendingStart").GetBoolean());
+                Require(Learning(await client.Command("status")).GetProperty("Phase").GetString() == "Idle", "Missing observations invented a lesson label.");
+                await client.Command("learning-fixture|observe");
+                await Until(client, s => Learning(s).GetProperty("Phase").GetString() == "Baseline");
+                await client.Command("demo-ui|tracking|Cancel lesson");
+                await Until(client, s => Learning(s).GetProperty("Phase").GetString() == "Idle");
                 Require(Learning(await client.Command("status")).GetProperty("Phase").GetString() == "Idle", "Cancel did not clear lesson.");
-                await client.Command("demo-ui|tracking|Improve my tracking");
+                await client.Command("demo-ui|tracking|Start lesson");
                 for (int target = 0; target < 27; target++)
                 {
                     await client.Command("learning-fixture|observe");
                     var ready = await Until(client, s => Learning(s).GetProperty("CanConfirm").GetBoolean());
                     Require(Learning(ready).GetProperty("Target").ValueKind == JsonValueKind.Object, "Known target missing.");
-                    await client.Command("demo-ui|tracking|Correct target — confirm");
+                    await client.Command("demo-ui|tracking|Confirm target");
                     // Invoke is queued by the actual WPF automation peer.
                     string phase = target < 8 ? "Baseline" : target < 17 ? "Teaching" : target < 26 ? "Validation" : "Complete";
                     int step = target < 8 ? target + 2 : target < 17 ? target - 7 : target < 26 ? target - 16 : 1;
                     await Until(client, s => Learning(s).GetProperty("Phase").GetString() == phase &&
                         Learning(s).GetProperty("Step").GetInt32() == step);
+                    if (target == 0)
+                    {
+                        await client.Command("learning-fixture|loss");
+                        var paused = Learning(await client.Command("status"));
+                        Require(paused.GetProperty("Phase").GetString() == "Baseline" && paused.GetProperty("Step").GetInt32() == 2,
+                            "A temporary tracking loss discarded confirmed labels.");
+                        Require(!paused.GetProperty("CanConfirm").GetBoolean(), "Loss allowed a target label.");
+                    }
                 }
-                await client.Command("demo-ui|tracking|Evaluate candidate");
+                await client.Command("demo-ui|tracking|Evaluate lesson");
                 var accepted = await Until(client, s => Learning(s).GetProperty("Model").ValueKind == JsonValueKind.String, 8000);
                 model = Learning(accepted).GetProperty("Model").GetString();
                 revision = Learning(accepted).GetProperty("Revision").GetInt64();
@@ -70,9 +85,11 @@ internal static partial class Program
                 Require(Math.Abs(reused.GetProperty("Prediction").GetProperty("X").GetDouble() - learnedX) < .00001, "Reloaded numerical behavior changed.");
                 double baseX = reused.GetProperty("Baseline").GetProperty("X").GetDouble();
                 Require(Math.Abs(baseX - learnedX) > .01, "Correction did not affect preview.");
+                await next.Command("demo-expand|tracking|Learning details");
                 await next.Command("demo-ui|tracking|Restore previous model");
                 var rolled = await Until(next, s => Learning(s).GetProperty("Model").ValueKind == JsonValueKind.Null);
                 Require(Math.Abs(Learning(rolled).GetProperty("Prediction").GetProperty("X").GetDouble() - baseX) < .00001, "Rollback did not restore baseline.");
+                await next.Command("demo-expand|tracking|Learning details");
                 await next.Command("demo-ui|tracking|Restore previous model");
                 await Until(next, s => Learning(s).GetProperty("Model").ValueKind == JsonValueKind.String &&
                     Math.Abs(Learning(s).GetProperty("Prediction").GetProperty("X").GetDouble() - learnedX) < .00001);

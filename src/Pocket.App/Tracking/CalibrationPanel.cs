@@ -41,6 +41,7 @@ internal sealed class CalibrationPanel : StackPanel
     private CalibrationSample _sample;
     private DipPoint? _mapped;
     private bool _completed;
+    private bool _focusRequested;
     private readonly CheckBox _pointerPreview = new() { Content = "Experimental _finger pointer preview" };
     private readonly TextBlock _fingerStatus = new() { TextWrapping = TextWrapping.Wrap };
     private readonly FingerPointer _fingerEngine = new();
@@ -84,6 +85,7 @@ internal sealed class CalibrationPanel : StackPanel
             _desiredDisplay = (_display.SelectedItem as CalibrationDisplayChoice)?.Geometry;
             Reset();
         };
+        _mirror.IsVisibleChanged += (_, _) => FocusWhenVisible();
         _mirror.Click += (_, _) => Reset();
         _hand.SelectionChanged += (_, _) => Reset();
         _margin.ValueChanged += (_, _) => Reset();
@@ -119,11 +121,21 @@ internal sealed class CalibrationPanel : StackPanel
         RestoreSaved();
     }
 
+    private Guid? _learningFrameSession;
+    private TrackingFrameSize? _learningFrame;
+    internal string? LearningSetupIssue => _display.SelectedItem is not CalibrationDisplayChoice || _mapping is null
+        ? "Choose a connected display in Calibration settings." : _hand.SelectedIndex == 0
+        ? "Choose Left hand or Right hand in Calibration settings." : null;
+
     internal (LearningContext? Context, DipPoint? Point) LearningInput(TrackingSnapshot snapshot, string device)
     {
+        if (snapshot.SessionId != _learningFrameSession)
+        { _learningFrameSession = snapshot.SessionId; _learningFrame = null; }
+        if (snapshot.Observation?.FrameSize is { IsValid: true } observedFrame) _learningFrame = observedFrame;
         if (Visibility != Visibility.Visible || _mapping is null || _hand.SelectedIndex == 0 ||
-            _display.SelectedItem is not CalibrationDisplayChoice choice ||
-            snapshot.Observation is not { FrameSize: { IsValid: true } frame } hand) return (null, null);
+            _display.SelectedItem is not CalibrationDisplayChoice choice || _learningFrame is not { } frame ||
+            snapshot.SessionId is null) return (null, null);
+        var hand = snapshot.Observation;
         var context = new LearningContext(snapshot.Source?.ToString() ?? "", LearningContext.HashDevice(device),
             frame.Width, frame.Height, choice.Geometry, _hand.SelectedIndex, _mirror.IsChecked == true,
             (int)_margin.Value, (int)_sensitivity.Value);
@@ -164,8 +176,9 @@ internal sealed class CalibrationPanel : StackPanel
     internal bool PracticeHeld => _practice.State == PracticeState.Held;
     internal bool MirrorPreview => _mirror.IsChecked == true;
 
-    public void Begin(Guid? diagnosticSession)
+    public void Begin(Guid? diagnosticSession, bool focus = true)
     {
+        _focusRequested = focus;
         _diagnosticSession = diagnosticSession;
         _pointerCounts.Clear();
         _pointerSequence = -1;
@@ -177,7 +190,13 @@ internal sealed class CalibrationPanel : StackPanel
         RefreshDisplays();
         _readyDisplayed = 0;
         Visibility = Visibility.Visible;
-        _mirror.Focus();
+        FocusWhenVisible();
+    }
+
+    private void FocusWhenVisible()
+    {
+        if (!_focusRequested || !_mirror.IsVisible) return;
+        _focusRequested = !_mirror.Focus();
     }
 
     internal void EnableFixturePreview()
@@ -189,6 +208,7 @@ internal sealed class CalibrationPanel : StackPanel
 
     public void End()
     {
+        _focusRequested = false;
         WriteDiagnostics();
         Visibility = Visibility.Collapsed;
         Reset();

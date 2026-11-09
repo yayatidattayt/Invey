@@ -4,6 +4,7 @@ namespace Pocket.Core.References;
 
 public sealed record InveyProfile(string Root, string? Notice = null, bool Available = true, bool Writable = true)
 {
+    public string? Diagnostic { get; init; }
     private const long CopyBudget = 512L * 1024 * 1024;
 
     /// <summary>Caller must hold the shared legacy/new application instance lock.</summary>
@@ -78,7 +79,10 @@ public sealed record InveyProfile(string Root, string? Notice = null, bool Avail
                 catch (Exception cleanup) when (cleanup is IOException or UnauthorizedAccessException)
                 { message += " Staged files were preserved for inspection."; }
             }
-            return legacyVerified ? new(legacy, message, Writable: false) : new(canonical, "Invey profile storage is unavailable.", false);
+            System.Diagnostics.Trace.TraceWarning("Profile migration failed: {0} 0x{1:X8}", error.GetType().Name, error.HResult);
+            string diagnostic = $"{error.GetType().Name}:0x{error.HResult:X8}";
+            return legacyVerified ? new(legacy, message, Writable: false) { Diagnostic = diagnostic } :
+                new(canonical, "Invey profile storage is unavailable.", false) { Diagnostic = diagnostic };
         }
 
         void Write(string path, byte[] bytes)

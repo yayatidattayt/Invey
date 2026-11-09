@@ -1,5 +1,9 @@
 # Invey — Current handoff
 
+## Execution18 UI and budget repair — 2026-11-09
+
+Participant requested a clear learning UI after a budget error. Guided single-action lesson replaces the button cluster; optional feedback/recovery/calibration remains tucked away. Budget eligibility is checked before worker launch, with specific blocked/exhausted messages. Cooperative stop170s retains the178s hard cutoff. Fourth live session had process exit but missing native release acknowledgement. After explicit user Exit/indicator-off confirmation and independent process/diagnostic review, it was completed at the FULL180000ms charge with a separate receipt; no API acknowledgement was fabricated. Nine rows total805498ms, same start count5, ONE previously authorized start remains. Never reset/renew the ledger or launch camera unattended.125 core tests/configuration,20 workers, two seeded guided learning/demo routes, budget preflight and11 native tracking cases pass; failures and inconclusive cursor controls are preserved in the report. Physical learning remains unvalidated.
+
 ## Execution18 supervised continuation — 2026-11-09
 
 Participant confirmed live image/finger dots; three deliberate sessions released cleanly. Calibration Ready observed; no personal model accepted or physical accuracy improvement established. Original eight ledger rows total625498ms, no pending reservation. Fresh explicit authorization permits only TWO additional user-enabled≤180s sessions (five total Execution18), same12-session/1,800-second overall caps; version4 retains start count5. Never renew/reset the ledger.123 core tests/configuration and camera-free independent guardian sub-budget tests pass. Camera-off calibration settings preparation and full WPF learning/reversal pass; their stationary cursor controls were INCONCLUSIVE due cursor movement. See the supervised-continuation section of docs/EXECUTION_18_REPORT.md. Await prepared settings before another deliberate user Enable.

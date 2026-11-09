@@ -26,8 +26,13 @@ internal sealed class PersonalLearningPanel : StackPanel
     private readonly Ellipse _target = new() { Width = 16, Height = 16, Stroke = SystemColors.ControlTextBrush, StrokeThickness = 2 };
     private readonly Ellipse _baseDot = new() { Width = 7, Height = 7, Fill = SystemColors.ControlDarkBrush };
     private readonly Ellipse _personalDot = new() { Width = 7, Height = 7, Fill = SystemColors.HighlightBrush };
-    private readonly Button _confirm = new() { Content = "Correct target — confirm" };
-    private readonly Button _evaluate = new() { Content = "Evaluate candidate" };
+    private readonly Button _primary = new() { Content = "Start lesson", MinHeight = 36, Padding = new(14, 6, 14, 6) };
+    private readonly Button _cancel = new() { Content = "Cancel lesson", Margin = new(8, 0, 0, 0) };
+    private readonly Expander _details = new() { Header = "Learning details", Margin = new(0, 8, 0, 0) };
+    private bool _pendingBegin;
+    private string? _setupIssue;
+    internal event Action? RequestCalibration;
+    internal event Action? LessonStarted;
     private readonly ComboBox _feedback = new() { ItemsSource = Enum.GetValues<LearningFeedback>(), SelectedIndex = 0 };
     public PersonalLearningPanel(string? profileRoot, bool writable)
     {
@@ -35,44 +40,56 @@ internal sealed class PersonalLearningPanel : StackPanel
         var loaded = _store?.Load();
         _profile = loaded?.Profile ?? LearningProfile.Empty;
         _writable = loaded?.Writable == true;
-        Children.Add(new TextBlock { Text = "Personal Learning · experimental preview", FontWeight = FontWeights.SemiBold, Margin = new(0, 12, 0, 0) });
-        Children.Add(new TextBlock { Text = "Learns a small local mapping correction, not missing fingers or OS gestures. Samples stay in memory only.",
+        Children.Add(new TextBlock { Text = "Personal Learning", FontWeight = FontWeights.SemiBold, Margin = new(0, 12, 0, 4) });
+        Children.Add(new TextBlock { Text = "Teach a small pointer correction with a guided target lesson. Experimental preview only.",
             TextWrapping = TextWrapping.Wrap });
-        Children.Add(_enabled); Children.Add(_personal); Children.Add(_modelState);
+        Children.Add(_enabled);
         _loading = true; _enabled.IsChecked = _profile.Enabled; _personal.IsChecked = _profile.UsePersonal; _loading = false;
         _enabled.IsEnabled = _personal.IsEnabled = _writable;
         _enabled.Checked += Preference; _enabled.Unchecked += Preference;
         _personal.Checked += Preference; _personal.Unchecked += Preference;
-        var actions = new WrapPanel();
-        Add(actions, "Improve my tracking", Begin);
-        Add(actions, "Cancel learning", Cancel);
-        Add(actions, "Restore previous model", () => Change(p => p with { Current = p.Previous, Previous = p.Current }, "Previous model restored; click again to reapply."));
-        Add(actions, "Reset learning", ResetLearning);
-        Children.Add(actions);
-        Children.Add(new TextBlock { Text = "Selected-display diagram: outline = intended target; gray = baseline; blue = accepted personal preview. Keep the selected hand steady. Confirm only your intended target; do not chase the dots.",
-            TextWrapping = TextWrapping.Wrap });
+        Children.Add(_status); Children.Add(_modelState);
         _canvas.Children.Add(_target); _canvas.Children.Add(_baseDot); _canvas.Children.Add(_personalDot);
         _canvas.SizeChanged += (_, _) => Draw();
         Children.Add(_canvas);
-        var lessonActions = new WrapPanel();
-        _confirm.Click += (_, _) => { _lesson.Confirm(); Refresh(); };
-        lessonActions.Children.Add(_confirm);
-        Add(lessonActions, "Retry target", () => { _lesson.Retry(); Refresh(); });
-        Add(lessonActions, "Skip target", () => { _lesson.Skip(); Refresh(); });
-        _evaluate.Click += async (_, _) => await EvaluateAsync();
-        lessonActions.Children.Add(_evaluate);
-        Children.Add(lessonActions);
+        _primary.Click += async (_, _) =>
+        {
+            if (_lesson.Phase == LessonPhase.Idle) Begin();
+            else if (_lesson.Phase == LessonPhase.Complete) await EvaluateAsync();
+            else { _lesson.Confirm(); Refresh(); }
+        };
+        _cancel.Click += (_, _) => Cancel();
+        Children.Add(new WrapPanel { Children = { _primary, _cancel } });
+
+        var details = new StackPanel();
+        details.Children.Add(_personal);
+        Add(details, "View learning results", ShowResults);
+        details.Children.Add(_results);
+        var recovery = new WrapPanel();
+        Add(recovery, "Restore previous model", () => Change(p => p with { Current = p.Previous, Previous = p.Current },
+            "Previous model restored; press again to reapply."));
+        Add(recovery, "Reset learning", ResetLearning);
+        details.Children.Add(recovery);
+        var options = new WrapPanel();
+        Add(options, "Retry target", () => { _lesson.Retry(); Refresh(); });
+        Add(options, "Skip target", () => { _lesson.Skip(); Refresh(); });
+        details.Children.Add(options);
+        details.Children.Add(new TextBlock { Text = "Practice feedback only — this does not confirm a lesson target.",
+            TextWrapping = TextWrapping.Wrap, Margin = new(0, 8, 0, 0) });
         var feedback = new WrapPanel { Children = { _feedback } };
         Add(feedback, "Give feedback", () =>
         {
-            if (!_profile.Enabled || _snapshot?.SessionId is null) { _status.Text = "Start tracking with learning enabled before giving session feedback."; return; }
+            if (!_profile.Enabled || _snapshot?.SessionId is null)
+            { _status.Text = "Enable tracking and learning before giving practice feedback."; return; }
             _quality.Feedback((LearningFeedback)_feedback.SelectedItem);
-            _status.Text = "Feedback counted locally. No gesture classifier trained: target/time-labeled gesture examples are insufficient. Gesture authority unchanged.";
+            _status.Text = "Practice feedback saved as a count. No gesture classifier trained; more labeled evidence is needed.";
         });
-        Children.Add(feedback);
-        Add(Children, "View learning results", ShowResults);
-        Children.Add(_status); Children.Add(_results);
-        _status.Text = loaded?.Notice ?? "Learning unavailable: no writable profile.";
+        details.Children.Add(feedback);
+        details.Children.Add(new TextBlock { Text = "Outline = intended target; gray = baseline; blue = personal preview. " +
+            "Confirm your intended position, not a dot you chased. Samples stay in memory only.",
+            TextWrapping = TextWrapping.Wrap });
+        _details.Content = details; Children.Add(_details);
+        _status.Text = loaded?.Writable == false ? loaded.Notice : "Enable learning, choose your hand in Calibrate, then start tracking.";
         Refresh(false);
     }
     private static void Add(Panel panel, string title, Action action) => Add(panel.Children, title, action);
@@ -115,13 +132,29 @@ internal sealed class PersonalLearningPanel : StackPanel
     }
     private void Begin()
     {
-        if (_busy || !_profile.Enabled || !_writable || _context is not { IsValid: true } || _snapshot?.SessionId is not { } id)
-        { _status.Text = "Enable learning, start a source, open Calibration and select Left or Right hand and a connected display."; return; }
-        _epoch++; _lesson.Begin(_context, id); Refresh();
+        if (_busy) { _status.Text = "Finishing the current evaluation."; return; }
+        if (!_writable) { _status.Text = "Learning profile is read-only or needs recovery. Open Learning details."; return; }
+        if (!_profile.Enabled) { _status.Text = "Turn on Learn from my tracking sessions above."; return; }
+        if (_snapshot?.SessionId is null || _snapshot.State is TrackingState.Off or TrackingState.Stopped or TrackingState.Stopping or TrackingState.Unavailable)
+        { _status.Text = "Choose a source and Enable tracking above. The camera remains off until you do."; return; }
+        _pendingBegin = true;
+        RequestCalibration?.Invoke();
+        TryBegin();
+        Refresh(false);
     }
-    private void Cancel() { _epoch++; _lesson.Cancel(); Refresh(); }
-    internal void Observe(TrackingSnapshot snapshot, LearningContext? context, DipPoint? baseline, bool held = false)
+    private void TryBegin()
     {
+        if (!_pendingBegin) return;
+        if (_setupIssue is not null) { _status.Text = _setupIssue; _pendingBegin = false; return; }
+        if (_context is not { IsValid: true } || _baseline is null || _snapshot?.SessionId is not { } id)
+        { _status.Text = "Keep your selected hand fully visible inside the working region. The lesson starts when a fresh full-hand observation arrives."; return; }
+        if (_held) { _status.Text = "Open your hand to release practice before starting the lesson."; return; }
+        _epoch++; _pendingBegin = false; _lesson.Begin(_context, id); LessonStarted?.Invoke(); Refresh();
+    }
+    private void Cancel() { _epoch++; _pendingBegin = false; _lesson.Cancel(); _status.Text = "Lesson canceled. Saved correction unchanged."; Refresh(false); }
+    internal void Observe(TrackingSnapshot snapshot, LearningContext? context, DipPoint? baseline, bool held = false, string? setupIssue = null)
+    {
+        _setupIssue = setupIssue;
         if (held != _held) _epoch++;
         _held = held;
         if (_profile.Enabled) _quality.Observe(snapshot);
@@ -137,6 +170,7 @@ internal sealed class PersonalLearningPanel : StackPanel
         _snapshot = snapshot; _context = context; _baseline = baseline;
         RecomputePrediction();
         _lesson.Observe(snapshot, context, baseline);
+        TryBegin();
         Refresh(_lesson.Phase != LessonPhase.Idle);
     }
     private void RecomputePrediction() => _prediction = _baseline is { } b && _profile.UsePersonal &&
@@ -183,13 +217,28 @@ internal sealed class PersonalLearningPanel : StackPanel
     }
     private void Refresh(bool lessonStatus = true)
     {
-        _modelState.Text = _profile.Current is null ? "Default mapping · no accepted personal model." :
-            !_profile.UsePersonal ? "Default mapping · personal preview switched off." :
-            _context != _profile.Current.Context ? "Default mapping · personal model context differs or source is off." :
-            "Personal preview active in the central 20–80% region. Gesture practice uses its original mapping.";
-        _confirm.IsEnabled = !_busy && _profile.Enabled && _lesson.CanConfirm;
-        _evaluate.IsEnabled = !_busy && !_held && _profile.Enabled && _lesson.Phase == LessonPhase.Complete;
-        if (lessonStatus) _status.Text = $"{_lesson.Phase} {_lesson.Step}/9 · {_lesson.Reason}";
+        _modelState.Text = _profile.Current is null ? "" : !_profile.UsePersonal ? "Original preview selected." :
+            _context != _profile.Current.Context ? "Original preview: saved correction does not match this setup." : "Personal preview active.";
+        bool collecting = _lesson.Phase is LessonPhase.Baseline or LessonPhase.Teaching or LessonPhase.Validation;
+        bool running = _snapshot?.SessionId is not null &&
+            _snapshot.State is not (TrackingState.Off or TrackingState.Stopped or TrackingState.Stopping or TrackingState.Unavailable);
+        _primary.Content = collecting ? "Confirm target" : _lesson.Phase == LessonPhase.Complete ? "Evaluate lesson" :
+            _profile.Current is null ? "Start lesson" : "Improve again";
+        _primary.IsEnabled = !_busy && !_pendingBegin && _profile.Enabled && _writable &&
+            (collecting ? _lesson.CanConfirm : _lesson.Phase == LessonPhase.Complete ? !_held : running);
+        _cancel.Visibility = _pendingBegin || _busy || _lesson.Phase != LessonPhase.Idle ? Visibility.Visible : Visibility.Collapsed;
+        _canvas.Visibility = collecting ? Visibility.Visible : Visibility.Collapsed;
+        if (lessonStatus && _lesson.Phase != LessonPhase.Idle)
+            _status.Text = _lesson.Phase == LessonPhase.Complete ? "Targets complete. Evaluate this lesson." :
+                $"{_lesson.Phase} · target {_lesson.Step} of9. {_lesson.Reason}";
+        if (_lesson.Phase == LessonPhase.Idle && !_pendingBegin && !running &&
+            (_status.Text.StartsWith("Enable learning") || _status.Text.StartsWith("Personal settings loaded")))
+            _status.Text = "Camera off. Prepare your hand/display in Calibrate, then Enable a source.";
+        if (_lesson.Phase == LessonPhase.Idle && !_pendingBegin && running &&
+            (_status.Text.StartsWith("Camera off.") || _status.Text.StartsWith("Enable learning, choose") ||
+             _status.Text.StartsWith("Session ended.") || _status.Text.StartsWith("Personal settings loaded")))
+            _status.Text = _profile.Enabled ? "Tracking is on. Start the lesson and keep your selected hand fully visible." :
+                "Turn on learning above to begin a target lesson.";
         Draw();
     }
     private void Draw()
@@ -209,6 +258,8 @@ internal sealed class PersonalLearningPanel : StackPanel
     }
     internal DipPoint? FixtureTarget => _lesson.Target;
     internal object TestSnapshot() => new { Enabled = _profile.Enabled, _profile.Revision, _profile.UsePersonal,
+        PrimaryLabel = _primary.Content, PrimaryEnabled = _primary.IsEnabled, DetailsExpanded = _details.IsExpanded,
+        FeedbackVisible = _feedback.IsVisible, PendingStart = _pendingBegin,
         Model = _profile.Current?.Id, Previous = _profile.Previous?.Id, ContextMatches = _context == _profile.Current?.Context && _profile.Current is not null,
         Phase = _lesson.Phase.ToString(), _lesson.Step, _lesson.StableCount, _lesson.CanConfirm, Target = _lesson.Target,
         Baseline = _baseline, Prediction = _prediction, Status = _status.Text, Results = _results.Text, Busy = _busy };

@@ -16,6 +16,7 @@ internal sealed class CameraBudgetGuard : IAsyncDisposable
     private CameraBudgetGuard(NamedPipeServerStream pipe, Process guardian, StreamReader reader, StreamWriter writer)
         => (_pipe, _guardian, _reader, _writer) = (pipe, guardian, reader, writer);
 
+    internal bool ReleaseConfirmed { get; private set; }
     internal int GuardianId => _guardian.Id;
 
     public static async Task<CameraBudgetGuard> StartAsync(Process worker, Guid session, string diagnostics, CancellationToken stop,
@@ -74,7 +75,8 @@ internal sealed class CameraBudgetGuard : IAsyncDisposable
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(4));
             await _writer.WriteLineAsync("release".AsMemory(), timeout.Token);
-            if (await _reader.ReadLineAsync(timeout.Token) != "released")
+            ReleaseConfirmed = await _reader.ReadLineAsync(timeout.Token) == "released";
+            if (!ReleaseConfirmed)
                 Trace.TraceWarning("Camera budget release remains unconfirmed.");
             await _guardian.WaitForExitAsync(timeout.Token);
         }

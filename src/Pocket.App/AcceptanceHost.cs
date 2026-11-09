@@ -99,6 +99,12 @@ internal sealed class AcceptanceHost : IDisposable
             case "preview-protocol-controls":
                 _previewResult = await CameraPreviewFixture.ExerciseAsync();
                 break;
+            case "budget-ui-pending":
+            case "budget-ui-exhausted":
+                if (_tracking is not null) await _tracking.CloseAsync();
+                _tracking = CameraBudgetFixture.CreateBudgetPreview(command[10..]);
+                _tracking.Show();
+                break;
             case "budget-targets-series":
             case "budget-amended-series":
             case "budget-series":
@@ -244,7 +250,8 @@ internal sealed class AcceptanceHost : IDisposable
                 if (command.StartsWith("demo-ui|", StringComparison.Ordinal) ||
                     command.StartsWith("demo-toggle|", StringComparison.Ordinal) ||
                     command.StartsWith("demo-select|", StringComparison.Ordinal) ||
-                    command.StartsWith("demo-hand|", StringComparison.Ordinal))
+                    command.StartsWith("demo-hand|", StringComparison.Ordinal) ||
+                    command.StartsWith("demo-expand|", StringComparison.Ordinal))
                 { DemoControlFixture.Apply(_product ?? throw new InvalidOperationException("No demo product."), command); break; }
                 throw new InvalidOperationException("Unsupported acceptance operation.");
         }

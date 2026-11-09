@@ -148,6 +148,28 @@ public sealed class CameraBudgetTests
         Assert.Equal(3, budget.Read().Version);
     }
 
+    [Fact]
+    public void AvailabilityDistinguishesPendingReleaseFromExhaustionAndRecoveryNeverRefunds()
+    {
+        using var f = new Fixture(); using var b = new CameraBudget(f.Path);
+        b.AmendContinuation(); b.AmendLearning();
+        Assert.True(b.Availability.Available); Assert.Equal(3, b.Availability.Remaining);
+        var id = Guid.NewGuid(); b.Reserve(id);
+        Assert.False(b.Availability.Available); Assert.Contains("verification", b.Availability.Message);
+        var now = DateTimeOffset.UtcNow;
+        var proof = new CameraReleaseEvidence(id, id, 101, 101, true, true, "Stopped", now, now.AddSeconds(1), false, true);
+        foreach (var bad in new[] { proof with { IndicatorOffConfirmed = false }, proof with { WorkerStillExists = true },
+            proof with { ExitConfirmed = false }, proof with { WorkerSession = Guid.NewGuid() },
+            proof with { WorkerPid = 102 }, proof with { WorkerStarted = now.AddMinutes(1) } })
+            Assert.Throws<InvalidDataException>(() => b.ConfirmIndependentlyVerifiedRelease(bad));
+        b.ConfirmIndependentlyVerifiedRelease(proof);
+        Assert.Equal(180000, b.Read().Sessions[0].ChargedMs);
+        Assert.Equal(2, b.Availability.Remaining);
+        for (int i = 0; i < 2; i++) { var next = Guid.NewGuid(); b.Reserve(next); b.Complete(next, 1000); }
+        Assert.False(b.Availability.Available); Assert.Equal(0, b.Availability.Remaining);
+        Assert.Contains("allowance used", b.Availability.Message);
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly string _root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "InveyBudget-" + Guid.NewGuid().ToString("N"));

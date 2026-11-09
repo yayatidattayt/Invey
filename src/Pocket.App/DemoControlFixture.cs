@@ -43,6 +43,12 @@ internal static class DemoControlFixture
             if (!button.IsEnabled || !button.IsVisible) throw new InvalidOperationException("Demo button is unavailable.");
             ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
         }
+        else if (parts[0] == "demo-expand")
+        {
+            var expander = Children(root).OfType<Expander>().Single(control => Text(control.Header) == parts[2]);
+            if (!expander.IsEnabled || !expander.IsVisible) throw new InvalidOperationException("Details are unavailable.");
+            ((IExpandCollapseProvider)new ExpanderAutomationPeer(expander).GetPattern(PatternInterface.ExpandCollapse)).Expand();
+        }
         else if (parts[0] == "demo-toggle")
         {
             var box = Children(root).OfType<CheckBox>().Single(control => Text(control.Content) == parts[2]);
