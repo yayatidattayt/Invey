@@ -8,7 +8,12 @@ public partial class MainWindow
     private readonly GhostTrackingMapper _desktopMapper=new();
     private long _desktopSequence=-1;
     private Guid? _desktopSource;
-    private void OpenControlledGhost(object sender,RoutedEventArgs args){_simulation?.Stop();_overlay?.Hide();DesktopGhost.ShowControls();}
+    private async void OpenControlledGhost(object sender,RoutedEventArgs args)
+    {
+        _simulation?.Stop();_overlay?.Hide();
+        if(_tracking is not null&&!await _tracking.StopAsync()){Status.Text="Tracking did not stop. Close it from the Tracking lab before starting the controlled beta.";return;}
+        DesktopGhost.Stop();DesktopGhost.ShowControls();
+    }
     private void DesktopTracking(TrackingSnapshot snapshot,LearningContext? context,DipPoint? ignored,PersonalModel? model)
     {
         if(!DesktopGhost.TrackingEnabled)return;

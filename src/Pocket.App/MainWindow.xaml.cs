@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     private GhostOverlay? _overlay;
     private SimulationController? _simulation;
     private Window? _settings;
+    private FeedbackWindow? _feedback;
     private FixtureWindow? _fixture;
     private RecordedTrackingWindow? _tracking;
     private PocketWorkspace? _pocket;
@@ -165,6 +166,16 @@ public partial class MainWindow : Window
     }
 
     private void OpenSettings(object sender,RoutedEventArgs e)=>ShowSettings();
+    private void OpenFeedback(object sender,RoutedEventArgs e)
+    {
+        if(_feedback is not null){_feedback.Show();_feedback.Activate();return;}
+        _feedback=new FeedbackWindow(()=>FormFeedbackDiagnostics()){Owner=this};
+        _feedback.Closed+=(_,_)=>_feedback=null;
+        _feedback.Show();_feedback.Activate();
+    }
+    internal void OpenFeedbackFixture()=>OpenFeedback(this,new RoutedEventArgs());
+    internal void CloseFeedbackFixture()=>_feedback?.Close();
+    private string FormFeedbackDiagnostics()=>$"Invey local beta summary\nGhost mode: {DesktopGhost.Engine.Mode}\nPointer source: {DesktopGhost.Engine.Source}\nPointer updates: {DesktopGhost.PointerUpdates}\nLast pointer update (ms): {DesktopGhost.LastMovementMs:F3}\nLast command dispatch (ms): {DesktopGhost.LastDispatchMs:F3}\nCamera: {(DesktopGhost.TrackingEnabled&&DesktopGhost.Engine.Source==Pocket.Core.GhostSourceKind.Camera?"ON":"OFF")}";
     private async void ExportEvidence(object sender,RoutedEventArgs e)
     {
         if(_simulation==null || _overlay==null) { Status.Text="Run a replay first."; return; }
@@ -268,6 +279,8 @@ public partial class MainWindow : Window
         Tracking = _tracking?.TestSnapshot(),
         TrackingHandle = _tracking is null ? 0 : new System.Windows.Interop.WindowInteropHelper(_tracking).Handle.ToInt64(),
         SettingsVisible = _settings?.IsVisible == true,
+        FeedbackVisible = _feedback?.IsVisible == true,
+        FeedbackButtonVisible = FeedbackButton.IsVisible,
         SettingsHandle = _settings is null ? 0 : new System.Windows.Interop.WindowInteropHelper(_settings).Handle.ToInt64(),
         DemoProfile = Title == "Invey · Demo",
         WindowLoaded = IsLoaded,

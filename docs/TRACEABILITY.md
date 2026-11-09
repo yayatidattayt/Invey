@@ -84,3 +84,7 @@ Main navigation, explicit isolated sample profile, launcher and labeled recorded
 ## Execution20 controlled interaction trace — 2026-11-09
 
 The supported controlled desktop-pointer route is implemented and verified through native isolated acceptance, alongside source/capability gates, target lifetime/stacking, stop/loss cancellation and recorded-preview denial. Core Debug/Release150/150; worker29/29; isolated full run40 PASS,0 FAIL,1 environment BLOCKED. See [Execution20 report](EXECUTION_20_REPORT.md). Physical hand route is not accepted; camera remained off.
+
+## Execution21 controlled beta trace — 2026-11-09
+
+Product controls expose focused keyboard steering, hold/release, target status and explicit Stop. Isolated D17/E20 routes exercise actual WPF targets and native input on the private desktop; 39 cases pass, Explorer is blocked, and the closed-cursor control remains inconclusive. The live gesture adapter is unit-tested but hard-disabled (`MayExecute=false`) and not connected to Pocket. Human normal-desktop and physical camera acceptance remain NOT TESTED. See [Execution21 report](EXECUTION_21_REPORT.md) and [creator checklist](INVEY_BETA_TEST_CHECKLIST.md).

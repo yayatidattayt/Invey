@@ -1,4 +1,12 @@
-# Execution20 recovery — current handoff, 2026-11-09
+# Execution21 hands-on beta — current handoff, 2026-11-09
+
+Execution21 continues the existing PR9 branch from verified Execution20 source head `aa2b97708786618762661a26d4ef6b4339a2b341`. See [Execution21 report](../docs/EXECUTION_21_REPORT.md), [Try Invey Beta](../docs/TRY_INVEY_BETA.md), [manual checklist](../docs/INVEY_BETA_TEST_CHECKLIST.md), and [physical-test plan](../docs/INVEY_LIVE_PHYSICAL_TEST_PLAN.md). The camera-free controlled pointer and isolated Pocket/Dual routes pass; creator hands-on review remains pending. Real camera preview and live hand-to-Pocket control are not qualified. Camera remains off and the exhausted ledger unchanged. Keep changes on `codex/execution-20-interaction-engine`/PR9; do not merge parent PRs, reset the ledger or force-push.
+
+Final extended isolated run `20261109T163409321-5611ac9b719c4475a7d7ee4700a732ba`:39 PASS,0 FAIL,1 INCONCLUSIVE,1 BLOCKED (Explorer absent). Debug/Release builds pass with zero warnings/errors; core155/155 per configuration; worker29/29. E20 proves actual isolated keyboard steering, Escape Stop, real Pocket cards, pinning, restart and mouse independence. The prior run’s Alt+T collision and final Release/temp cleanup attempts are preserved under `artifacts/`; the fix is Alt+B. Final desktop audit was `Default`; no Invey, worker, Python or dotnet process remained.
+
+Latest source linkage, launcher preflight, PR9 CI, and exact published commit are recorded in the addendum at the end of the Execution21 report after delivery. PR metadata previously returned HTTP403; do not retry through another authentication route. Leave PR9 open/unmerged.
+
+## Execution20 handoff — historical, superseded below
 
 The user resumed the saved checkpoint. Execution20’s controlled product implementation and final camera-free regression are complete locally on `codex/execution-20-interaction-engine`; see [the Execution20 report](../docs/EXECUTION_20_REPORT.md) and [interaction guide](../docs/INVEY_INTERACTION_GUIDE.md). The final extended isolated Windows run has40 PASS, zero FAIL and one explicit Explorer/Alt+Tab BLOCKED case. Final Debug/Release builds,150 core tests per configuration,29 worker tests, two seeded E20 routes and the Pocket/Dual/recorded demo route pass. The app is camera-off; physical hand acceptance remains blocked. PR#9 is the existing delivery target. Exact-head publication and CI are the last delivery gates. Do not merge parent PRs or claim completion until that CI result is verified.
 

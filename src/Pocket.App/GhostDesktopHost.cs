@@ -19,8 +19,10 @@ internal sealed class GhostDesktopHost : IDisposable
     private readonly DispatcherTimer _timer = new() { Interval=TimeSpan.FromMilliseconds(40) };
     private PointerWindow? _overlay;
     private Window? _controls;
+    private CheckBox? _keyboardSteering;
     private long _controlledSequence;
     private bool _controlled;
+    private System.Drawing.Rectangle? _controlledBounds;
     public bool TrackingEnabled { get; private set; }
     private string _displaySignature="";
     private bool _disposed;
@@ -46,18 +48,19 @@ internal sealed class GhostDesktopHost : IDisposable
         };
         _timer.Start();
     }
-    public void StartControlled()
+    public void StartControlled(string? displayName=null)
     {
         TrackingEnabled=false;
         _controlled=true; Engine.Begin(GhostSourceKind.Controlled); _controlledSequence=0;
-        var b=System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
+        var screen=System.Windows.Forms.Screen.AllScreens.FirstOrDefault(s=>s.DeviceName==displayName)??System.Windows.Forms.Screen.PrimaryScreen!;
+        var b=screen.Bounds;_controlledBounds=b;
         MoveControlled(new(b.X+b.Width/2d,b.Y+b.Height/2d));
     }
     public void MoveControlled(DipPoint position)
     {
         if(!_controlled || Engine.Session is not { } session) return;
         var watch=Stopwatch.StartNew();
-        var screen=System.Windows.Forms.Screen.FromPoint(new((int)position.X,(int)position.Y)).Bounds;
+        var screen=_controlledBounds??System.Windows.Forms.Screen.FromPoint(new((int)position.X,(int)position.Y)).Bounds;
         position=new(Math.Clamp(position.X,screen.Left,screen.Right-1),Math.Clamp(position.Y,screen.Top,screen.Bottom-1));
         Engine.Observe(new(session,_controlledSequence++,Environment.TickCount64,position,GhostProvenance.Controlled));
         LastMovementMs=watch.Elapsed.TotalMilliseconds;MaxMovementMs=Math.Max(MaxMovementMs,LastMovementMs);PointerUpdates++;
@@ -75,7 +78,7 @@ internal sealed class GhostDesktopHost : IDisposable
     private GhostSourceKind _trackingKind;
     public void EnableTracking(GhostSourceKind kind) { Stop(); _trackingKind=kind; TrackingEnabled=true; }
     public void TrackingStopped(){_trackingSource=null;Engine.Stop();}
-    public void Stop() { _controlled=false; TrackingEnabled=false; _trackingSource=null; Engine.Stop(); Stopped?.Invoke(); }
+    public void Stop() { _controlled=false;_controlledBounds=null;TrackingEnabled=false;_trackingSource=null;Engine.Stop();Stopped?.Invoke(); }
     public bool Intent(GhostIntent intent)
     {
         var watch=Stopwatch.StartNew();
@@ -149,7 +152,7 @@ internal sealed class GhostDesktopHost : IDisposable
         if(Engine.Position is not { } p || Engine.Mode is GhostControlMode.Off or GhostControlMode.Paused or GhostControlMode.Lost)
         { _overlay?.Hide(); return; }
         _overlay??=new PointerWindow(()=>Engine.Lose("Display changed — released"));
-        _overlay.Show(); _overlay.Draw(p,Engine.Mode==GhostControlMode.Holding);
+        _overlay.Show(); _overlay.Draw(p,Engine.Mode,Engine.HoverTarget is not null);
         }
         catch(Exception error) when(error is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
@@ -160,40 +163,75 @@ internal sealed class GhostDesktopHost : IDisposable
     public void ShowControls()
     {
         if(_controls is not null) { _controls.Show(); _controls.Activate(); return; }
-        var panel=new StackPanel { Margin=new(16) };
-        panel.Children.Add(new TextBlock { Text="CONTROLLED Ghost · camera off", FontWeight=FontWeights.SemiBold });
-        var status=new TextBlock { TextWrapping=TextWrapping.Wrap, Margin=new(0,8,0,8) }; panel.Children.Add(status);
+        var panel=new StackPanel { Margin=new(18) };
+        panel.Children.Add(new TextBlock { Text="Try Ghost · controlled pointer", FontSize=20,FontWeight=FontWeights.SemiBold });
+        panel.Children.Add(new TextBlock { Text="Move this separate pointer over Pocket. It never moves the Windows cursor.",TextWrapping=TextWrapping.Wrap,Margin=new(0,4,0,10) });
+        var display=new ComboBox { MinWidth=230,DisplayMemberPath=nameof(DisplayChoice.Label),ItemsSource=System.Windows.Forms.Screen.AllScreens.Select(s=>new DisplayChoice(s.DeviceName,$"{s.DeviceName} · {s.Bounds.Width} × {s.Bounds.Height}")).ToArray() };
+        display.SelectedItem=display.Items.OfType<DisplayChoice>().FirstOrDefault(x=>x.Name==System.Windows.Forms.Screen.PrimaryScreen?.DeviceName);
+        panel.Children.Add(new TextBlock { Text="Display" });panel.Children.Add(display);
         var buttons=new List<Button>();
-        void Buttons(params (string Label,Action Action)[] actions) { var row=new WrapPanel(); foreach(var (label,action) in actions){var b=new Button{Content=label,Margin=new(2)}; b.Click+=(_,_)=>action();row.Children.Add(b);buttons.Add(b);} panel.Children.Add(row); }
-        Buttons(("Start preview",StartControlled),("Arm Pocket control",()=>Engine.Arm()),("Disarm",Engine.Disarm),("Stop",Stop));
-        var targets=new ComboBox { MinWidth=260,DisplayMemberPath=nameof(TargetChoice.Label) }; panel.Children.Add(targets);
-        Buttons(("Refresh targets",()=>{targets.ItemsSource=Engine.Targets.Select(t=>new TargetChoice(t.Id,_labels.GetValueOrDefault(t.Id,t.Id))).ToArray();targets.SelectedIndex=0;}),
-            ("Move Ghost to target",()=>{if(targets.SelectedItem is TargetChoice choice) Aim(choice.Id);}));
-        Buttons(("←",()=>Step(-16,0)),("↑",()=>Step(0,-16)),("↓",()=>Step(0,16)),("→",()=>Step(16,0)));
-        Buttons(("Press",()=>Intent(GhostIntent.Press)),("Release",()=>Intent(GhostIntent.Release)),
-            ("Activate",()=>Command(GhostCommand.Activate)),("Pin",()=>Command(GhostCommand.Pin)),
-            ("Unpin",()=>Command(GhostCommand.Unpin)),("Hide",()=>Command(GhostCommand.Hide)));
-        panel.Children.Add(new TextBlock { Text="Start → choose a target → move Ghost → Arm → Press, move, Release. Only Invey targets respond. Tracking preview has no action authority.",TextWrapping=TextWrapping.Wrap });
-        _controls=new Window {Title="Invey · Controlled Ghost",Width=430,SizeToContent=SizeToContent.Height,Content=panel};
+        Button AddButton(Panel parent,string label,Action action){var b=new Button{Content=label,Margin=new(2),Padding=new(8,5,8,5),MinWidth=78};b.Click+=(_,_)=>action();parent.Children.Add(b);buttons.Add(b);return b;}
+        var primary=new WrapPanel{Margin=new(0,8,0,4)};panel.Children.Add(primary);
+        AddButton(primary,"Start preview",()=>StartControlled((display.SelectedItem as DisplayChoice)?.Name));
+        AddButton(primary,"Stop Ghost",Stop);
+        var armRow=new WrapPanel{Margin=new(0,0,0,8)};panel.Children.Add(armRow);
+        AddButton(armRow,"Arm Pocket",()=>Engine.Arm());AddButton(armRow,"Disarm",Engine.Disarm);
+        var keyboard=new CheckBox{Content="Enable keyboard steering in this window",Margin=new(2,5,2,5),IsThreeState=false};_keyboardSteering=keyboard;panel.Children.Add(keyboard);
+        panel.Children.Add(new TextBlock{Text="With this panel focused: WASD or arrows move Ghost. Shift makes small adjustments; Ctrl moves farther. Space grabs/releases. Escape stops immediately. Steering handles keys only in this panel.",TextWrapping=TextWrapping.Wrap,Margin=new(0,2,0,8)});
+        var direction=new Grid{HorizontalAlignment=HorizontalAlignment.Left};
+        for(int i=0;i<3;i++){direction.ColumnDefinitions.Add(new(){Width=GridLength.Auto});direction.RowDefinitions.Add(new(){Height=GridLength.Auto});}
+        void AddMove(string label,int x,int y,int row,int column){var b=AddButton(direction,label,()=>Step(x,y));Grid.SetRow(b,row);Grid.SetColumn(b,column);}
+        AddMove("↑",0,-16,0,1);AddMove("←",-16,0,1,0);AddMove("↓",0,16,1,1);AddMove("→",16,0,1,2);panel.Children.Add(direction);
+        var status=new TextBlock { TextWrapping=TextWrapping.Wrap, Margin=new(0,8,0,2),FontWeight=FontWeights.SemiBold }; panel.Children.Add(status);
+        var targetHint=new TextBlock{TextWrapping=TextWrapping.Wrap,Margin=new(0,0,0,8)};panel.Children.Add(targetHint);
+        var grabRow=new WrapPanel();panel.Children.Add(grabRow);
+        AddButton(grabRow,"Grab / press",()=>Intent(GhostIntent.Press));
+        AddButton(grabRow,"Release",()=>Intent(GhostIntent.Release));
+        var pinRow=new WrapPanel();panel.Children.Add(pinRow);
+        AddButton(pinRow,"Pin",()=>Command(GhostCommand.Pin));AddButton(pinRow,"Unpin",()=>Command(GhostCommand.Unpin));AddButton(pinRow,"Hide card",()=>Command(GhostCommand.Hide));
+        var targets=new ComboBox { MinWidth=240,DisplayMemberPath=nameof(TargetChoice.Label) };
+        var advanced=new Expander{Header="Accessibility and advanced controls",Margin=new(0,8,0,0)};
+        var advancedPanel=new StackPanel();advanced.Content=advancedPanel;
+        var targetRow=new WrapPanel();advancedPanel.Children.Add(targetRow);targetRow.Children.Add(targets);
+        AddButton(targetRow,"Refresh targets",()=>{targets.ItemsSource=Engine.Targets.Select(t=>new TargetChoice(t.Id,_labels.GetValueOrDefault(t.Id,t.Id))).ToArray();targets.SelectedIndex=0;});
+        AddButton(targetRow,"Aim at target",()=>{if(targets.SelectedItem is TargetChoice choice) Aim(choice.Id);});
+        var commandRow=new WrapPanel();advancedPanel.Children.Add(commandRow);AddButton(commandRow,"Activate",()=>Command(GhostCommand.Activate));
+        panel.Children.Add(advanced);
+        _controls=new Window {Title="Invey · Try Ghost",Width=460,SizeToContent=SizeToContent.Height,MinWidth=380,Content=panel,WindowStartupLocation=WindowStartupLocation.CenterScreen};
         void Update()
         {
             status.Text=Engine.Status;
+            string target=Engine.HoverTarget is { } id?_labels.GetValueOrDefault(id,id):"No supported Pocket target under Ghost.";
+            targetHint.Text=Engine.Mode==GhostControlMode.Holding?"Holding: "+_labels.GetValueOrDefault(Engine.ActiveTarget??"",Engine.ActiveTarget??"target"):
+                Engine.Mode==GhostControlMode.Armed?"Armed · Target under Ghost: "+target:"Aim: "+target;
             var available=Engine.AvailableCommands;
             foreach(var button in buttons)
             {
                 string label=(string)button.Content;
                 button.IsEnabled=label switch {
-                    "Arm Pocket control"=>_controlled&&Engine.Mode==GhostControlMode.Preview&&Engine.Position.HasValue,
-                    "Press"=>Engine.Mode==GhostControlMode.Armed,
+                    "Arm Pocket"=>_controlled&&Engine.Mode==GhostControlMode.Preview&&Engine.Position.HasValue,
+                    "Grab / press"=>Engine.Mode==GhostControlMode.Armed,
                     "Release"=>Engine.Mode==GhostControlMode.Holding,
-                    "Activate" or "Pin" or "Unpin" or "Hide"=>Engine.Mode==GhostControlMode.Armed&&available.Contains(Enum.Parse<GhostCommand>(label)),
+                    "Activate" or "Pin" or "Unpin" or "Hide card"=>Engine.Mode==GhostControlMode.Armed&&available.Contains(label switch{"Pin"=>GhostCommand.Pin,"Unpin"=>GhostCommand.Unpin,"Hide card"=>GhostCommand.Hide,_=>GhostCommand.Activate}),
+                    "↑" or "←" or "↓" or "→"=>_controlled&&Engine.Position.HasValue,
                     _=>true
                 };
             }
         }
         Engine.Changed+=Update; Update();
-        _controls.Closed+=(_,_)=>{Engine.Changed-=Update; _controls=null; Stop();}; _controls.Show();
-        _controls.PreviewKeyDown+=(_,e)=>{if(e.Key==System.Windows.Input.Key.Escape){Stop();e.Handled=true;}};
+        _controls.Closed+=(_,_)=>{Engine.Changed-=Update;_keyboardSteering=null; _controls=null; Stop();}; _controls.Show();_controls.Activate();
+        _controls.PreviewKeyDown+=(_,e)=>
+        {
+            if(!_controls.IsActive)return;
+            if(e.Key==System.Windows.Input.Key.Escape){Stop();keyboard.IsChecked=false;e.Handled=true;return;}
+            if(keyboard.IsChecked!=true||!_controlled)return;
+            var delta=e.Key switch{System.Windows.Input.Key.W or System.Windows.Input.Key.Up=>(0,-16),System.Windows.Input.Key.A or System.Windows.Input.Key.Left=>(-16,0),System.Windows.Input.Key.S or System.Windows.Input.Key.Down=>(0,16),System.Windows.Input.Key.D or System.Windows.Input.Key.Right=>(16,0),_=>default};
+            int scale=(System.Windows.Input.Keyboard.Modifiers&System.Windows.Input.ModifierKeys.Control)!=0?8:(System.Windows.Input.Keyboard.Modifiers&System.Windows.Input.ModifierKeys.Shift)!=0?1:4;
+            if(delta!=(0,0)){Step(delta.Item1*scale,delta.Item2*scale);e.Handled=true;}
+            else if(e.Key==System.Windows.Input.Key.Space){if(!e.IsRepeat&&Engine.Mode==GhostControlMode.Armed)Intent(GhostIntent.Press);e.Handled=true;}
+        };
+        _controls.PreviewKeyUp+=(_,e)=>{if(_controls.IsActive&&keyboard.IsChecked==true&&e.Key==System.Windows.Input.Key.Space&&Engine.Mode==GhostControlMode.Holding){Intent(GhostIntent.Release);e.Handled=true;}};
+        _controls.Deactivated+=(_,_)=>{if(Engine.Mode==GhostControlMode.Holding)Engine.Disarm();};
     }
     internal void PositionControlsForAcceptance(double left,double top)
     {
@@ -203,10 +241,12 @@ internal sealed class GhostDesktopHost : IDisposable
         _controls.Left=left;_controls.Top=top;
     }
     private sealed record TargetChoice(string Id,string Label);
+    private sealed record DisplayChoice(string Name,string Label);
     internal void ClickControlFixture(string label)
     {
         AcceptanceHost.ValidateDesktop();
         if(_controls?.Content is not StackPanel panel)throw new InvalidOperationException("Controlled Ghost window is not open.");
+        if(label=="Arm Pocket control")label="Arm Pocket";
         var button=panel.Children.OfType<WrapPanel>().SelectMany(row=>row.Children.OfType<Button>()).Single(b=>Equals(b.Content,label));
         if(!button.IsEnabled)throw new InvalidOperationException("Requested controlled UI action is disabled.");
         button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
@@ -217,6 +257,7 @@ internal sealed class GhostDesktopHost : IDisposable
         WorkArea=System.Windows.Forms.Screen.FromPoint(new((int)(Engine.Position?.X??0),(int)(Engine.Position?.Y??0))).WorkingArea,
         Source=Engine.Source.ToString(), OverlayHandle=_overlay is null?0:new WindowInteropHelper(_overlay).Handle.ToInt64(),
         ControlsHandle=_controls is null?0:new WindowInteropHelper(_controls).Handle.ToInt64(),
+        KeyboardSteeringPoint=_keyboardSteering is {IsVisible:true} key?_keyboardSteering.PointToScreen(new(key.ActualWidth/2,key.ActualHeight/2)):(Point?)null,
         OverlayVisible=_overlay?.IsVisible==true, OverlayStyles=_overlay?.Styles??0,
         RenderedPoint=_overlay?.RenderedPoint,
         Targets=Engine.Targets.Select(t=>new{t.Id,t.Geometry.Bounds,t.Geometry.Window,t.Geometry.ZOrder}).ToArray(),LastDispatchMs,LastMovementMs,MaxMovementMs,LastMappingMs,PointerUpdates };
@@ -240,14 +281,16 @@ internal sealed class GhostDesktopHost : IDisposable
             SourceInitialized+=(_,_)=>{Styles=NativeWindow.ConfigurePassive(new WindowInteropHelper(this).Handle);ScreenSnapshot.DisableNativeTransitions(this);};
             DpiChanged+=(_,_)=>invalidated();
         }
-        public void Draw(DipPoint physical,bool held)
+        public void Draw(DipPoint physical,GhostControlMode mode,bool hovering)
         {
             var screen=System.Windows.Forms.Screen.FromPoint(new((int)physical.X,(int)physical.Y)).Bounds;
             NativeWindow.Position(new WindowInteropHelper(this).Handle,new(screen.X,screen.Y,screen.Width,screen.Height));
             var p=PointFromScreen(new(physical.X,physical.Y));Canvas.SetLeft(_dot,p.X-9);Canvas.SetTop(_dot,p.Y-9);
             var reveal=RevealBounds(physical);var a=PointFromScreen(new(reveal.X,reveal.Y));var b=PointFromScreen(new(reveal.X+reveal.Width,reveal.Y+reveal.Height));
             Canvas.SetLeft(_reveal,a.X);Canvas.SetTop(_reveal,a.Y);_reveal.Width=b.X-a.X;_reveal.Height=b.Y-a.Y;
-            _dot.Fill=held?SystemColors.HighlightBrush:SystemColors.WindowBrush;
+            _dot.Stroke=mode switch{GhostControlMode.Holding=>Brushes.LimeGreen,GhostControlMode.Armed=>Brushes.DarkOrange,_=>SystemColors.HighlightBrush};
+            _dot.Fill=mode==GhostControlMode.Holding?Brushes.LimeGreen:mode==GhostControlMode.Armed?Brushes.DarkOrange:Brushes.White;
+            _dot.StrokeThickness=hovering?4:2;
         }
     }
 }

@@ -25,6 +25,7 @@ public sealed class GhostDesktop(Func<long> clock)
     public long Sequence => _sequence;
     public GhostSourceKind Source => _kind;
     public string? ActiveTarget => _held?.Id;
+    public string? HoverTarget => Hit()?.Id;
     public string Status { get; private set; } = "Pocket control off";
     public Func<long,DipPoint,bool>? WindowReachable { get; set; }
     public event Action? Changed;
@@ -78,7 +79,8 @@ public sealed class GhostDesktop(Func<long> clock)
     {
         if(!CanAct(session,sequence) || _held is not null) return false;
         var target=Hit();
-        if(target is null || !target.Begin(Position!.Value)) { Status="Unsupported or owned target"; Changed?.Invoke(); return false; }
+        if(target is null) { Status="No reachable Pocket target under Ghost"; Changed?.Invoke(); return false; }
+        if(!target.Begin(Position!.Value)) { Status="Target is busy or unavailable"; Changed?.Invoke(); return false; }
         _held=target; Mode=GhostControlMode.Holding; Status=target.Draggable?"Moving reference":"Reference selected"; Changed?.Invoke(); return true;
     }
     public bool Release(Guid session,long sequence)
@@ -86,15 +88,18 @@ public sealed class GhostDesktop(Func<long> clock)
         if(!CanAct(session,sequence) || _held is not { } held) return false;
         bool activate=!held.Draggable && Hit()==held;
         _held=null; held.End(true); Mode=GhostControlMode.Armed; Status="Released";
-        if(activate && held.SupportedCommands.Contains(GhostCommand.Activate)) held.Command(GhostCommand.Activate);
+        if(activate && held.SupportedCommands.Contains(GhostCommand.Activate))
+            Status=held.Command(GhostCommand.Activate)?"Reference opened":"Could not open that reference";
         Changed?.Invoke(); return true;
     }
     public bool Execute(Guid session,long sequence,GhostCommand command)
     {
         if(!CanAct(session,sequence) || _held is not null || !Enum.IsDefined(command)) return false;
         var target=Hit();
-        bool result=target is not null && target.SupportedCommands.Contains(command) && target.Command(command);
-        Status=result ? command+" complete" : "Unsupported target"; Changed?.Invoke(); return result;
+        bool supported=target is not null&&target.SupportedCommands.Contains(command);
+        bool result=supported&&target!.Command(command);
+        Status=result?command+" complete":target is null?"No reachable Pocket target under Ghost":supported?"Target action failed":"That action is unavailable on this target";
+        Changed?.Invoke(); return result;
     }
     private bool CanAct(Guid session,long sequence)
     {

@@ -68,6 +68,26 @@ internal static partial class Program
                 string digest=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("dual-beforedual-after")));
                 await Until(client,s=>s.GetProperty("Fixture").GetProperty("TextDigest").GetString()==digest);
 
+                // Exercise the user-facing keyboard steering controls with actual input on the isolated desktop.
+                await Send("ghost-controls");
+                await Send("ghost-control|Start preview");
+                var controlState=await Send("status");
+                var steering=DesktopGhost(controlState).GetProperty("KeyboardSteeringPoint");
+                Require(steering.ValueKind==JsonValueKind.Object,"Keyboard steering control is not visible.");
+                double toggleX=steering.GetProperty("X").GetDouble(),toggleY=steering.GetProperty("Y").GetDouble();
+                var keyboardStart=DesktopGhost(controlState).GetProperty("Position");
+                Input.Click(toggleX,toggleY);var nativeCursor=Input.Cursor();
+                Input.Key(0x44,false);Input.Key(0x44,true);
+                var keyboardMoved=await Until(client,s=>DesktopGhost(s).GetProperty("Position").GetProperty("X").GetDouble()>keyboardStart.GetProperty("X").GetDouble()+32);
+                var afterKeyboard=Input.Cursor();Require(afterKeyboard.X==nativeCursor.X&&afterKeyboard.Y==nativeCursor.Y&&DesktopMode(keyboardMoved)=="Preview",
+                    "Keyboard steering moved the Windows cursor or changed its action state.");
+                Input.Key(0x1B,false);Input.Key(0x1B,true);
+                var keyboardStopped=await Until(client,s=>DesktopMode(s)=="Off");
+                Require(DesktopGhost(keyboardStopped).GetProperty("RenderedPoint").ValueKind==JsonValueKind.Null,"Escape did not immediately hide the stopped Ghost pointer.");
+                var feedback=await Send("feedback-open");
+                Require(Product(feedback).GetProperty("FeedbackVisible").GetBoolean()&&Product(feedback).GetProperty("FeedbackButtonVisible").GetBoolean(),"Built-in feedback form did not open.");
+                await Send("feedback-close");
+
                 // Real mouse drag on A with shared Ghost input on B, checking rendered local positions.
                 await FocusTrackingAsync(client,ProductHandle(editorState));AccessKey(0x57);
                 var board=await Until(client,s=>Board(s).ValueKind==JsonValueKind.Object);
@@ -145,7 +165,7 @@ internal static partial class Program
                 Require(restarted.ExitCode==0,"Restart exit failed.");
             }
             finally{FinishProductHost(restarted);}
-            timings.Sort();return new{SharedPointer=true,RealShelf=true,RealCardMoved=true,NativePinUnpin=true,ConcurrentMouse=true,
+            timings.Sort();return new{SharedPointer=true,RealShelf=true,RealCardMoved=true,NativePinUnpin=true,ConcurrentMouse=true,KeyboardSteering=true,EscapeStop=true,
                 EditorExactTyping=true,PassiveStyles=true,PointerRenderMatches=true,LossCanceled=true,RestartPersisted=true,RecordedPreviewConnected=true,RecordedActionsDenied=true,ClosedCardReleased=true,
                 MedianRoundTripMs=timings[timings.Count/2],P95RoundTripMs=timings[(int)(timings.Count*.95)],CameraOpened=false};
         });

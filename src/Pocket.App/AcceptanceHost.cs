@@ -104,6 +104,8 @@ internal sealed class AcceptanceHost : IDisposable
             case "ghost-controls": _product!.DesktopGhost.ShowControls();break;
             case "ghost-controls-place": _product!.DesktopGhost.PositionControlsForAcceptance(900,50);break;
             case "ghost-pattern-hide": _capturePattern?.Hide();break;
+            case "feedback-open": _product!.OpenFeedbackFixture();break;
+            case "feedback-close": _product!.CloseFeedbackFixture();break;
             case "ghost-arm": _product!.DesktopGhost.Engine.Arm();break;
             case "ghost-press": _product!.DesktopGhost.Intent(Pocket.Core.GhostIntent.Press);break;
             case "ghost-release": _product!.DesktopGhost.Intent(Pocket.Core.GhostIntent.Release);break;

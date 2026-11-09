@@ -118,3 +118,7 @@ Use one motion-aware One Euro filter with bounded spike confirmation, retaining 
 ## Execution20 interaction boundary — 2026-11-09
 
 Keep action authority restricted to the explicitly controlled source and registered Invey-owned targets. Recorded and camera sources remain preview-only; partial/visual evidence cannot authorize actions. Loss, ambiguity, stale generation, target closure and Stop release active interaction. Physical hand actuation remains unqualified. Evidence and test boundary: [Execution20 report](EXECUTION_20_REPORT.md).
+
+## Execution21 beta interaction boundary — 2026-11-09
+
+Keep the ordinary mouse independent and restrict controlled Ghost actions to visible, registered Invey Pocket targets. User keyboard steering is enabled only while the focused Try Ghost panel is active; focus loss disarms and releases. Add a standalone full-hand gesture intent state prototype using existing practice thresholds, but keep `MayExecute` permanently false and do not connect it to production actions before physical qualification and separate review. Camera remains off; prior allowance remains exhausted.

@@ -83,3 +83,7 @@ Existing Windows26200/.NET10.0.403 SDK/MediaPipe0.10.32/NumPy runtime retained. 
 ## Execution20 isolated acceptance — 2026-11-09
 
 Windows private-desktop suite:40 PASS,0 FAIL,1 BLOCKED because Explorer is unavailable in the isolated environment. Camera-free controlled product routes passed; physical camera and ordinary-desktop hand interaction not tested. Details: [Execution20 report](EXECUTION_20_REPORT.md).
+
+## Execution21 controlled beta — 2026-11-09
+
+Pinned Windows/.NET environment retained; no package or runtime added. Extended isolated desktop run `20261109T163409321-5611ac9b719c4475a7d7ee4700a732ba` passed all runnable cases including Pocket/Dual/recorded workflow and user-facing keyboard movement. Explorer/Alt+Tab tray remains BLOCKED without Explorer. Selected-monitor movement is deterministic in the private desktop; mixed-DPI physical hardware and ordinary-desktop focus remain unqualified. No camera was opened.

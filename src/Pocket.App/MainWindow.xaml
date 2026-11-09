@@ -9,14 +9,16 @@
   <Button Content="_Workspace" Click="WorkspaceClick"/>
   <Button Content="Ghost _Tracking" Click="OpenTrackingLab"/>
   <Button Content="_Settings" Click="OpenSettings"/>
-  <Button Content="Controlled Ghost Demo" Click="OpenControlledGhost"/>
+  <Button Content="Try Ghost _Beta" Click="OpenControlledGhost"/>
  </WrapPanel>
  <TextBlock Margin="0,8,0,8" TextWrapping="Wrap" Text="Pocket saves screen references. Workspace compares them. Ghost shows local tracking and practice."/>
+ <TextBlock Text="Controlled Ghost uses keyboard input; live camera starts only when you enable it in Tracking." FontWeight="SemiBold" Margin="0,2,0,8"/>
  <Button Content="_Capture region" Click="CaptureClick" HorizontalAlignment="Left"/>
  <Expander Header="Demo guide · camera off" Margin="0,8,0,0"><TextBlock Margin="0,8,0,8" TextWrapping="Wrap" Text="1. Pocket: capture, preview, save, open and pin a reference.&#10;2. Workspace: load A and B, then move, resize or zoom. Try the labeled simulated Ghost demo.&#10;3. Ghost Tracking: choose recorded tracking or simulated practice. Live camera is optional and requires Enable.&#10;4. Exit and reopen to show saved references. Demo-profile samples are synthetic, not screen captures."/></Expander>
  <TextBlock x:Name="GhostState" Text="Ghost · Camera off" FontWeight="SemiBold" Margin="0,12,0,8" AutomationProperties.LiveSetting="Polite"/>
  <WrapPanel>
   <Button Content="Pa_use Ghost" Click="PauseClick"/>
+  <Button x:Name="FeedbackButton" Content="Report a problem" Click="OpenFeedback"/>
  </WrapPanel>
  <Expander Header="_Diagnostics" Margin="0,12,0,0">
   <StackPanel Margin="0,8,0,0">

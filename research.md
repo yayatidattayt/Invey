@@ -543,3 +543,11 @@ See `docs/EXECUTION_16_REPORT.md` and `docs/FINGER_TRACKING_RESEARCH.md`. The re
 ## Execution17 — camera-free demo stabilization (2026-11-08)
 
 Main navigation, explicit isolated sample profile, launcher and labeled recorded/simulated entry points reuse existing implementations. Pinning now handles checked-state changes, including accessibility Toggle. Two seeded supplemental WPF-control/GDI/model/restart rehearsals passed. They do not replace native input acceptance: the final standard run was refused at foreground ownership by the existing safety guard. Debug/Release100 core tests and20 worker tests pass; readiness is PARTIAL with a manual remote-session checklist. No webcam acquisition or normal/legacy library migration was performed. See docs/EXECUTION_17_DEMO_REPORT.md and docs/DEMO_FEATURE_INVENTORY.md.
+
+## 2026-11-09 — Execution20 interaction verification
+
+The native controlled pointer route uses explicit source authority, registered target ownership, visibility/stacking gates, physical virtual-desktop coordinate mapping and single-stage filtering. Isolated routes exercise Pocket, Workspace, loss/Stop and recorded preview without activating the camera. Physical gesture accuracy remains unverified. See [Execution20 report](EXECUTION_20_REPORT.md).
+
+## 2026-11-09 — Execution21 beta findings
+
+The creator-facing controlled pointer can be moved by focused WASD/arrows, with Shift precision and Ctrl larger steps; Space holds/releases only inside the focused Try Ghost Beta window. The native isolated E20 route confirms the ring position, target hit-testing, cursor independence and immediate Escape Stop. A duplicate Alt+T accelerator between Ghost Tracking and Try Ghost Beta was found by the first full rehearsal and corrected to Alt+B. A typed full-hand pinch intent prototype uses the existing 0.28/0.42 practice band and a longer dwell; it is not connected to application actions and always reports `MayExecute=false`. The creator's actual hand, ordinary desktop and camera have not been tested. See `docs/EXECUTION_21_REPORT.md`.
