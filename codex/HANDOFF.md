@@ -1,5 +1,9 @@
 # Invey — Current handoff
 
+## Execution20 incomplete checkpoint
+
+Controlled Workspace coordinator implemented on codex/execution-20-interaction-engine from PR8 head4bfe9b3.137 core tests/configuration and29 worker tests pass. Actual native30-trial Workspace ownership route passes in two runs. Complete demo repeatedly fails resize/focus while a pinned card is present; keyboard/focus fixture attempts did not resolve it and were reverted. Preserve all artifacts/execution-20 and native failed runs. Read docs/EXECUTION_20_REPORT.md. Shelf/floating-card routing, production tracking adapter, global pointer and complete acceptance remain unfinished. Camera allowance unchanged/exhausted; no live test. Do not claim Execution20 complete or merge this checkpoint.
+
 ## Execution19 — precision preview, 2026-11-09
 
 Branch codex/execution-19-precision-ghost starts at PR7 head769bf27. New motion-aware One Euro preview and600ms bounded warm image correspondence are experimental; see docs/EXECUTION_19_REPORT.md and docs/GHOST_PRECISION_GUIDE.md. V3 visual evidence is not a model landmark and cannot grant gestures or learning labels. Full native regression39 PASS/Explorer BLOCKED;132 core tests/configuration and29 worker tests pass. Initial failures remain preserved. Physical wrist-out/cold-start accuracy is NOT verified.

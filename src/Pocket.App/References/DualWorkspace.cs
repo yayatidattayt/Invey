@@ -27,6 +27,9 @@ internal sealed class DualWorkspace : Window
     private bool _closed, _busy;
     private readonly System.Windows.Threading.DispatcherTimer _demo = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private int _demoTick;
+    private readonly GhostInteraction _ghost;
+    private Guid _ghostSource;
+    private long _ghostSequence;
 
     private sealed record Choice(PocketReference Item)
     {
@@ -38,6 +41,7 @@ internal sealed class DualWorkspace : Window
     public DualWorkspace(PocketStore store)
     {
         _store = store;
+        _ghost = new(_scene);
         Title = "Invey · Workspace";
         SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(this);
         Width = 1050;
@@ -163,6 +167,7 @@ internal sealed class DualWorkspace : Window
         if (_tiles.TryGetValue(slot, out var old) && old.Id == item.Id) { Select(slot); return; }
         Remove(slot);
         _scene.SetTarget(slot, slot == First ? new(32, 32, 370, 260) : new(480, 130, 370, 260));
+        _ghost.Register(slot);
         var image = new Image { Source = source, Stretch = Stretch.Uniform };
         AutomationProperties.SetName(image, $"Reference {slot} snapshot");
         var scroll = new ScrollViewer { Content = image, Focusable = true, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
@@ -280,6 +285,7 @@ internal sealed class DualWorkspace : Window
     {
         if (!_tiles.Remove(slot, out var tile)) return;
         if (_scene.Pointer(PointerOwner.Mouse).Target == slot) EndMouse();
+        _ghost.Unregister(slot);
         _scene.RemoveTarget(slot);
         tile.Image.Source = null;
         _board.Children.Remove(tile.Frame);
@@ -308,23 +314,26 @@ internal sealed class DualWorkspace : Window
         CancelGhost();
     }
 
-    // Used by the explicitly labeled simulation and private-desktop fixture; live tracking is not routed here.
+    // Controlled integration adapter; live camera actuation remains gated.
     internal bool PressGhost()
     {
         if (!_tiles.ContainsKey(Second) || _scene.Pointer(PointerOwner.Ghost).Target is not null) return false;
         var box = _scene.Target(Second);
-        _scene.Move(PointerOwner.Ghost, new(box.X + 12, box.Y + 12));
-        return _scene.Press(PointerOwner.Ghost, Second);
+        _ghostSource = _ghost.BeginControlledSource();
+        _ghostSequence = 0;
+        if (!_ghost.Arm(_ghostSource)) return false;
+        return _ghost.Submit(_ghostSource, _ghostSequence++, 1, new(box.X + 12, box.Y + 12), GhostIntent.Press, true);
     }
 
     internal void MoveGhost(int dx, int dy)
     {
         if (_scene.Pointer(PointerOwner.Ghost) is not { Target: { } slot, Position: var p }) return;
-        _scene.Move(PointerOwner.Ghost, new(p.X + dx, p.Y + dy));
+        _ghost.Submit(_ghostSource, _ghostSequence, _ghostSequence + 1, new(p.X + dx, p.Y + dy), GhostIntent.Move, true);
+        _ghostSequence++;
         Render(slot);
     }
 
-    internal void CancelGhost() => _scene.Cancel(PointerOwner.Ghost);
+    internal void CancelGhost() => _ghost.Stop();
 
     internal object TestState() => new
     {
@@ -333,6 +342,7 @@ internal sealed class DualWorkspace : Window
         Larger = _larger.IsVisible ? _larger.PointToScreen(new Point(_larger.ActualWidth / 2, _larger.ActualHeight / 2)) : default,
         Mouse = _scene.Pointer(PointerOwner.Mouse).Target,
         Ghost = _scene.Pointer(PointerOwner.Ghost).Target,
+        GhostControlMode = _ghost.Mode.ToString(),
         Cards = _tiles.Select(pair =>
         {
             var frame = pair.Value.Frame;
