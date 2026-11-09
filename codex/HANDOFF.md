@@ -1,6 +1,12 @@
+# Execution20 recovery — current handoff, 2026-11-09
+
+The user resumed the saved checkpoint. Execution20’s controlled product implementation and final camera-free regression are complete locally on `codex/execution-20-interaction-engine`; see [the Execution20 report](../docs/EXECUTION_20_REPORT.md) and [interaction guide](../docs/INVEY_INTERACTION_GUIDE.md). The final extended isolated Windows run has40 PASS, zero FAIL and one explicit Explorer/Alt+Tab BLOCKED case. Final Debug/Release builds,150 core tests per configuration,29 worker tests, two seeded E20 routes and the Pocket/Dual/recorded demo route pass. The app is camera-off; physical hand acceptance remains blocked. PR#9 is the existing delivery target. Exact-head publication and CI are the last delivery gates. Do not merge parent PRs or claim completion until that CI result is verified.
+
+The pause audit and resumed work are recorded in `codex/EXECUTION_20_RESUME.md`. The isolated desktop returned to `Default`; no app, worker, test or build-helper processes remain. The exhausted camera ledger hash is unchanged. Keep every failed run in `artifacts/`.
+
 # Invey — Current handoff
 
-## Execution20 incomplete checkpoint
+## Execution20 earlier checkpoint — superseded by the current handoff above
 
 Controlled Workspace coordinator implemented on codex/execution-20-interaction-engine from PR8 head4bfe9b3.137 core tests/configuration and29 worker tests pass. Actual native30-trial Workspace ownership route passes in two runs. Complete demo repeatedly fails resize/focus while a pinned card is present; keyboard/focus fixture attempts did not resolve it and were reverted. Preserve all artifacts/execution-20 and native failed runs. Read docs/EXECUTION_20_REPORT.md. Shelf/floating-card routing, production tracking adapter, global pointer and complete acceptance remain unfinished. Camera allowance unchanged/exhausted; no live test. Do not claim Execution20 complete or merge this checkpoint.
 

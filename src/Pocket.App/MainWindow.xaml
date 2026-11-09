@@ -9,6 +9,7 @@
   <Button Content="_Workspace" Click="WorkspaceClick"/>
   <Button Content="Ghost _Tracking" Click="OpenTrackingLab"/>
   <Button Content="_Settings" Click="OpenSettings"/>
+  <Button Content="Controlled Ghost Demo" Click="OpenControlledGhost"/>
  </WrapPanel>
  <TextBlock Margin="0,8,0,8" TextWrapping="Wrap" Text="Pocket saves screen references. Workspace compares them. Ghost shows local tracking and practice."/>
  <Button Content="_Capture region" Click="CaptureClick" HorizontalAlignment="Left"/>

@@ -122,6 +122,13 @@ internal sealed class CalibrationPanel : StackPanel
     }
 
     private Guid? _learningFrameSession;
+    internal LearningContext? DesktopContext(TrackingSnapshot snapshot,string device)
+    {
+        if(_hand.SelectedIndex==0 || _display.SelectedItem is not CalibrationDisplayChoice choice ||
+            snapshot.Observation?.FrameSize is not { IsValid:true } frame)return null;
+        return new(snapshot.Source?.ToString()??"",LearningContext.HashDevice(device),frame.Width,frame.Height,
+            choice.Geometry,_hand.SelectedIndex,_mirror.IsChecked==true,(int)_margin.Value,(int)_sensitivity.Value);
+    }
     private TrackingFrameSize? _learningFrame;
     internal string? LearningSetupIssue => _display.SelectedItem is not CalibrationDisplayChoice || _mapping is null
         ? "Choose a connected display in Calibration settings." : _hand.SelectedIndex == 0

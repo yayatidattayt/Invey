@@ -80,3 +80,7 @@ Evidence location per executed row belongs in TEST_RESULTS with OS/app/build/dis
 ## Execution17 — camera-free demo stabilization (2026-11-08)
 
 Main navigation, explicit isolated sample profile, launcher and labeled recorded/simulated entry points reuse existing implementations. Pinning now handles checked-state changes, including accessibility Toggle. Two seeded supplemental WPF-control/GDI/model/restart rehearsals passed. They do not replace native input acceptance: the final standard run was refused at foreground ownership by the existing safety guard. Debug/Release100 core tests and20 worker tests pass; readiness is PARTIAL with a manual remote-session checklist. No webcam acquisition or normal/legacy library migration was performed. See docs/EXECUTION_17_DEMO_REPORT.md and docs/DEMO_FEATURE_INVENTORY.md.
+
+## Execution20 controlled interaction trace — 2026-11-09
+
+The supported controlled desktop-pointer route is implemented and verified through native isolated acceptance, alongside source/capability gates, target lifetime/stacking, stop/loss cancellation and recorded-preview denial. Core Debug/Release150/150; worker29/29; isolated full run40 PASS,0 FAIL,1 environment BLOCKED. See [Execution20 report](EXECUTION_20_REPORT.md). Physical hand route is not accepted; camera remained off.

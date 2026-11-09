@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private readonly Window? _captureBackground;
     private readonly PocketCards? _cards;
     private bool _exiting, _exitInProgress;
+    internal GhostDesktopHost DesktopGhost { get; } = new();
     internal bool TrayAvailable { get; set; }
     internal event Action<string>? CameraStatusChanged;
     public MainWindow() : this(new(Path.Combine(
@@ -36,7 +37,7 @@ public partial class MainWindow : Window
         if (profile.Available)
         {
             _store = new PocketStore(profile.Root);
-            _cards = new PocketCards(_store, profile.Writable);
+            _cards = new PocketCards(_store, profile.Writable, DesktopGhost);
         }
         InitializeComponent();
         if (profile.Notice?.StartsWith("DEMO PROFILE", StringComparison.Ordinal) == true)
@@ -50,6 +51,7 @@ public partial class MainWindow : Window
         CameraStatusChanged += status => GhostState.Text = $"Ghost · {status}";
         Loaded += async (_, _) =>
         {
+            DesktopGhost.RegisterReveal(()=>ShowPocket(activate:false));
             if (_cards is null) return;
             try { await _cards.RestoreAsync(); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException)
@@ -73,9 +75,9 @@ public partial class MainWindow : Window
         catch(Exception ex) { DisposeOverlay(); Status.Text="Operation failed: "+ex.Message; }
         UpdateButtons();
     }
-    private void ShowOverlay(object sender,RoutedEventArgs e) => Safely(()=>{EnsureOverlay(); _overlay!.Show(); Status.Text=$"Passive styles verified: 0x{_overlay.VerifiedStyles:X}; DPI {_overlay.Dpi}.";});
+    private void ShowOverlay(object sender,RoutedEventArgs e) => Safely(()=>{DesktopGhost.Stop();EnsureOverlay(); _overlay!.Show(); Status.Text=$"Passive styles verified: 0x{_overlay.VerifiedStyles:X}; DPI {_overlay.Dpi}.";});
     private void HideOverlay(object sender,RoutedEventArgs e) => Safely(()=>{_simulation?.Stop(); _overlay?.Hide(); Status.Text="Overlay hidden; GHOST claim canceled.";});
-    private void StartReplay(object sender,RoutedEventArgs e) => Safely(()=>{EnsureOverlay(); _simulation!.Start(); Status.Text="Replay starts in 5 seconds, runs 20 cycles. Focus the test fixture or editor now.";});
+    private void StartReplay(object sender,RoutedEventArgs e) => Safely(()=>{DesktopGhost.Stop();EnsureOverlay(); _simulation!.Start(); Status.Text="Replay starts in 5 seconds, runs 20 cycles. Focus the test fixture or editor now.";});
     private void StopReplay(object sender,RoutedEventArgs e) => Safely(()=>{_simulation?.Stop(); Status.Text="Replay stopped; GHOST claim canceled.";});
     private void UpdateButtons() { StartButton.IsEnabled=_simulation?.IsRunning!=true; StopButton.IsEnabled=_simulation?.IsRunning==true; }
     private void OpenFixture(object sender,RoutedEventArgs e)
@@ -181,6 +183,9 @@ public partial class MainWindow : Window
             _tracking = new RecordedTrackingWindow(profileSettingsPath: _profile.Available
                 ? Path.Combine(_profile.Root, "calibration.json") : null, profileWritable: _profile.Writable);
             _tracking.CameraStatusChanged += status => CameraStatusChanged?.Invoke(status);
+            _tracking.DesktopStatus=()=>DesktopGhost.Engine.Status;
+            _tracking.DesktopPointerChanged += (snapshot,context,point,model)=>DesktopTracking(snapshot,context,point,model);
+            _tracking.DesktopPreviewChanged += enabled=> { if(enabled){_simulation?.Stop();_overlay?.Hide();DesktopGhost.EnableTracking(Pocket.Core.GhostSourceKind.Recorded);}else DesktopGhost.Stop(); };
             _tracking.Closed += (_, _) => _tracking = null;
         }
         _tracking.Show();
@@ -192,20 +197,20 @@ public partial class MainWindow : Window
     {
         if (_store is null) { Status.Text = _profile.Notice; return null; }
         if (_pocket is not null) return _pocket;
-        var pocket = new PocketWorkspace(_store, PrepareCaptureAsync, _captureBackground, _cards, _profile.Writable);
+        var pocket = new PocketWorkspace(_store, PrepareCaptureAsync, _captureBackground, _cards, _profile.Writable, DesktopGhost);
         pocket.ReferenceDeleted += id => _workspace?.ReferenceDeleted(id);
         pocket.ReferenceRestored += id => _workspace?.ReferenceRestored(id);
         pocket.Closed += (_, _) => _pocket = null;
         return _pocket = pocket;
     }
 
-    public void ShowPocket(bool toggle = false)
+    public void ShowPocket(bool toggle = false, bool activate = true)
     {
         if (_exitInProgress || CaptureInProgress || PocketShelf() is not { } shelf) return;
         if (toggle && shelf.IsVisible && shelf.WindowState != WindowState.Minimized) { shelf.Tuck(); return; }
-        shelf.Show();
+        bool previous=shelf.ShowActivated; shelf.ShowActivated=activate; shelf.Show(); shelf.ShowActivated=previous;
         if (shelf.WindowState == WindowState.Minimized) shelf.WindowState = WindowState.Normal;
-        shelf.Activate();
+        if(activate) shelf.Activate();
     }
 
     public async Task CaptureAsync()
@@ -218,7 +223,7 @@ public partial class MainWindow : Window
         if (_exitInProgress || CaptureInProgress || _store is null) return;
         if (_workspace is null)
         {
-            _workspace = new DualWorkspace(_store);
+            _workspace = new DualWorkspace(_store, DesktopGhost);
             _workspace.Closed += (_, _) => _workspace = null;
         }
         _workspace.Show();
@@ -231,6 +236,7 @@ public partial class MainWindow : Window
     private void PauseClick(object sender, RoutedEventArgs e) => Pause();
     private async Task<bool> PrepareCaptureAsync()
     {
+        DesktopGhost.Stop();
         _simulation?.Stop();
         UpdateButtons();
         return _tracking is null || await _tracking.StopAsync();
@@ -247,6 +253,7 @@ public partial class MainWindow : Window
                 _pocket?.ResumeAfterAbortedExit();
                 return;
             }
+            DesktopGhost.Dispose();
             _workspace?.Close();
             if (_cards is not null) await _cards.CloseAsync();
             Application.Current.Shutdown();
@@ -255,6 +262,7 @@ public partial class MainWindow : Window
     }
     internal object TestState() => new
     {
+        DesktopGhost = DesktopGhost.State,
         Handle = new System.Windows.Interop.WindowInteropHelper(this).Handle.ToInt64(),
         Pocket = _pocket?.TestState(), Workspace = _workspace?.TestState(), Camera = GhostState.Text,
         Tracking = _tracking?.TestSnapshot(),
@@ -310,6 +318,7 @@ public partial class MainWindow : Window
     internal bool CaptureInProgress => _pocket?.CaptureInProgress == true;
     public async void Pause()
     {
+        DesktopGhost.Stop();
         _workspace?.StopSimulation();
         _simulation?.Stop();
         _overlay?.Hide();
@@ -323,7 +332,7 @@ public partial class MainWindow : Window
     }
     public void Cleanup()
     {
-        _exiting=true; _shortcuts?.Dispose(); DisposeOverlay(); _workspace?.Close(); _settings?.Close(); _fixture?.Close(); Close();
+        _exiting=true; DesktopGhost.Dispose(); _shortcuts?.Dispose(); DisposeOverlay(); _workspace?.Close(); _settings?.Close(); _fixture?.Close(); Close();
     }
     protected override void OnClosing(CancelEventArgs e)
     {

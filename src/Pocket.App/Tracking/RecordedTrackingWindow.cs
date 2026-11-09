@@ -54,6 +54,11 @@ internal sealed partial class RecordedTrackingWindow : Window
     private bool _startedInMode;
     private string _cameraStatus = "Camera off";
     public event Action<string>? CameraStatusChanged;
+    internal event Action<TrackingSnapshot,LearningContext?,Pocket.Core.DipPoint?,PersonalModel?>? DesktopPointerChanged;
+    internal event Action<bool>? DesktopPreviewChanged;
+    private readonly CheckBox _desktopPreview=new(){Content="Desktop Ghost preview · no live actions"};
+    internal Func<string>? DesktopStatus { get; set; }
+    private readonly TextBlock _desktopStatus=new(){TextWrapping=TextWrapping.Wrap};
 
     public RecordedTrackingWindow(string? fixtureFile = null, string? fixtureCameraFault = null,
         string? testSettingsPath = null, bool acceptanceHost = false, string? profileSettingsPath = null,
@@ -92,6 +97,11 @@ internal sealed partial class RecordedTrackingWindow : Window
             _start.Focus();
         }, settings is null ? null : new CalibrationPreferencesStore(settings, profileWritable));
         _learning = new PersonalLearningPanel(settings is null ? null : Path.GetDirectoryName(settings), profileWritable);
+        _desktopPreview.Click+=(_,_)=>
+        {
+            if(_desktopPreview.IsChecked==true){_calibration.Begin(null,focus:false);_calibrationDetails.IsExpanded=true;}
+            DesktopPreviewChanged?.Invoke(_desktopPreview.IsChecked==true);
+        };
         _calibrationDetails.Content = _calibration;
         _learning.RequestCalibration += () =>
         {
@@ -119,6 +129,7 @@ internal sealed partial class RecordedTrackingWindow : Window
         SystemEvents.UserPreferenceChanged += UserPreferenceChanged;
         Closed += (_, _) =>
         {
+            DesktopPreviewChanged?.Invoke(false);
             SystemEvents.DisplaySettingsChanged -= DisplaySettingsChanged;
             SystemEvents.UserPreferenceChanged -= UserPreferenceChanged;
         };
@@ -142,6 +153,8 @@ internal sealed partial class RecordedTrackingWindow : Window
                 _deviceOptions,
                 _status,
                 _showPreview,
+                _desktopPreview,
+                _desktopStatus,
                 actions,
                 _previewTiming,
                 _mirrorCamera,
@@ -344,6 +357,10 @@ internal sealed partial class RecordedTrackingWindow : Window
         var input = _calibration.LearningInput(_visible, _visible.Source == TrackingSource.Camera
             ? (_devices.SelectedItem as CameraDevice)?.Id ?? "unknown" : _recordedDemo.SelectedIndex == 1 ? "simulated-practice" : "recorded-model");
         _learning.Observe(_visible, input.Context, input.Point, _calibration.PracticeHeld, _calibration.LearningSetupIssue);
+        if(_desktopPreview.IsChecked==true)
+            DesktopPointerChanged?.Invoke(_visible,_calibration.DesktopContext(_visible,_visible.Source==TrackingSource.Camera
+                ? (_devices.SelectedItem as CameraDevice)?.Id??"unknown" : _recordedDemo.SelectedIndex==1?"simulated-practice":"recorded-model"),null,_learning.AcceptedPreviewModel);
+        _desktopStatus.Text=_desktopPreview.IsChecked==true ? "Desktop Ghost · "+(DesktopStatus?.Invoke()??"Preview unavailable") : "";
         string source = !live ? (_recordedDemo.SelectedIndex == 1 ? "simulated practice" : "recorded tracking") : _fixtureFile is not null ? "test video" : "live camera";
         _start.Content = (_startedInMode ? "_Restart " : "_Enable ") + source;
         string cameraStatus = _visible.Source == TrackingSource.Camera ? _visible.State switch
@@ -398,6 +415,13 @@ internal sealed partial class RecordedTrackingWindow : Window
         UIElementAutomationPeer.CreatePeerForElement(_status)?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
     }
 
+    internal void EnableDesktopPreviewFixture()
+    {
+        AcceptanceHost.ValidateDesktop();
+        _desktopPreview.IsChecked=true;
+        _desktopPreview.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        _calibration.LearningFixtureObservation(Guid.NewGuid(),0,new(.5,.5)); // Settings only; returned observation is not submitted.
+    }
     public object TestSnapshot()
     {
         var sample = _visible.Observation;

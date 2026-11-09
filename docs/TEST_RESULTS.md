@@ -162,3 +162,7 @@ Main navigation, explicit isolated sample profile, launcher and labeled recorded
 # Execution19 precision continuation — 2026-11-09
 
 132 core tests per Debug/Release and29 workers pass. Full isolated Windows run20261109T101753949-5972d4d5d1bf410aa3e0d3a866bdc0da:39 PASS, Explorer BLOCKED, zero FAIL. Includes actual WPF generated-image visual movement/reacquisition/loss/Stop, sparse model preview, Pocket capture/restart, Workspace, shelf, shortcuts and native cursor controls. See EXECUTION_19_REPORT.md for source categories, earlier failures and final delivery evidence. Physical wrist-out/cold-start and personalized accuracy remain unverified; camera allowance exhausted, no camera started.
+
+## Execution20 recovery — 2026-11-09
+
+Final locked restore and Debug/Release solution builds passed with zero warnings/errors. Core suite:150/150 each configuration, zero skips; worker suite:29/29, zero skips. Isolated Windows suite:40 PASS,0 FAIL,1 BLOCKED (Explorer unavailable on private desktop). Seeded E20 routes and complete D17/E20 workflows passed. Detailed run identifiers, preserved failures, executable hashes and camera/cleanup evidence: [Execution20 report](EXECUTION_20_REPORT.md). Physical hand validation is blocked; camera remained off.

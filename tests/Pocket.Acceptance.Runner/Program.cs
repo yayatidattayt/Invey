@@ -46,7 +46,7 @@ internal static partial class Program
         var clock=Stopwatch.StartNew();
         while(clock.ElapsedMilliseconds<timeoutMs){var state=await client.Command("status");if(predicate(state))return state;await Task.Delay(10);}
         var last=await client.Command("status");var cursor=Input.Cursor();
-        throw new TimeoutException("Fixture postcondition not reached. Cursor="+cursor.X+","+cursor.Y+"; state="+last.GetRawText());
+        throw new TimeoutException("Fixture postcondition not reached. Cursor="+cursor.X+","+cursor.Y+"; foreground="+Input.ForegroundDescription()+"; state="+last.GetRawText());
     }
     private static async Task CursorScenario(string id, Process? host = null, Client? client = null, bool active = false)
     {
@@ -130,6 +130,12 @@ internal static partial class Program
                 await RunLearningControls(app, output, learningHost, learningClient);
                 return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
             }
+            if(Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_DUAL_PRODUCT_ONLY")=="1")
+            {
+                var owned=host;var connected=client;host=null;client=null;
+                await RunGhostProductRoute(app,output,owned,connected);
+                return Cases.Any(c=>c.Status=="FAIL")?1:0;
+            }
             if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_DEMO_CONTROLS_ONLY") == "1")
             {
                 var demoHost = host;
@@ -168,6 +174,7 @@ internal static partial class Program
                 await RunPocketRestart(app, output);
                 await RunProductIntegration(app, output);
             await RunDemoWorkflow(app, output);
+            await RunGhostProductRoute(app, output);
                 CleanPocketFixture(output);
                 return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
             }
@@ -299,6 +306,7 @@ internal static partial class Program
             await RunPocketRestart(app, output);
             await RunProductIntegration(app, output);
             await RunDemoWorkflow(app, output);
+            await RunGhostProductRoute(app, output);
         }
         catch(Exception ex){Cases.Add(new("SESSION","NATIVE_SOFTWARE_TEST","Complete bounded isolated session",ex.ToString(),"FAIL",0));}
         finally

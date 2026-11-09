@@ -38,14 +38,17 @@ internal sealed class PocketWorkspace : Window
     private IReadOnlyList<DeletedReference> _deleted = [];
     private bool _needsRepair;
     private bool _busy, _canCapture, _closed, _exitRequested, _restoreFailed;
+    private readonly GhostDesktopHost? _desktop;
+    private readonly List<IDisposable> _ghostRows=[];
     internal event Action<Guid>? ReferenceDeleted;
     internal event Action<Guid>? ReferenceRestored;
     public bool CaptureInProgress => _captureTask is { IsCompleted: false };
 
     public PocketWorkspace(PocketStore store, Func<Task<bool>> prepareCapture, Window? syntheticBackground = null,
-        PocketCards? cards = null, bool writable = true)
+        PocketCards? cards = null, bool writable = true, GhostDesktopHost? desktop = null)
     {
         _store = store;
+        _desktop=desktop;
         _cards = cards ?? new PocketCards(store, writable);
         _ownsCards = cards is null;
         _writable = writable;
@@ -98,6 +101,7 @@ internal sealed class PocketWorkspace : Window
                 });
         };
         _references.SelectionChanged += (_, _) => UpdateActions();
+        _references.ItemContainerGenerator.StatusChanged+=(_,_)=>RebuildGhostRows();
         _references.MouseDoubleClick += async (_, _) => await OpenAsync();
         _displays.SelectionChanged += (_, _) => UpdateActions();
         Content = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = new StackPanel
@@ -121,6 +125,8 @@ internal sealed class PocketWorkspace : Window
         UpdateActions();
         Loaded += async (_, _) =>
         {
+            _desktop?.Register("shelf:dismiss",this,tuck,false,command:c=>
+            {if(c!=Pocket.Core.GhostCommand.Activate)return false;Tuck();return true;},priority:20,label:"Dismiss Pocket shelf");
             await ReloadAsync();
             if (_ownsCards && !_closed)
                 try { await _cards.RestoreAsync(); }
@@ -132,12 +138,41 @@ internal sealed class PocketWorkspace : Window
             args.Cancel = true;
             Tuck();
         };
-        Closed += (_, _) => _closed = true;
+        Closed += (_, _) => { _closed = true; foreach(var row in _ghostRows)row.Dispose();_ghostRows.Clear(); };
     }
 
     public void Tuck()
     {
-        if (!_busy && !CaptureInProgress && _renameWindow is null) Hide();
+        if (!_busy && !CaptureInProgress && _renameWindow is null) { _desktop?.Engine.Disarm(); Hide(); }
+    }
+
+    private void RebuildGhostRows()
+    {
+        foreach(var row in _ghostRows)row.Dispose();_ghostRows.Clear();
+        if(_desktop is null || _closed)return;
+        foreach(var row in _references.Items.OfType<Row>())
+        {
+            if(_references.ItemContainerGenerator.ContainerFromItem(row) is not ListBoxItem element)continue;
+            _ghostRows.Add(_desktop.Register("reference:"+row.Reference.Id.ToString("N"),this,element,false,
+                command:c=>
+                {
+                    if(c!=Pocket.Core.GhostCommand.Activate || _busy || _exitRequested)return false;
+                    _references.SelectedItem=row;
+                    var session=_desktop.Engine.Session;
+                    _=OpenGhostAsync(row,session);return true;
+                },priority:10,label:"Open "+(row.Reference.Title??"snapshot")));
+        }
+    }
+    private async Task OpenGhostAsync(Row row,Guid? session)
+    {
+        _busy=true;UpdateActions();
+        try { var current=await Task.Run(()=>_store.Load().Items.FirstOrDefault(item=>item.Id==row.Reference.Id));
+            if(current is null){_status.Text="Reference is no longer available.";return;}
+            await _cards.OpenAsync(current,activate:false,permitted:()=>!_closed && !_exitRequested && _desktop is { } desktop && desktop.Engine.Session==session &&
+                desktop.Engine.Mode==Pocket.Core.GhostControlMode.Armed && _references.Items.Contains(row));
+            _status.Text=_cards.LastWindow is null?"Open canceled.":"Reference open."; }
+        catch(Exception e) when(IsStorageError(e)||e is FileFormatException){_status.Text="Could not open that reference.";}
+        finally{_busy=false;UpdateActions();}
     }
 
     public async Task StartCaptureAsync()

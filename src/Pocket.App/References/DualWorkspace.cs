@@ -27,9 +27,10 @@ internal sealed class DualWorkspace : Window
     private bool _closed, _busy;
     private readonly System.Windows.Threading.DispatcherTimer _demo = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private int _demoTick;
-    private readonly GhostInteraction _ghost;
-    private Guid _ghostSource;
-    private long _ghostSequence;
+    private Guid? _demoSource;
+    private readonly GhostDesktopHost _desktop;
+    private readonly bool _ownsDesktop;
+    private readonly Dictionary<string,IDisposable> _desktopTargets=[];
 
     private sealed record Choice(PocketReference Item)
     {
@@ -38,10 +39,11 @@ internal sealed class DualWorkspace : Window
 
     private sealed record Tile(Guid Id, Border Frame, Image Image, ScrollViewer Scroll, Button Grip);
 
-    public DualWorkspace(PocketStore store)
+    public DualWorkspace(PocketStore store, GhostDesktopHost? desktop = null)
     {
         _store = store;
-        _ghost = new(_scene);
+        _desktop=desktop??new GhostDesktopHost();
+        _ownsDesktop=desktop is null;
         Title = "Invey · Workspace";
         SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(this);
         Width = 1050;
@@ -58,13 +60,16 @@ internal sealed class DualWorkspace : Window
         tools.Children.Add(Command("Re_fresh library", async () => await RefreshAsync()));
         tools.Children.Add(Command("Simulated _Ghost demo", () =>
         {
-            if (_demo.IsEnabled) { _demo.Stop(); CancelGhost(); return; }
-            if (!_tiles.ContainsKey(First) || !PressGhost()) { _status.Text = "Load A and B first; release B before starting the simulation."; return; }
+            if (_demo.IsEnabled) { _demo.Stop(); if(_desktop.Engine.Session==_demoSource)CancelGhost(); return; }
+            if (!_tiles.ContainsKey(First) || !_tiles.ContainsKey(Second)) { _status.Text = "Load A and B first."; return; }
+            if (!PressGhost()) { _status.Text = "Reference B is covered, unavailable or owned. Move covering windows and release existing holds."; return; }
             _demoTick = 0;
+            _demoSource=_desktop.Engine.Session;
             _demo.Start();
         }));
         _demo.Tick += (_, _) =>
         {
+            if(_desktop.Engine.Session!=_demoSource){_demo.Stop();return;}
             if (_closed || !_tiles.ContainsKey(Second) || _scene.Pointer(PointerOwner.Ghost).Target is null || ++_demoTick > 20)
             { _demo.Stop(); CancelGhost(); return; }
             MoveGhost(_demoTick <= 10 ? 8 : -8, 0);
@@ -75,7 +80,7 @@ internal sealed class DualWorkspace : Window
         selectionTools.Children.Add(Command("Move _up", () => Adjust(0, -16)));
         selectionTools.Children.Add(Command("Move _down", () => Adjust(0, 16)));
         selectionTools.Children.Add(Command("_Smaller", () => Resize(-24)));
-        _larger = Command("_Larger", () => Resize(24));
+        _larger = Command("_Enlarge", () => Resize(24));
         selectionTools.Children.Add(_larger);
         selectionTools.Children.Add(Command("100% _zoom", () => Zoom(true)));
         selectionTools.Children.Add(Command("F_it image", () => Zoom(false)));
@@ -83,6 +88,9 @@ internal sealed class DualWorkspace : Window
         _board.Background = SystemColors.ControlBrush;
         var surface = new ScrollViewer { Content = _board, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+        void RemapRequired(){if(_desktop.Engine.ActiveTarget?.StartsWith("workspace:",StringComparison.Ordinal)==true)_desktop.Engine.Disarm();}
+        DpiChanged+=(_,_)=>RemapRequired();LocationChanged+=(_,_)=>RemapRequired();
+        surface.ScrollChanged+=(_,args)=>{if(args.HorizontalChange!=0||args.VerticalChange!=0)RemapRequired();};
         var header = new StackPanel { Children = { tools, selectionTools,
             new TextBlock { Text = "Simulated Ghost moves B only; this action never starts a camera. Live hand actuation is not connected.", TextWrapping = TextWrapping.Wrap }, _status } };
         var layout = new DockPanel { Margin = new(16) };
@@ -102,8 +110,10 @@ internal sealed class DualWorkspace : Window
             _closed = true;
             _demo.Stop();
             EndMouse();
-            CancelGhost();
+            if(_desktop.Engine.Session==_demoSource)CancelGhost();
+            else if(_desktop.Engine.ActiveTarget?.StartsWith("workspace:",StringComparison.Ordinal)==true)_desktop.Engine.Disarm();
             foreach (string slot in _tiles.Keys.ToArray()) Remove(slot);
+            if(_ownsDesktop)_desktop.Dispose();
         };
     }
 
@@ -167,7 +177,6 @@ internal sealed class DualWorkspace : Window
         if (_tiles.TryGetValue(slot, out var old) && old.Id == item.Id) { Select(slot); return; }
         Remove(slot);
         _scene.SetTarget(slot, slot == First ? new(32, 32, 370, 260) : new(480, 130, 370, 260));
-        _ghost.Register(slot);
         var image = new Image { Source = source, Stretch = Stretch.Uniform };
         AutomationProperties.SetName(image, $"Reference {slot} snapshot");
         var scroll = new ScrollViewer { Content = image, Focusable = true, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
@@ -190,6 +199,11 @@ internal sealed class DualWorkspace : Window
         frame.GotKeyboardFocus += (_, _) => Select(slot);
         _tiles.Add(slot, new(item.Id, frame, image, scroll, grip));
         _board.Children.Add(frame);
+        if(_desktop is { } shared)
+            _desktopTargets[slot]=shared.Register("workspace:"+slot,this,frame,true,
+                begin:p=>{var local=_board.PointFromScreen(new(p.X,p.Y));_scene.Move(PointerOwner.Ghost,new(local.X,local.Y));return _scene.Press(PointerOwner.Ghost,slot);},
+                move:p=>{var local=_board.PointFromScreen(new(p.X,p.Y));_scene.Move(PointerOwner.Ghost,new(local.X,local.Y));Render(slot);},
+                end:_=>_scene.Release(PointerOwner.Ghost),priorityGetter:()=>100+Panel.GetZIndex(frame),label:$"Workspace {slot}");
         Render(slot);
         Select(slot);
     }
@@ -284,8 +298,8 @@ internal sealed class DualWorkspace : Window
     private void Remove(string slot)
     {
         if (!_tiles.Remove(slot, out var tile)) return;
+        if(_desktopTargets.Remove(slot,out var registration))registration.Dispose();
         if (_scene.Pointer(PointerOwner.Mouse).Target == slot) EndMouse();
-        _ghost.Unregister(slot);
         _scene.RemoveTarget(slot);
         tile.Image.Source = null;
         _board.Children.Remove(tile.Frame);
@@ -319,21 +333,25 @@ internal sealed class DualWorkspace : Window
     {
         if (!_tiles.ContainsKey(Second) || _scene.Pointer(PointerOwner.Ghost).Target is not null) return false;
         var box = _scene.Target(Second);
-        _ghostSource = _ghost.BeginControlledSource();
-        _ghostSequence = 0;
-        if (!_ghost.Arm(_ghostSource)) return false;
-        return _ghost.Submit(_ghostSource, _ghostSequence++, 1, new(box.X + 12, box.Y + 12), GhostIntent.Press, true);
+        if(_desktop is { } desktop)
+        {
+            _board.UpdateLayout();desktop.StartControlled();
+            var p=_board.PointToScreen(new(box.X+12,box.Y+12));desktop.MoveControlled(new(p.X,p.Y));
+            return desktop.Engine.Arm() && desktop.Intent(GhostIntent.Press);
+        }
+        return false;
     }
 
     internal void MoveGhost(int dx, int dy)
     {
         if (_scene.Pointer(PointerOwner.Ghost) is not { Target: { } slot, Position: var p }) return;
-        _ghost.Submit(_ghostSource, _ghostSequence, _ghostSequence + 1, new(p.X + dx, p.Y + dy), GhostIntent.Move, true);
-        _ghostSequence++;
-        Render(slot);
+        if(_desktop is { } desktop)
+        {
+            var screen=_board.PointToScreen(new(p.X+dx,p.Y+dy));desktop.MoveControlled(new(screen.X,screen.Y));return;
+        }
     }
 
-    internal void CancelGhost() => _ghost.Stop();
+    internal void CancelGhost() => _desktop.Stop();
 
     internal object TestState() => new
     {
@@ -342,7 +360,8 @@ internal sealed class DualWorkspace : Window
         Larger = _larger.IsVisible ? _larger.PointToScreen(new Point(_larger.ActualWidth / 2, _larger.ActualHeight / 2)) : default,
         Mouse = _scene.Pointer(PointerOwner.Mouse).Target,
         Ghost = _scene.Pointer(PointerOwner.Ghost).Target,
-        GhostControlMode = _ghost.Mode.ToString(),
+        GhostControlMode = _desktop.Engine.Mode.ToString(),
+        SelectedSlot = _selection, EnlargeEnabled = _larger.IsEnabled, KeyboardFocus = Keyboard.FocusedElement?.GetType().Name,
         Cards = _tiles.Select(pair =>
         {
             var frame = pair.Value.Frame;

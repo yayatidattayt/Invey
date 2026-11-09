@@ -114,3 +114,7 @@ Main navigation, explicit isolated sample profile, launcher and labeled recorded
 # Execution19 decision — 2026-11-09
 
 Use one motion-aware One Euro filter with bounded spike confirmation, retaining legacy comparison. Use existing NumPy for experimental fixed-template warm correspondence,600ms anchor expiry and explicit v3 visual provenance. It is not anatomy recognition and never grants full-hand readiness, gesture or learning authority. Preserve the existing separate raw-mapped learning path. Cold acquisition and physical qualification remain open; no camera allowance is renewed. Details/evidence: EXECUTION_19_REPORT.md.
+
+## Execution20 interaction boundary — 2026-11-09
+
+Keep action authority restricted to the explicitly controlled source and registered Invey-owned targets. Recorded and camera sources remain preview-only; partial/visual evidence cannot authorize actions. Loss, ambiguity, stale generation, target closure and Stop release active interaction. Physical hand actuation remains unqualified. Evidence and test boundary: [Execution20 report](EXECUTION_20_REPORT.md).

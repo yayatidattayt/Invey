@@ -47,7 +47,7 @@ public sealed class AdaptivePointFilter(double minCutoff = 1.5, double beta = 3,
 }
 
 /// <summary>Preview eligibility is independent from calibration and action authority. No prediction or input injection.</summary>
-public sealed class FingerPointer
+public sealed class FingerPointer(bool stabilize = true)
 {
     private readonly PrecisionPointFilter _filter = new();
     private readonly AdaptivePointFilter _legacyFilter = new();
@@ -120,7 +120,7 @@ public sealed class FingerPointer
             _sequence = hand.Sequence; _capture = hand.CaptureMonoMs;
             _previous = []; _stable++;
             var observed = new DipPoint(visual.X, visual.Y);
-            var filtered = _legacy ? _legacyFilter.Apply(observed, hand.CaptureMonoMs) : _filter.Apply(observed, hand.CaptureMonoMs);
+            var filtered = !stabilize ? observed : _legacy ? _legacyFilter.Apply(observed, hand.CaptureMonoMs) : _filter.Apply(observed, hand.CaptureMonoMs);
             var samples = Enum.GetValues<FingerKind>().Select(kind => new FingerSample(kind,
                 kind == FingerKind.Index ? FingerEvidence.Visual : FingerEvidence.Unavailable,
                 kind == FingerKind.Index ? new ImageLandmark(visual.X, visual.Y, 0) : null, false, null, null, false)).ToImmutableArray();
@@ -152,7 +152,7 @@ public sealed class FingerPointer
             _legacyFilter.Reset();
             _stable = 0;
         }
-        var point = _legacy ? _legacyFilter.Apply(new(index.X, index.Y), hand.CaptureMonoMs) :
+        var point = !stabilize ? new(index.X,index.Y) : _legacy ? _legacyFilter.Apply(new(index.X, index.Y), hand.CaptureMonoMs) :
             _filter.Apply(new(index.X, index.Y), hand.CaptureMonoMs);
         _stable++;
         bool eligible = _stable >= 4 && (_legacy || !_filter.SpikePending) && hand.Tracked && !hand.Partial && fingers.All(f => f.ActionEligible);

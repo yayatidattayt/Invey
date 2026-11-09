@@ -173,6 +173,7 @@ internal sealed class PersonalLearningPanel : StackPanel
         TryBegin();
         Refresh(_lesson.Phase != LessonPhase.Idle);
     }
+    internal PersonalModel? AcceptedPreviewModel => _profile.UsePersonal ? _profile.Current : null;
     private void RecomputePrediction() => _prediction = _baseline is { } b && _profile.UsePersonal &&
         _profile.Current is { } m && _context is { } context && m.Context == context ? m.Predict(b, context) : _baseline;
     private async Task EvaluateAsync()

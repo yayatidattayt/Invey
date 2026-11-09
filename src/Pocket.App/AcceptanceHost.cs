@@ -90,8 +90,30 @@ internal sealed class AcceptanceHost : IDisposable
     }
     private async Task<string> DispatchAsync(string command)
     {
+        if(command.StartsWith("ghost-aim|",StringComparison.Ordinal)) { _product!.DesktopGhost.Aim(command[10..]);command="status"; }
+        if(command.StartsWith("ghost-control|",StringComparison.Ordinal)){_product!.DesktopGhost.ClickControlFixture(command[14..]);command="status";}
+        if(command.StartsWith("ghost-move|",StringComparison.Ordinal))
+        {
+            var values=command.Split('|');var host=_product!.DesktopGhost;
+            if(host.Engine.Position is { } p)host.MoveControlled(new(p.X+int.Parse(values[1]),p.Y+int.Parse(values[2])));
+            command="status";
+        }
         switch(command)
         {
+            case "ghost-start": _product!.DesktopGhost.StartControlled();break;
+            case "ghost-controls": _product!.DesktopGhost.ShowControls();break;
+            case "ghost-controls-place": _product!.DesktopGhost.PositionControlsForAcceptance(900,50);break;
+            case "ghost-pattern-hide": _capturePattern?.Hide();break;
+            case "ghost-arm": _product!.DesktopGhost.Engine.Arm();break;
+            case "ghost-press": _product!.DesktopGhost.Intent(Pocket.Core.GhostIntent.Press);break;
+            case "ghost-release": _product!.DesktopGhost.Intent(Pocket.Core.GhostIntent.Release);break;
+            case "ghost-activate": _product!.DesktopGhost.Command(Pocket.Core.GhostCommand.Activate);break;
+            case "ghost-pin": _product!.DesktopGhost.Command(Pocket.Core.GhostCommand.Pin);break;
+            case "ghost-unpin": _product!.DesktopGhost.Command(Pocket.Core.GhostCommand.Unpin);break;
+            case "ghost-hide": _product!.DesktopGhost.Command(Pocket.Core.GhostCommand.Hide);break;
+            case "ghost-stop": _product!.DesktopGhost.Stop();break;
+            case "ghost-loss": _product!.DesktopGhost.Engine.Lose("Injected tracking loss — released");break;
+            case "ghost-recorded-preview": _product!.EnableDesktopPreviewFixture();break;
             case "status":break;
             case "product-diagnostic-budget":
                 _diagnosticReservations = ReserveFixtureBudget();
@@ -124,7 +146,8 @@ internal sealed class AcceptanceHost : IDisposable
                 source.AddHook(ObserveFixtureShortcut);
                 break;
             case "demo-start":
-                string demoRoot = Path.Combine(Path.GetDirectoryName(Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE"))!, "demo-profile");
+            case "dual-demo-start":
+                string demoRoot = Path.Combine(Path.GetDirectoryName(Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE"))!, command=="dual-demo-start"?"dual-demo-profile":"demo-profile");
                 var demoProfile = DemoProfile.Prepare(demoRoot);
                 _capturePattern ??= CreatePocketPattern();
                 _product = new MainWindow(demoProfile, _capturePattern);
@@ -266,6 +289,8 @@ internal sealed class AcceptanceHost : IDisposable
             DiagnosticReservations = _diagnosticReservations, BudgetResult = _budgetResult, PreviewResult = _previewResult,
             TimerScheduled=_simulation.IsScheduled,OverlayVisible=_overlay.IsVisible,Running=_simulation.IsRunning,Events=_simulation.Observations.Count,
             GhostClaim=_overlay.Scene.Pointer(Pocket.Core.PointerOwner.Ghost).Target,Panel=_overlay.Scene.Target("panel"),
+            Windows=Application.Current.Windows.Cast<Window>().Select(w=>new { Type=w.GetType().FullName, w.Title, w.IsVisible,
+                w.WindowState,w.Left,w.Top,w.Width,w.Height,Handle=new WindowInteropHelper(w).Handle.ToInt64() }).ToArray(),
             Native=NativeWindow.Observe() });
     }
 

@@ -79,3 +79,7 @@ Main navigation, explicit isolated sample profile, launcher and labeled recorded
 # Execution19 measured compatibility — 2026-11-09
 
 Existing Windows26200/.NET10.0.403 SDK/MediaPipe0.10.32/NumPy runtime retained. V1 full, v2 sparse and v3 pointer-only visual observations are supported by the updated host; an old host cannot read v3 and must be paired with its old worker or INVEY_LEGACY_POINTER=1. No new dependency installed. Generated-image continuation and isolated WPF pass; physical webcam, sustained resource behavior, cold fingertip acquisition and broader display configurations remain unqualified. See EXECUTION_19_REPORT.md.
+
+## Execution20 isolated acceptance — 2026-11-09
+
+Windows private-desktop suite:40 PASS,0 FAIL,1 BLOCKED because Explorer is unavailable in the isolated environment. Camera-free controlled product routes passed; physical camera and ordinary-desktop hand interaction not tested. Details: [Execution20 report](EXECUTION_20_REPORT.md).

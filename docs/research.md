@@ -543,3 +543,7 @@ See `docs/EXECUTION_16_REPORT.md` and `docs/FINGER_TRACKING_RESEARCH.md`. The re
 ## Execution17 — camera-free demo stabilization (2026-11-08)
 
 Main navigation, explicit isolated sample profile, launcher and labeled recorded/simulated entry points reuse existing implementations. Pinning now handles checked-state changes, including accessibility Toggle. Two seeded supplemental WPF-control/GDI/model/restart rehearsals passed. They do not replace native input acceptance: the final standard run was refused at foreground ownership by the existing safety guard. Debug/Release100 core tests and20 worker tests pass; readiness is PARTIAL with a manual remote-session checklist. No webcam acquisition or normal/legacy library migration was performed. See docs/EXECUTION_17_DEMO_REPORT.md and docs/DEMO_FEATURE_INVENTORY.md.
+
+## 2026-11-09 — Execution20 interaction verification
+
+The native controlled pointer route uses explicit source authority, registered target ownership, visibility/stacking gates, physical virtual-desktop coordinate mapping and single-stage filtering. Isolated routes exercise Pocket, Workspace, loss/Stop and recorded preview without activating the camera. Physical gesture accuracy remains unverified. See [Execution20 report](EXECUTION_20_REPORT.md).
