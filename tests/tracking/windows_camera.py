@@ -377,6 +377,7 @@ class CameraFrameSource:
                 self.samples_read += 1
                 if self.last_pts is not None and pts.value <= self.last_pts:
                     self.skipped += 1
+                    if self.diagnostic:self.diagnostic.count("nativeNonMonotonicSamples")
                     continue
                 if self.diagnostic:
                     if self.last_pts is not None:self.diagnostic.timing("nativeTimestampIntervalMs",(pts.value-self.last_pts)*100)
@@ -392,6 +393,7 @@ class CameraFrameSource:
                     acquired_ns = pts.value * 100 + self.offset_ns
                     if delivered - acquired_ns >= 250_000_000:
                         self.skipped += 1
+                        if self.diagnostic:self.diagnostic.count("nativeStaleSamples")
                         continue
                 else:
                     self.next_frame = delivered / 1e9 + 0.08
