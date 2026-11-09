@@ -551,3 +551,7 @@ The native controlled pointer route uses explicit source authority, registered t
 ## 2026-11-09 — Execution21 beta findings
 
 The creator-facing controlled pointer can be moved by focused WASD/arrows, with Shift precision and Ctrl larger steps; Space holds/releases only inside the focused Try Ghost Beta window. The native isolated E20 route confirms the ring position, target hit-testing, cursor independence and immediate Escape Stop. A duplicate Alt+T accelerator between Ghost Tracking and Try Ghost Beta was found by the first full rehearsal and corrected to Alt+B. A typed full-hand pinch intent prototype uses the existing 0.28/0.42 practice band and a longer dwell; it is not connected to application actions and always reports `MayExecute=false`. The creator's actual hand, ordinary desktop and camera have not been tested. See `docs/EXECUTION_21_REPORT.md`.
+
+## Execution22 — 2026-11-10
+
+Typed dispatcher gesture coordinator, neutral-before-pinch, Pause/gap/context/target binding, bounded open/pinch/release lesson and controlled mapped WPF gesture replay added. Final core167/167 Debug and Release; builds0 warnings/errors; worker29/29. Actual WPF E20 gesture/card route passed seed22003; final native regression BLOCKED by GameInputServiceWindow foreground, failure runs retained. Live authorization absent; camera ledger unchanged; no production action issuer. Physical/DPI/shell and final native/lesson acceptance remain open. See EXECUTION_22_REPORT.md and LIVE_GHOST_TEST_GUIDE.md; do not infer physical success or complete software acceptance.

@@ -87,3 +87,7 @@ Windows private-desktop suite:40 PASS,0 FAIL,1 BLOCKED because Explorer is unava
 ## Execution21 controlled beta — 2026-11-09
 
 Pinned Windows/.NET environment retained; no package or runtime added. Extended isolated desktop run `20261109T163409321-5611ac9b719c4475a7d7ee4700a732ba` passed all runnable cases including Pocket/Dual/recorded workflow and user-facing keyboard movement. Explorer/Alt+Tab tray remains BLOCKED without Explorer. Selected-monitor movement is deterministic in the private desktop; mixed-DPI physical hardware and ordinary-desktop focus remain unqualified. No camera was opened.
+
+## Execution22 — 2026-11-10
+
+Typed dispatcher gesture coordinator, neutral-before-pinch, Pause/gap/context/target binding, bounded open/pinch/release lesson and controlled mapped WPF gesture replay added. Final core167/167 Debug and Release; builds0 warnings/errors; worker29/29. Actual WPF E20 gesture/card route passed seed22003; final native regression BLOCKED by GameInputServiceWindow foreground, failure runs retained. Live authorization absent; camera ledger unchanged; no production action issuer. Physical/DPI/shell and final native/lesson acceptance remain open. See EXECUTION_22_REPORT.md and LIVE_GHOST_TEST_GUIDE.md; do not infer physical success or complete software acceptance.

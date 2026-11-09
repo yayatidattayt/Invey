@@ -88,3 +88,7 @@ The supported controlled desktop-pointer route is implemented and verified throu
 ## Execution21 controlled beta trace — 2026-11-09
 
 Product controls expose focused keyboard steering, hold/release, target status and explicit Stop. Isolated D17/E20 routes exercise actual WPF targets and native input on the private desktop; 39 cases pass, Explorer is blocked, and the closed-cursor control remains inconclusive. The live gesture adapter is unit-tested but hard-disabled (`MayExecute=false`) and not connected to Pocket. Human normal-desktop and physical camera acceptance remain NOT TESTED. See [Execution21 report](EXECUTION_21_REPORT.md) and [creator checklist](INVEY_BETA_TEST_CHECKLIST.md).
+
+## Execution22 — 2026-11-10
+
+Typed dispatcher gesture coordinator, neutral-before-pinch, Pause/gap/context/target binding, bounded open/pinch/release lesson and controlled mapped WPF gesture replay added. Final core167/167 Debug and Release; builds0 warnings/errors; worker29/29. Actual WPF E20 gesture/card route passed seed22003; final native regression BLOCKED by GameInputServiceWindow foreground, failure runs retained. Live authorization absent; camera ledger unchanged; no production action issuer. Physical/DPI/shell and final native/lesson acceptance remain open. See EXECUTION_22_REPORT.md and LIVE_GHOST_TEST_GUIDE.md; do not infer physical success or complete software acceptance.

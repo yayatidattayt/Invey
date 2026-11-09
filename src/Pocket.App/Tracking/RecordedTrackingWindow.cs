@@ -56,6 +56,8 @@ internal sealed partial class RecordedTrackingWindow : Window
     public event Action<string>? CameraStatusChanged;
     internal event Action<TrackingSnapshot,LearningContext?,Pocket.Core.DipPoint?,PersonalModel?>? DesktopPointerChanged;
     internal event Action<bool>? DesktopPreviewChanged;
+    private readonly GesturePracticePanel _gesturePractice=new();
+    internal event Action<Guid,LearningContext,GhostGestureCalibration>? GesturePracticeReady;
     private readonly CheckBox _desktopPreview=new(){Content="Desktop Ghost preview · no live actions"};
     internal Func<string>? DesktopStatus { get; set; }
     private readonly TextBlock _desktopStatus=new(){TextWrapping=TextWrapping.Wrap};
@@ -65,6 +67,7 @@ internal sealed partial class RecordedTrackingWindow : Window
         bool profileWritable = true)
     {
         _fixtureFile = fixtureFile;
+        _gesturePractice.Ready+=(source,context,calibration)=>GesturePracticeReady?.Invoke(source,context,calibration);
         _fixtureCameraFault = fixtureCameraFault;
         if (fixtureFile is not null) _live.Content = "_Local video fixture";
         Title = "Invey · Tracking lab";
@@ -155,6 +158,7 @@ internal sealed partial class RecordedTrackingWindow : Window
                 _showPreview,
                 _desktopPreview,
                 _desktopStatus,
+                _gesturePractice,
                 actions,
                 _previewTiming,
                 _mirrorCamera,
@@ -357,6 +361,8 @@ internal sealed partial class RecordedTrackingWindow : Window
         var input = _calibration.LearningInput(_visible, _visible.Source == TrackingSource.Camera
             ? (_devices.SelectedItem as CameraDevice)?.Id ?? "unknown" : _recordedDemo.SelectedIndex == 1 ? "simulated-practice" : "recorded-model");
         _learning.Observe(_visible, input.Context, input.Point, _calibration.PracticeHeld, _calibration.LearningSetupIssue);
+        _gesturePractice.Update(_visible,_calibration.DesktopContext(_visible,_visible.Source==TrackingSource.Camera
+            ? (_devices.SelectedItem as CameraDevice)?.Id??"unknown" : _recordedDemo.SelectedIndex==1?"simulated-practice":"recorded-model"));
         if(_desktopPreview.IsChecked==true)
             DesktopPointerChanged?.Invoke(_visible,_calibration.DesktopContext(_visible,_visible.Source==TrackingSource.Camera
                 ? (_devices.SelectedItem as CameraDevice)?.Id??"unknown" : _recordedDemo.SelectedIndex==1?"simulated-practice":"recorded-model"),null,_learning.AcceptedPreviewModel);

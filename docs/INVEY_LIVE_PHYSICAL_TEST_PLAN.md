@@ -31,3 +31,5 @@ For each separately authorized session, the creator selects the ASUS FHD camera 
 ## Qualification boundary
 
 Recorded or synthetic sequences can verify state-machine transitions but cannot qualify camera-to-Pocket actuation. Live gestures remain disconnected from the production `GhostDesktop` command path until a separately reviewed physical safety gate passes and explicit user authorization is granted.
+
+Execution22 clarification: this older plan does not authorize Gate3. Use LIVE_GHOST_TEST_GUIDE.md: pointer and proposal qualification are separate from live actuation. This build has no live qualification issuer; no camera authorization or ledger amendment was made.

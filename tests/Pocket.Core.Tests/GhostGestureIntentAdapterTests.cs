@@ -32,7 +32,7 @@ public sealed class GhostGestureIntentAdapterTests
     {
         var adapter=new GhostGestureIntentAdapter();var session=Guid.NewGuid();adapter.Begin(session,Calibration());
         Arm(adapter,"card");
-        Assert.Equal(GhostGestureTransition.PinchCandidate,Observe(adapter,session,0,1000,true).Transition);
+        Assert.Equal(GhostGestureTransition.Neutral,Observe(adapter,session,0,1000,true).Transition);
         var ambiguous=adapter.Observe(Hand(session,1,1030,true,ambiguous:true),1030);
         Assert.Equal(GhostGestureTransition.Ambiguous,ambiguous.Transition);Assert.False(ambiguous.PocketArmed);Assert.False(adapter.IsHolding);
         Assert.False(Arm(adapter,"card",assert:false));
@@ -61,9 +61,9 @@ public sealed class GhostGestureIntentAdapterTests
     {
         var adapter=new GhostGestureIntentAdapter();var session=Guid.NewGuid();adapter.Begin(session,Calibration());
         Arm(adapter,"card");
-        Observe(adapter,session,0,1000,true);
-        Assert.Equal(GhostGestureTransition.PinchConfirmed,Observe(adapter,session,1,1200,true).Transition);
-        Assert.Equal(GhostGestureTransition.Hold,Observe(adapter,session,2,1240,true).Transition);
+        Observe(adapter,session,0,950,false);Observe(adapter,session,1,1000,true);
+        Assert.Equal(GhostGestureTransition.PinchConfirmed,Observe(adapter,session,2,1200,true).Transition);
+        Assert.Equal(GhostGestureTransition.Hold,Observe(adapter,session,3,1240,true).Transition);
         Assert.True(adapter.IsHolding);
         var paused=adapter.Pause();Assert.Equal(GhostGestureTransition.Paused,paused.Transition);Assert.False(adapter.IsHolding);Assert.False(paused.MayExecute);
         var stopped=adapter.Stop();Assert.Equal(GhostGestureTransition.Stopped,stopped.Transition);Assert.Equal(GhostGestureCommand.None,stopped.ProposedCommand);
@@ -83,11 +83,11 @@ public sealed class GhostGestureIntentAdapterTests
         var adapter=new GhostGestureIntentAdapter();var session=Guid.NewGuid();adapter.Begin(session,Calibration());
         bool registered=true;var target=new GhostGestureTarget("card",Guid.NewGuid());
         Assert.True(adapter.ArmPocket(target,(id,lifetime)=>registered&&id==target.Id&&lifetime==target.Lifetime?target:null));
-        Observe(adapter,session,0,1000,true);Observe(adapter,session,1,1050,true);
-        Assert.Equal(GhostGestureTransition.PinchConfirmed,Observe(adapter,session,2,1200,true).Transition);
+        Observe(adapter,session,0,950,false);Observe(adapter,session,1,1000,true);Observe(adapter,session,2,1050,true);
+        Assert.Equal(GhostGestureTransition.PinchConfirmed,Observe(adapter,session,3,1200,true).Transition);
         Assert.False(adapter.ArmPocket(new("other",Guid.NewGuid()),(_,_)=>null));
         registered=false;
-        var lost=Observe(adapter,session,3,1280,true);
+        var lost=Observe(adapter,session,4,1280,true);
         Assert.Equal(GhostGestureTransition.TrackingLost,lost.Transition);Assert.False(lost.PocketArmed);Assert.False(lost.MayExecute);
     }
 

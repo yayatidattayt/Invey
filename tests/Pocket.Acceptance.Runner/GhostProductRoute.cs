@@ -58,6 +58,12 @@ internal static partial class Program
                 Require(ActualPinned(cardHandle),"Native pin style did not change.");
                 await Send("ghost-unpin");await Until(client,s=>!ProductPocket(s).GetProperty("Pinned").GetBoolean());
                 Require(!ActualPinned(cardHandle),"Native topmost style survived Unpin.");
+                await Send("ghost-gesture-replay");
+                var gestureEvidence=DesktopGhost(await Send("status")).GetProperty("GestureReplay");
+                Require(gestureEvidence.GetProperty("ActualCardMoved").GetBoolean()&&gestureEvidence.GetProperty("AmbiguityCanceled").GetBoolean(),"Mapped gesture fixture did not prove card movement and cancellation.");
+                var replayBounds=ProductPocket(await Send("status")).GetProperty("ViewerBounds");
+                parkedX=replayBounds.GetProperty("X").GetDouble();parkedY=replayBounds.GetProperty("Y").GetDouble();
+                await Send("ghost-start");await Aim(card);await Send("ghost-arm");
                 await Send("ghost-pin");Require(ActualPinned(cardHandle),"Re-pin failed.");
                 await Aim("shelf:dismiss");await Send("ghost-activate");await Until(client,s=>!ShelfVisible(s));
                 Require(IsWindowVisible(new(cardHandle)),"Dismiss hid pinned card.");

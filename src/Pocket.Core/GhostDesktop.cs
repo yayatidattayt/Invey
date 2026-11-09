@@ -26,6 +26,7 @@ public sealed class GhostDesktop(Func<long> clock)
     public GhostSourceKind Source => _kind;
     public string? ActiveTarget => _held?.Id;
     public string? HoverTarget => Hit()?.Id;
+    internal GhostDesktopTarget? ReachableTarget => Hit();
     public string Status { get; private set; } = "Pocket control off";
     public Func<long,DipPoint,bool>? WindowReachable { get; set; }
     public event Action? Changed;

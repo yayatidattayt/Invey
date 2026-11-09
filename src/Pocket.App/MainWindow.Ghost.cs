@@ -25,12 +25,13 @@ public partial class MainWindow
         var point=_desktopMapper.Map(snapshot,context,model);
         DesktopGhost.LastMappingMs=watch.Elapsed.TotalMilliseconds;
         if(snapshot.Observation is not { } hand || point is null)
-        { DesktopGhost.Engine.Lose("Tracking lost or mapping unavailable — released");return; }
+        { DesktopGhost.Gestures.Stop();DesktopGhost.Engine.Lose("Tracking lost or mapping unavailable — released");return; }
         if(hand.Sequence==_desktopSequence)return;
         _desktopSequence=hand.Sequence;
         long age=(long)(snapshot.HostObservationAge?.TotalMilliseconds??150)+hand.ResultMonoMs-hand.CaptureMonoMs;
         DesktopGhost.TrackingPosition(id,hand.Sequence,point,_desktopMapper.Provenance,age,
             snapshot.Source==TrackingSource.Camera?GhostSourceKind.Camera:GhostSourceKind.Recorded);
+        DesktopGhost.Gestures.Observe(hand,context,hand.ResultMonoMs+(long)(snapshot.HostObservationAge?.TotalMilliseconds??150));
     }
     internal void EnableDesktopPreviewFixture()=>_tracking?.EnableDesktopPreviewFixture();
 }

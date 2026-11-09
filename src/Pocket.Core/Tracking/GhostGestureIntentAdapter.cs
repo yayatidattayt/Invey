@@ -29,7 +29,7 @@ public sealed class GhostGestureCalibration
         var pinches=pinchRatios.ToArray();var opens=openRatios.ToArray();
         if(!Enum.IsDefined(selectedHand)||dwellMilliseconds is <180 or >1000||pinches.Length<3||opens.Length<3||
             pinches.Concat(opens).Any(x=>!double.IsFinite(x)||x is <0 or >1))return null;
-        if(Median(pinches)>.28||Median(opens)<.42||Median(opens)-Median(pinches)<.14)return null;
+        if(pinches.Max()>.28||opens.Min()<.42||opens.Min()-pinches.Max()<.14)return null;
         return new(Guid.NewGuid(),selectedHand,.28,.42,dwellMilliseconds);
     }
     private static double Median(double[] values){var sorted=values.Order().ToArray();return sorted[sorted.Length/2];}
@@ -50,7 +50,7 @@ public sealed class GhostGestureIntentAdapter
     private GhostGestureCalibration? _calibration;
     private GhostGestureTarget? _target;
     private Func<string,Guid,GhostGestureTarget?>? _resolveTarget;
-    private bool _armed, _held;
+    private bool _armed, _held, _neutralSeen;
     private long _sequence=-1, _lastCapture=-1, _candidateSince=-1, _releaseSince=-1;
     private GhostGestureTransition _transition=GhostGestureTransition.Stopped;
     public GhostGestureTransition Transition => _transition;
@@ -79,14 +79,16 @@ public sealed class GhostGestureIntentAdapter
     {
         if(_session is null || _calibration is null)
             return Set(GhostGestureTransition.Stopped,GhostGestureCommand.None,null,"Adapter is stopped.");
+        if(_transition==GhostGestureTransition.Paused)
+            return Set(GhostGestureTransition.Paused,GhostGestureCommand.None,null,"Paused; restart practice to resume.");
         if(_armed&&(_target is null||_resolveTarget?.Invoke(_target.Id,_target.Lifetime)!=_target))
         {
-            _held=false;_armed=false;_target=null;_resolveTarget=null;_candidateSince=_releaseSince=-1;
+            _held=false;_armed=false;_neutralSeen=false;_target=null;_resolveTarget=null;_candidateSince=_releaseSince=-1;
             return Set(GhostGestureTransition.TrackingLost,GhostGestureCommand.Release,null,"Target closed or replaced; gesture released.");
         }
         if(observation.Ambiguous)
         {
-            _held=false;_candidateSince=_releaseSince=-1;_armed=false;_target=null;_resolveTarget=null;
+            _held=false;_neutralSeen=false;_candidateSince=_releaseSince=-1;_armed=false;_target=null;_resolveTarget=null;
             return Set(GhostGestureTransition.Ambiguous,GhostGestureCommand.Release,null,"Ambiguous hand observation released control; re-arm after tracking is clear.");
         }
         if(observation.SessionId!=_session || !observation.IsValid || !observation.Tracked || observation.Partial || observation.Visual is not null ||
@@ -99,7 +101,18 @@ public sealed class GhostGestureIntentAdapter
             return Set(GhostGestureTransition.TrackingLost,GhostGestureCommand.Release,null,"Hand mismatch, stale data, source replacement or incomplete landmarks released control.");
         }
 
+        if(_lastCapture>=0&&observation.CaptureMonoMs-_lastCapture>250)
+        {
+            _neutralSeen=false;_held=false;_candidateSince=_releaseSince=-1;_armed=false;_target=null;_resolveTarget=null;
+            _sequence=observation.Sequence;_lastCapture=observation.CaptureMonoMs;
+            return Set(GhostGestureTransition.TrackingLost,GhostGestureCommand.Release,null,"Observation gap; open hand and re-arm.");
+        }
         _sequence=observation.Sequence;_lastCapture=observation.CaptureMonoMs;
+        if(!_neutralSeen)
+        {
+            if(ratio>=_calibration.ReleaseRatio)_neutralSeen=true;
+            else return Set(GhostGestureTransition.Neutral,GhostGestureCommand.None,null,"Open your hand before starting a new pinch.");
+        }
         if(!_held)
         {
             if(ratio<=_calibration.PinchEnterRatio)
@@ -138,7 +151,7 @@ public sealed class GhostGestureIntentAdapter
 
     public GhostGestureResult Stop()
     {
-        bool wasHeld=_held;_held=false;_armed=false;_target=null;_resolveTarget=null;_session=null;_calibration=null;
+        bool wasHeld=_held;_held=false;_armed=false;_neutralSeen=false;_target=null;_resolveTarget=null;_session=null;_calibration=null;
         _candidateSince=_releaseSince=-1;_sequence=_lastCapture=-1;
         return Set(GhostGestureTransition.Stopped,wasHeld?GhostGestureCommand.Release:GhostGestureCommand.None,null,"Stopped; no action dispatched.");
     }
@@ -150,7 +163,7 @@ public sealed class GhostGestureIntentAdapter
         return new(state,command,_armed,target??_target,false,reason);
     }
 
-    private static bool TryPinchRatio(HandObservation hand,out double ratio)
+    internal static bool TryPinchRatio(HandObservation hand,out double ratio)
     {
         ratio=double.NaN;
         if(hand.FrameSize is not {IsValid:true} frame)return false;

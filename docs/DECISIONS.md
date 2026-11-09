@@ -122,3 +122,7 @@ Keep action authority restricted to the explicitly controlled source and registe
 ## Execution21 beta interaction boundary — 2026-11-09
 
 Keep the ordinary mouse independent and restrict controlled Ghost actions to visible, registered Invey Pocket targets. User keyboard steering is enabled only while the focused Try Ghost panel is active; focus loss disarms and releases. Add a standalone full-hand gesture intent state prototype using existing practice thresholds, but keep `MayExecute` permanently false and do not connect it to production actions before physical qualification and separate review. Camera remains off; prior allowance remains exhausted.
+
+## Execution22 — 2026-11-10
+
+Typed dispatcher gesture coordinator, neutral-before-pinch, Pause/gap/context/target binding, bounded open/pinch/release lesson and controlled mapped WPF gesture replay added. Final core167/167 Debug and Release; builds0 warnings/errors; worker29/29. Actual WPF E20 gesture/card route passed seed22003; final native regression BLOCKED by GameInputServiceWindow foreground, failure runs retained. Live authorization absent; camera ledger unchanged; no production action issuer. Physical/DPI/shell and final native/lesson acceptance remain open. See EXECUTION_22_REPORT.md and LIVE_GHOST_TEST_GUIDE.md; do not infer physical success or complete software acceptance.

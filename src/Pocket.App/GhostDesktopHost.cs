@@ -16,6 +16,8 @@ namespace Pocket.App;
 internal sealed class GhostDesktopHost : IDisposable
 {
     public GhostDesktop Engine { get; } = new(()=>Environment.TickCount64);
+    public Pocket.Core.Tracking.GhostGestureCoordinator Gestures {get;}
+    internal object? GestureReplayEvidence {get;set;}
     private readonly DispatcherTimer _timer = new() { Interval=TimeSpan.FromMilliseconds(40) };
     private PointerWindow? _overlay;
     private Window? _controls;
@@ -36,6 +38,7 @@ internal sealed class GhostDesktopHost : IDisposable
     public long PointerUpdates { get; private set; }
     public GhostDesktopHost()
     {
+        Gestures=new(Engine);
         Engine.WindowReachable=Reachable;
         Engine.Changed+=Render;
         _timer.Tick+=(_,_)=>
@@ -77,8 +80,8 @@ internal sealed class GhostDesktopHost : IDisposable
     private Guid? _trackingSource;
     private GhostSourceKind _trackingKind;
     public void EnableTracking(GhostSourceKind kind) { Stop(); _trackingKind=kind; TrackingEnabled=true; }
-    public void TrackingStopped(){_trackingSource=null;Engine.Stop();}
-    public void Stop() { _controlled=false;_controlledBounds=null;TrackingEnabled=false;_trackingSource=null;Engine.Stop();Stopped?.Invoke(); }
+    public void TrackingStopped(){Gestures.Stop();_trackingSource=null;Engine.Stop();}
+    public void Stop() { Gestures.Stop();_controlled=false;_controlledBounds=null;TrackingEnabled=false;_trackingSource=null;Engine.Stop();Stopped?.Invoke(); }
     public bool Intent(GhostIntent intent)
     {
         var watch=Stopwatch.StartNew();
@@ -258,6 +261,7 @@ internal sealed class GhostDesktopHost : IDisposable
         Source=Engine.Source.ToString(), OverlayHandle=_overlay is null?0:new WindowInteropHelper(_overlay).Handle.ToInt64(),
         ControlsHandle=_controls is null?0:new WindowInteropHelper(_controls).Handle.ToInt64(),
         KeyboardSteeringPoint=_keyboardSteering is {IsVisible:true} key?_keyboardSteering.PointToScreen(new(key.ActualWidth/2,key.ActualHeight/2)):(Point?)null,
+        GestureReplay=GestureReplayEvidence,
         OverlayVisible=_overlay?.IsVisible==true, OverlayStyles=_overlay?.Styles??0,
         RenderedPoint=_overlay?.RenderedPoint,
         Targets=Engine.Targets.Select(t=>new{t.Id,t.Geometry.Bounds,t.Geometry.Window,t.Geometry.ZOrder}).ToArray(),LastDispatchMs,LastMovementMs,MaxMovementMs,LastMappingMs,PointerUpdates };

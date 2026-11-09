@@ -194,7 +194,8 @@ public partial class MainWindow : Window
             _tracking = new RecordedTrackingWindow(profileSettingsPath: _profile.Available
                 ? Path.Combine(_profile.Root, "calibration.json") : null, profileWritable: _profile.Writable);
             _tracking.CameraStatusChanged += status => CameraStatusChanged?.Invoke(status);
-            _tracking.DesktopStatus=()=>DesktopGhost.Engine.Status;
+            _tracking.DesktopStatus=()=>DesktopGhost.Engine.Status+" · "+DesktopGhost.Gestures.Status;
+            _tracking.GesturePracticeReady+=(source,context,calibration)=>DesktopGhost.Gestures.Begin(source,context,calibration);
             _tracking.DesktopPointerChanged += (snapshot,context,point,model)=>DesktopTracking(snapshot,context,point,model);
             _tracking.DesktopPreviewChanged += enabled=> { if(enabled){_simulation?.Stop();_overlay?.Hide();DesktopGhost.EnableTracking(Pocket.Core.GhostSourceKind.Recorded);}else DesktopGhost.Stop(); };
             _tracking.Closed += (_, _) => _tracking = null;
