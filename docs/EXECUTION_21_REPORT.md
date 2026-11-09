@@ -83,3 +83,5 @@ The camera-free controlled pointer and product routes pass isolated Windows acce
 - Exact-head GitHub Actions run 42660005352: **SUCCESS**; all steps including SDK, locked restore, Debug/Release build and tests, and synthetic worker tests passed.
 - Launcher -CheckOnly passed on the clean committed tree. It reports the isolated demo profile, camera off, tracking runtime available, zero running Invey instances and the Release apphost hash in this report.
 - PR metadata update remains unavailable (HTTP 403); no merge performed.
+
+- Report/handoff commit b7a1a931e7c5ccb2b37f06c2f43d58513e6fb4e CI run 42660335358 passed all jobs, including locked restore, Debug/Release build and tests, and worker suite.
