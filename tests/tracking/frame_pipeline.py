@@ -50,11 +50,12 @@ def to_srgb(frame, np):
     return np.ascontiguousarray(pixels[:, :, ::-1] if frame.bgr else pixels)
 
 
-def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diagnostic=None, preview=None):
+def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diagnostic=None, preview=None, visual=None):
     """Read one frame at a time. None means end of source, with no observation emitted."""
     sequence = 0
     previous_ns = -1
     previous_ms = -1
+    previous_sequence = -1
     while not stop.is_set():
         read_at = time.perf_counter_ns()
         frame = source.read(stop)
@@ -68,6 +69,9 @@ def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diag
             return
         if frame.sequence is not None:
             sequence = frame.sequence
+        if sequence <= previous_sequence:
+            raise ValueError("Out-of-order source sequence.")
+        previous_sequence = sequence
         before_conversion = time.perf_counter_ns()
         pixels = to_srgb(frame, np)
         if not previous_ns < frame.acquired_ns <= before_conversion:
@@ -87,6 +91,12 @@ def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diag
         result = tracker.detect_for_video(image, capture_ms)
         after_inference = time.perf_counter_ns()
         points, classification = normalize(result)
+        if visual is not None:
+            visual_at = time.perf_counter_ns()
+            points, classification = visual.update(pixels, sequence, capture_ms, points, classification)
+            if diagnostic:
+                diagnostic.timing("visualTrackingMs", time.perf_counter_ns() - visual_at)
+                diagnostic.count("visual-" + visual.reason)
         if stop.is_set():
             if diagnostic:
                 diagnostic.count("cancelAfterInference")

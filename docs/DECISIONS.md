@@ -111,3 +111,6 @@ See [Execution 16 evidence](EXECUTION_16_REPORT.md) and [finger research](FINGER
 ## Execution17 — camera-free demo stabilization (2026-11-08)
 
 Main navigation, explicit isolated sample profile, launcher and labeled recorded/simulated entry points reuse existing implementations. Pinning now handles checked-state changes, including accessibility Toggle. Two seeded supplemental WPF-control/GDI/model/restart rehearsals passed. They do not replace native input acceptance: the final standard run was refused at foreground ownership by the existing safety guard. Debug/Release100 core tests and20 worker tests pass; readiness is PARTIAL with a manual remote-session checklist. No webcam acquisition or normal/legacy library migration was performed. See docs/EXECUTION_17_DEMO_REPORT.md and docs/DEMO_FEATURE_INVENTORY.md.
+# Execution19 decision — 2026-11-09
+
+Use one motion-aware One Euro filter with bounded spike confirmation, retaining legacy comparison. Use existing NumPy for experimental fixed-template warm correspondence,600ms anchor expiry and explicit v3 visual provenance. It is not anatomy recognition and never grants full-hand readiness, gesture or learning authority. Preserve the existing separate raw-mapped learning path. Cold acquisition and physical qualification remain open; no camera allowance is renewed. Details/evidence: EXECUTION_19_REPORT.md.

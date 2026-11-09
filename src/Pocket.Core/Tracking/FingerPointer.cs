@@ -3,10 +3,10 @@ using System.Collections.Immutable;
 namespace Pocket.Core.Tracking;
 
 public enum FingerKind { Thumb, Index, Middle, Ring, Little }
-public enum FingerEvidence { Observed, Partial, Predicted, Unavailable, Ambiguous }
+public enum FingerEvidence { Observed, Partial, Predicted, Unavailable, Ambiguous, Visual }
 public sealed record FingerSample(FingerKind Finger, FingerEvidence Evidence, ImageLandmark? Tip,
     bool ChainAvailable, double? BendRadians, bool? Stable, bool ActionEligible);
-public enum FingerPointerState { Off, Searching, WrongHand, Ambiguous, Stabilizing, Stable, Partial, Lost, Stale, Paused }
+public enum FingerPointerState { Off, Searching, WrongHand, Ambiguous, Stabilizing, Stable, Partial, Lost, Stale, Paused, FingerVisual }
 public sealed record FingerPointerSample(FingerPointerState State, DipPoint? Position,
     ImmutableArray<FingerSample> Fingers, bool ActionEligible = false);
 
@@ -19,7 +19,7 @@ public sealed class AdaptivePointFilter(double minCutoff = 1.5, double beta = 3,
 
     public void Reset() { _raw = _filtered = null; _velocity = default; _time = 0; }
 
-    public DipPoint Apply(DipPoint point, long milliseconds)
+    public DipPoint Apply(DipPoint point, long milliseconds, double? minimumOverride = null)
     {
         if (!point.IsFinite || minCutoff <= 0 || beta < 0 || derivativeCutoff <= 0)
             throw new ArgumentException("Invalid smoothing input.");
@@ -35,7 +35,7 @@ public sealed class AdaptivePointFilter(double minCutoff = 1.5, double beta = 3,
         var velocity = new DipPoint((point.X - previous.X) / dt, (point.Y - previous.Y) / dt);
         _velocity = Blend(_velocity, velocity, Alpha(derivativeCutoff, dt));
         double speed = Math.Sqrt(_velocity.X * _velocity.X + _velocity.Y * _velocity.Y);
-        var result = Blend(_filtered!.Value, point, Alpha(minCutoff + beta * speed, dt));
+        var result = Blend(_filtered!.Value, point, Alpha((minimumOverride ?? minCutoff) + beta * speed, dt));
         _raw = point;
         _filtered = result;
         return result;
@@ -49,21 +49,26 @@ public sealed class AdaptivePointFilter(double minCutoff = 1.5, double beta = 3,
 /// <summary>Preview eligibility is independent from calibration and action authority. No prediction or input injection.</summary>
 public sealed class FingerPointer
 {
-    private readonly AdaptivePointFilter _filter = new();
+    private readonly PrecisionPointFilter _filter = new();
+    private readonly AdaptivePointFilter _legacyFilter = new();
+    private readonly bool _legacy = Environment.GetEnvironmentVariable("INVEY_LEGACY_POINTER") == "1";
     private Guid? _session;
     private HandSide? _owner, _selection;
     private TrackingFrameSize? _frame;
     private long _sequence = -1, _capture, _continuity;
     private int _stable;
+    private bool _fullSeen;
     private ImmutableArray<ImageLandmark?> _previous = [];
     private FingerPointerSample _sample = new(FingerPointerState.Off, null, []);
 
     public void Reset()
     {
         _filter.Reset();
+        _legacyFilter.Reset();
         _sequence = -1;
         _capture = 0;
         _stable = 0;
+        _fullSeen = false;
         _owner = null;
         _previous = [];
         _sample = new(FingerPointerState.Searching, null, [], false);
@@ -87,19 +92,40 @@ public sealed class FingerPointer
             return Cancel(FingerPointerState.Ambiguous);
         if (snapshot.State == TrackingState.Stale)
             return Cancel(FingerPointerState.Stale);
-        if (snapshot.Observation is not { IsValid: true, HasModelPoints: true, FrameSize: { IsValid: true } frame } hand ||
+        if (snapshot.Observation is not { IsValid: true, FrameSize: { IsValid: true } frame } hand ||
+            (!hand.HasModelPoints && hand.Visual is null) ||
             hand.SessionId != snapshot.SessionId || snapshot.HostObservationAge is not { } age || age < TimeSpan.Zero ||
             age.TotalMilliseconds + hand.ResultMonoMs - hand.CaptureMonoMs >= 150)
             return Cancel(FingerPointerState.Lost);
         if (hand.Handedness is null) return Cancel(FingerPointerState.Ambiguous);
         if (selected.HasValue && selected != hand.Handedness) return Cancel(FingerPointerState.WrongHand);
+        // A repeated UI read must not extend the image evidence's anchor lifetime.
+        if (hand.Visual is { } timedVisual && hand.ResultMonoMs - timedVisual.AnchorMonoMs + age.TotalMilliseconds > 600)
+            return Cancel(FingerPointerState.Lost);
         if (hand.Sequence < _sequence) return Cancel(FingerPointerState.Lost);
         if (hand.Sequence == _sequence) return _sample;
+        if (hand.Visual is { } visualEvidence && (!_fullSeen || _owner != hand.Handedness || _frame != frame ||
+            hand.CaptureMonoMs - _capture is <= 0 or > 220 ||
+            hand.ResultMonoMs - visualEvidence.AnchorMonoMs + age.TotalMilliseconds > 600))
+            return Cancel(FingerPointerState.Lost);
         if ((_owner.HasValue && _owner != hand.Handedness) || (_frame.HasValue && _frame != frame) ||
             (_sequence >= 0 && hand.CaptureMonoMs - _capture is <= 0 or > 220))
             Reset();
         _owner = hand.Handedness;
         _frame = frame;
+        if (hand.Tracked) _fullSeen = true;
+        if (hand.Visual is { } visual)
+        {
+            // Preview only: no invented model chain, bend, pinch geometry or supervised sample.
+            _sequence = hand.Sequence; _capture = hand.CaptureMonoMs;
+            _previous = []; _stable++;
+            var observed = new DipPoint(visual.X, visual.Y);
+            var filtered = _legacy ? _legacyFilter.Apply(observed, hand.CaptureMonoMs) : _filter.Apply(observed, hand.CaptureMonoMs);
+            var samples = Enum.GetValues<FingerKind>().Select(kind => new FingerSample(kind,
+                kind == FingerKind.Index ? FingerEvidence.Visual : FingerEvidence.Unavailable,
+                kind == FingerKind.Index ? new ImageLandmark(visual.X, visual.Y, 0) : null, false, null, null, false)).ToImmutableArray();
+            return _sample = new(FingerPointerState.FingerVisual, _stable >= 4 && !_filter.Uncertain ? filtered : null, samples, false);
+        }
         double dt = _capture == 0 ? 0 : (hand.CaptureMonoMs - _capture) / 1000d;
         var fingers = ImmutableArray.CreateBuilder<FingerSample>(5);
         foreach (var kind in Enum.GetValues<FingerKind>())
@@ -120,16 +146,18 @@ public sealed class FingerPointer
         _sequence = hand.Sequence;
         _capture = hand.CaptureMonoMs;
         if (hand.Point(8) is not { } index) return Cancel(FingerPointerState.Lost, fingers.ToImmutable());
-        if (_sample.Position is { } old && (Math.Abs(old.X - index.X) > .20 || Math.Abs(old.Y - index.Y) > .20))
+        if (_legacy && _sample.Position is { } old && (Math.Abs(old.X - index.X) > .20 || Math.Abs(old.Y - index.Y) > .20))
         {
             _filter.Reset();
+            _legacyFilter.Reset();
             _stable = 0;
         }
-        var point = _filter.Apply(new(index.X, index.Y), hand.CaptureMonoMs);
+        var point = _legacy ? _legacyFilter.Apply(new(index.X, index.Y), hand.CaptureMonoMs) :
+            _filter.Apply(new(index.X, index.Y), hand.CaptureMonoMs);
         _stable++;
-        bool eligible = _stable >= 4 && hand.Tracked && !hand.Partial && fingers.All(f => f.ActionEligible);
-        return _sample = new(_stable < 4 ? FingerPointerState.Stabilizing : hand.Partial ? FingerPointerState.Partial :
-            FingerPointerState.Stable, _stable < 4 ? null : point, fingers.MoveToImmutable(),
+        bool eligible = _stable >= 4 && (_legacy || !_filter.SpikePending) && hand.Tracked && !hand.Partial && fingers.All(f => f.ActionEligible);
+        return _sample = new(_stable < 4 || !_legacy && _filter.Uncertain ? FingerPointerState.Stabilizing : hand.Partial ? FingerPointerState.Partial :
+            FingerPointerState.Stable, _stable < 4 || !_legacy && _filter.Uncertain ? null : point, fingers.MoveToImmutable(),
             eligible);
     }
 

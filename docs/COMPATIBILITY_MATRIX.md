@@ -76,3 +76,6 @@ See [Execution 16 evidence](EXECUTION_16_REPORT.md) and [finger research](FINGER
 ## Execution17 — camera-free demo stabilization (2026-11-08)
 
 Main navigation, explicit isolated sample profile, launcher and labeled recorded/simulated entry points reuse existing implementations. Pinning now handles checked-state changes, including accessibility Toggle. Two seeded supplemental WPF-control/GDI/model/restart rehearsals passed. They do not replace native input acceptance: the final standard run was refused at foreground ownership by the existing safety guard. Debug/Release100 core tests and20 worker tests pass; readiness is PARTIAL with a manual remote-session checklist. No webcam acquisition or normal/legacy library migration was performed. See docs/EXECUTION_17_DEMO_REPORT.md and docs/DEMO_FEATURE_INVENTORY.md.
+# Execution19 measured compatibility — 2026-11-09
+
+Existing Windows26200/.NET10.0.403 SDK/MediaPipe0.10.32/NumPy runtime retained. V1 full, v2 sparse and v3 pointer-only visual observations are supported by the updated host; an old host cannot read v3 and must be paired with its old worker or INVEY_LEGACY_POINTER=1. No new dependency installed. Generated-image continuation and isolated WPF pass; physical webcam, sustained resource behavior, cold fingertip acquisition and broader display configurations remain unqualified. See EXECUTION_19_REPORT.md.
