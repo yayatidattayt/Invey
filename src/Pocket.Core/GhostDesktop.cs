@@ -13,6 +13,7 @@ public sealed record GhostDesktopTarget(string Id, Guid Lifetime, Func<GhostTarg
 /// Only an explicit controlled source can issue intent; camera/recorded sources are preview-only.</summary>
 public sealed class GhostDesktop(Func<long> clock)
 {
+    public const int PreviewLifetimeMilliseconds=250;
     private readonly Dictionary<string,GhostDesktopTarget> _targets = [];
     private GhostDesktopTarget? _held;
     private Guid? _session;
@@ -55,7 +56,7 @@ public sealed class GhostDesktop(Func<long> clock)
         if(observation.Session!=_session || Mode is GhostControlMode.Off or GhostControlMode.Paused) return false;
         long now=clock();
         if(observation.Sequence<=_sequence || observation.Timestamp<_timestamp || observation.Timestamp>now ||
-            now-observation.Timestamp>=150 || !observation.Physical.IsFinite || !Enum.IsDefined(observation.Evidence))
+            now-observation.Timestamp>=(_kind==GhostSourceKind.Controlled?150:PreviewLifetimeMilliseconds) || !observation.Physical.IsFinite || !Enum.IsDefined(observation.Evidence))
         { Lose("Invalid or stale source — released"); return false; }
         _sequence=observation.Sequence; _timestamp=observation.Timestamp; _received=now;
         _evidence=observation.Evidence; Position=observation.Physical;
@@ -114,7 +115,7 @@ public sealed class GhostDesktop(Func<long> clock)
     public IReadOnlyCollection<GhostCommand> AvailableCommands => Hit()?.SupportedCommands ?? Array.Empty<GhostCommand>();
     public void Tick()
     {
-        if(_session.HasValue && Position.HasValue && clock()-_received>=150) Lose("Tracking lost — released");
+        if(_session.HasValue && Position.HasValue && (_kind==GhostSourceKind.Controlled?clock()-_received>=150:clock()-_timestamp>=PreviewLifetimeMilliseconds)) Lose("Tracking lost — released");
         if(_held is { } target && target.Geometry() is null) Cancel("Target unavailable — released");
     }
     public void Disarm() { Cancel("Pointer preview only"); Changed?.Invoke(); }

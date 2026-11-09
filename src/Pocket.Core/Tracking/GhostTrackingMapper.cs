@@ -19,7 +19,7 @@ public sealed class GhostTrackingMapper
         var accepted=model is { IsValid:true } && model.Context==c ? model : null;
         if(c!=_context || snapshot.SessionId!=_session || accepted?.Id!=_model)
         { Reset();_context=c;_session=snapshot.SessionId;_model=accepted?.Id; }
-        var sample=_eligibility.Observe(snapshot,c.Hand==1?HandSide.Left:HandSide.Right);
+        var sample=_eligibility.ObserveDesktopPreview(snapshot,c.Hand==1?HandSide.Left:HandSide.Right);
         if(sample.Position is null){_position=null;_filter.Reset();return null;}
         if(hand.Sequence==_sequence)return _position;
         _sequence=hand.Sequence;

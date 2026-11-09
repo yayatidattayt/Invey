@@ -20,6 +20,11 @@ public class PointerBudgetTests
             }
             using var reopened=new CameraBudget(path);reopened.AmendPointerQualification();Assert.False(reopened.Availability.Available);
             Assert.Equal(rows,reopened.Read().Sessions.Take(10));Assert.Throws<InvalidDataException>(()=>reopened.Reserve(Guid.NewGuid()));
+            reopened.AmendPointerRetest();Assert.Equal(1,reopened.Availability.Remaining);
+            var retest=Guid.NewGuid();reopened.Reserve(retest);
+            Assert.Throws<InvalidDataException>(()=>reopened.Reserve(Guid.NewGuid()));reopened.Complete(retest,1000);
+            reopened.AmendPointerRetest();reopened.AmendPointerQualification();Assert.Equal(12,reopened.Read().Sessions.Length);
+            Assert.False(reopened.Availability.Available);Assert.Equal(rows,reopened.Read().Sessions.Take(10));
         }
         finally{File.Delete(path);File.Delete(path+".lock");}
     }

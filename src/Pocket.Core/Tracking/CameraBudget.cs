@@ -32,6 +32,7 @@ public sealed class CameraBudget : IDisposable
     public const string LearningAmendment = "execution-18-user-enabled-2026-11-09";
     public const string LearningTargetsAmendment = "execution-18-two-more-user-enabled-2026-11-09";
     public const string PointerAmendment = "execution-23-one-user-enabled-pointer-only-2026-11-10";
+    public const string PointerRetestAmendment = "execution-23-one-additional-pointer-retest-2026-11-10";
     public int SessionLimitMilliseconds => _state.Version >= 2 ? 180_000 : SessionMilliseconds;
     public int SessionLimitCount => _state.Version >= 2 ? 12 : MaxSessions;
     public int TotalLimitMilliseconds => _state.Version >= 2 ? 1_800_000 : TotalMilliseconds;
@@ -63,14 +64,16 @@ public sealed class CameraBudget : IDisposable
             if (stream.Length is <= 0 or > 8192) throw new InvalidDataException("Invalid camera budget size.");
             _state = JsonSerializer.Deserialize<CameraBudgetState>(stream, Schema)
                 ?? throw new InvalidDataException("Invalid camera budget.");
-            if (_state.Sessions is null || (_state.Version is < 1 or > 5) ||
+            if (_state.Sessions is null || (_state.Version is < 1 or > 6) ||
                 (_state.Version == 1 ? _state.Amendment is not null :
                     _state.Version == 2 ? _state.Amendment != ContinuationAmendment :
                     _state.Version == 3 ? _state.Amendment != LearningAmendment :
-                    _state.Version == 4 ? _state.Amendment != LearningTargetsAmendment : _state.Amendment != PointerAmendment) ||
+                    _state.Version == 4 ? _state.Amendment != LearningTargetsAmendment :
+                    _state.Version == 5 ? _state.Amendment != PointerAmendment : _state.Amendment != PointerRetestAmendment) ||
                 (_state.Version >= 3 ? _state.Execution18StartCount is not { } start || start < 0 ||
-                    start > _state.Sessions.Length || (_state.Version==5?_state.PointerStartCount??-1:_state.Sessions.Length) - start > (_state.Version >= 4 ? 5 : 3) : _state.Execution18StartCount is not null) ||
-                (_state.Version==5 ? _state.PointerStartCount!=10||_state.Execution18StartCount!=5||_state.Sessions.Length is <10 or >11 : _state.PointerStartCount is not null) ||
+                    start > _state.Sessions.Length || (_state.Version>=5?_state.PointerStartCount??-1:_state.Sessions.Length) - start > (_state.Version >= 4 ? 5 : 3) : _state.Execution18StartCount is not null) ||
+                (_state.Version>=5 ? _state.PointerStartCount!=10||_state.Execution18StartCount!=5||
+                    _state.Sessions.Length<(_state.Version==6?11:10)||_state.Sessions.Length>(_state.Version==6?12:11) : _state.PointerStartCount is not null) ||
                 _state.Execution != "execution-16" || _state.Sessions is null ||
                 _state.Sessions.Length > SessionLimitCount || _state.Sessions.Any(row => row is null || row.Session == Guid.Empty ||
                     row.ChargedMs < 0 || row.ChargedMs > SessionLimitMilliseconds) ||
@@ -85,9 +88,9 @@ public sealed class CameraBudget : IDisposable
     {
         get
         {
-            int used = _state.Version==5?_state.Sessions.Length-_state.PointerStartCount!.Value:
+            int used = _state.Version>=5?_state.Sessions.Length-_state.PointerStartCount!.Value:
                 _state.Version >= 3 ? _state.Sessions.Length - _state.Execution18StartCount!.Value : _state.Sessions.Length;
-            int allowed = _state.Version==5?1:_state.Version == 4 ? 5 : _state.Version == 3 ? 3 : SessionLimitCount;
+            int allowed = _state.Version==6?2:_state.Version==5?1:_state.Version == 4 ? 5 : _state.Version == 3 ? 3 : SessionLimitCount;
             int remaining = Math.Max(0, Math.Min(allowed - used, Math.Min(SessionLimitCount - _state.Sessions.Length,
                 (int)((TotalLimitMilliseconds - _state.Sessions.Sum(r => r.ChargedMs)) / SessionLimitMilliseconds))));
             if (_state.Sessions.Any(r => !r.Released))
@@ -139,11 +142,21 @@ public sealed class CameraBudget : IDisposable
     /// Never called by startup, preview, or Enable. Repeating this cannot replenish a start.</summary>
     public void AmendPointerQualification()
     {
-        if(_state.Version==5)return;
+        if(_state.Version>=5)return;
         if(_state.Version!=4||_state.Execution18StartCount!=5||_state.Sessions.Length!=10||
             _state.Sessions.Any(r=>!r.Released)||_state.Sessions.Sum(r=>r.ChargedMs)+180_000>TotalLimitMilliseconds)
             throw new InvalidDataException("Pointer authorization cannot amend this ledger.");
         Commit(_state with{Version=5,Amendment=PointerAmendment,PointerStartCount=10});
+    }
+
+    /// <summary>Separate explicit approval required; exactly one additional pointer-only retest.</summary>
+    public void AmendPointerRetest()
+    {
+        if(_state.Version==6)return;
+        if(_state.Version!=5||_state.Sessions.Length!=11||_state.Sessions.Any(r=>!r.Released)||
+            _state.Sessions.Sum(r=>r.ChargedMs)+180_000>TotalLimitMilliseconds)
+            throw new InvalidDataException("Pointer retest requires its prior confirmed release and a separate authorization.");
+        Commit(_state with{Version=6,Amendment=PointerRetestAmendment});
     }
 
     public void ConfirmIndependentlyVerifiedRelease(CameraReleaseEvidence evidence)
