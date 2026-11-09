@@ -26,7 +26,10 @@ try {
     }
     if(-not(Test-Path -LiteralPath $exe)){throw "Release app is missing: $exe`nFrom the repository folder, run .\scripts\Start-Invey-Beta.ps1 -Rebuild."}
     if($dirty.Count){throw 'Source checkout has uncommitted changes. Commit or preserve them, then launch from a clean verified build.'}
-    $hash=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
+    $digest=[Security.Cryptography.SHA256]::Create()
+    $inputStream=[IO.File]::OpenRead($exe)
+    try{$hash=([BitConverter]::ToString($digest.ComputeHash($inputStream))).Replace('-','')}
+    finally{$inputStream.Dispose();$digest.Dispose()}
     Write-Host "Source commit: $commit"
     Write-Host "Executable:    $exe"
     Write-Host "SHA-256:       $hash"
