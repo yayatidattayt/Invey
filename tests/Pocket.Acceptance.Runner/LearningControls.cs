@@ -39,6 +39,7 @@ internal static partial class Program
                 await Until(client, s => Learning(s).GetProperty("Phase").GetString() == "Idle");
                 Require(Learning(await client.Command("status")).GetProperty("Phase").GetString() == "Idle", "Cancel did not clear lesson.");
                 await client.Command("demo-ui|tracking|Start lesson");
+                await Until(client, s => Learning(s).GetProperty("Phase").GetString() == "Baseline");
                 for (int target = 0; target < 27; target++)
                 {
                     await client.Command("learning-fixture|observe");
