@@ -11,6 +11,16 @@ internal sealed partial class RecordedTrackingWindow
     internal async Task<object> ExerciseGesturePracticeAsync(GhostDesktopHost host)
     {
         AcceptanceHost.ValidateDesktop();
+        double previousHeight=Height;Height=540;_live.IsChecked=true;UpdateLayout();
+        _trackingScroll.ScrollToEnd();UpdateLayout();
+        var devicePoint=_devices.TranslatePoint(new System.Windows.Point(0,0),this);
+        var stopPoint=_stop.TranslatePoint(new System.Windows.Point(0,0),this);
+        if(_trackingScroll.VerticalScrollBarVisibility!=System.Windows.Controls.ScrollBarVisibility.Visible||
+            _trackingScroll.ViewportHeight<=0||_trackingScroll.ScrollableHeight<=0||
+            devicePoint.Y<0||devicePoint.Y+_devices.ActualHeight>ActualHeight||
+            stopPoint.Y<0||stopPoint.Y+_stop.ActualHeight>ActualHeight)
+            throw new InvalidOperationException("Tracking source controls, scrollbar or fixed Stop are unreachable at compact height.");
+        _recorded.IsChecked=true;Height=previousHeight;_trackingScroll.ScrollToTop();
         EnableDesktopPreviewFixture();
         Guid source=Guid.NewGuid();long sequence=0;
         async Task Sample(bool pinch,TrackingSource kind=TrackingSource.Camera)

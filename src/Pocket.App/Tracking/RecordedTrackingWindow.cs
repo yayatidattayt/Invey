@@ -62,6 +62,7 @@ internal sealed partial class RecordedTrackingWindow : Window
     internal Func<string>? DesktopStatus { get; set; }
     private readonly TextBlock _desktopStatus=new(){TextWrapping=TextWrapping.Wrap};
     private readonly TextBlock _qualification=new(){TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,6,0,6)};
+    private readonly ScrollViewer _trackingScroll=new(){VerticalScrollBarVisibility=ScrollBarVisibility.Visible,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,CanContentScroll=false};
 
     public RecordedTrackingWindow(string? fixtureFile = null, string? fixtureCameraFault = null,
         string? testSettingsPath = null, bool acceptanceHost = false, string? profileSettingsPath = null,
@@ -72,9 +73,9 @@ internal sealed partial class RecordedTrackingWindow : Window
         _fixtureCameraFault = fixtureCameraFault;
         if (fixtureFile is not null) _live.Content = "_Local video fixture";
         Title = "Invey · Tracking lab";
-        Width = 432;
+        Width = 520;
         MinWidth = 360;
-        SizeToContent = SizeToContent.Height;
+        SizeToContent = SizeToContent.Manual;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         SourceInitialized += (_, _) => References.ScreenSnapshot.DisableNativeTransitions(this);
         AutomationProperties.SetLiveSetting(_status, AutomationLiveSetting.Polite);
@@ -143,41 +144,38 @@ internal sealed partial class RecordedTrackingWindow : Window
         _deviceOptions.Children.Add(new Label { Content = "_Device", Target = _devices, Padding = new Thickness(0, 0, 0, 4) });
         _deviceOptions.Children.Add(_devices);
         _deviceOptions.Children.Add(_inventoryStatus);
-        Content = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = new StackPanel
+        var setup=new StackPanel {Margin=new Thickness(20,16,20,8),Children={
+            new TextBlock{Text="Ghost Tracking",FontSize=20,FontWeight=FontWeights.SemiBold},
+            new TextBlock{Text="1. Choose a source. Camera stays off until you press Enable.",TextWrapping=TextWrapping.Wrap},
+            sources,_recordedLabel,_recordedDemo,_deviceOptions,_sourceStatus,_budgetStatus}};
+        _trackingScroll.Content = new StackPanel
         {
-            Margin = new Thickness(24),
+            Margin = new Thickness(20,8,20,16),
             Children =
             {
-                new TextBlock { Text = "Hand observation", FontSize = 20, FontWeight = FontWeights.SemiBold },
-                sources,
-                _recordedLabel,
-                _recordedDemo,
-                _sourceStatus,
-                _budgetStatus,
-                _deviceOptions,
+                new TextBlock { Text = "2. Set up your pointer", FontWeight = FontWeights.SemiBold },
                 _status,
                 _showPreview,
                 _desktopPreview,
-                _desktopStatus,
                 _qualification,
-                _gesturePractice,
-                actions,
-                _previewTiming,
+                _calibrationDetails,
                 _mirrorCamera,
-                _overlayMode,
                 _liveView,
                 _previewStatus,
+                new TextBlock{Text="3. Optional practice · Pocket actions stay disabled",FontWeight=FontWeights.SemiBold,Margin=new Thickness(0,12,0,8)},
+                _gesturePractice,
                 _learning,
-                _calibrationDetails
+                new Expander{Header="Preview options and diagnostics",Margin=new Thickness(0,12,0,0),Content=new StackPanel{Children={_previewTiming,_overlayMode,_desktopStatus}}}
             }
-        } };
-        // Stop stays reachable even when preview/calibration content needs scrolling.
-        var scrolling=(ScrollViewer)Content;
-        ((StackPanel)scrolling.Content).Children.Remove(actions);
-        Content=null;
-        actions.Margin=new Thickness(24,12,24,0);DockPanel.SetDock(actions,Dock.Top);
-        Content=new DockPanel{Children={actions,scrolling}};
+        };
+        // An explicit star-sized viewport avoids unbounded content measurement in SizeToContent.
+        var layout=new Grid();layout.RowDefinitions.Add(new(){Height=GridLength.Auto});
+        layout.RowDefinitions.Add(new(){Height=new GridLength(1,GridUnitType.Star)});layout.RowDefinitions.Add(new(){Height=GridLength.Auto});
+        Grid.SetRow(_trackingScroll,1);Grid.SetRow(actions,2);actions.Margin=new Thickness(20,12,20,8);
+        layout.Children.Add(setup);layout.Children.Add(_trackingScroll);layout.Children.Add(actions);Content=layout;
         MaxHeight = Math.Max(380, SystemParameters.WorkArea.Height - 32);
+        Height=Math.Min(760,MaxHeight);
+        Loaded+=(_,_)=>_trackingScroll.ScrollToTop();
         _visible = _learningFixture ?? _controller.Read();
         _inventoryStatus.Text = "Find connected cameras, then choose one to enable.";
         Render();
@@ -450,6 +448,7 @@ internal sealed partial class RecordedTrackingWindow : Window
         return new
         {
             VideoPreview = _liveView.TestState(), WindowLoaded = IsLoaded, State = _visible.State.ToString(), _visible.SessionId, Source = _visible.Source?.ToString(),
+            Scrollbar=_trackingScroll.VerticalScrollBarVisibility.ToString(),ScrollViewport=_trackingScroll.ViewportHeight,ScrollExtent=_trackingScroll.ExtentHeight,
             Failure = _visible.Failure?.ToString(), _visible.AcceptedObservations, _visible.SupersededObservations,
             CanStart = _start.IsEnabled, CanStop = _stop.IsEnabled, Status = _status.Text,
             SourceStatus = _sourceStatus.Text, SourceChoicesEnabled = _live.IsEnabled && _recorded.IsEnabled,
