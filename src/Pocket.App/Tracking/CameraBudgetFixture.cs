@@ -26,8 +26,17 @@ internal static class CameraBudgetFixture
         string store = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;
         string root = Path.Combine(Path.GetDirectoryName(store)!, "camera-budget-fixture");
         Directory.CreateDirectory(root);
-        string path = Path.Combine(root, mode is "series" or "amended-series" ? mode + ".json" : Guid.NewGuid().ToString("N") + ".json");
-        if (!File.Exists(path)) CameraBudget.Initialize(path);
+        string path = Path.Combine(root, mode is "series" or "amended-series" or "targets-series" ? mode + ".json" : Guid.NewGuid().ToString("N") + ".json");
+        bool fresh = !File.Exists(path);
+        if (fresh) CameraBudget.Initialize(path);
+        if (fresh && mode == "targets-series")
+        {
+            using var budget = new CameraBudget(path);
+            for (int i = 0; i < 5; i++) { var id = Guid.NewGuid(); budget.Reserve(id); budget.Complete(id, 1); }
+            budget.AmendContinuation(); budget.AmendLearning();
+            for (int i = 0; i < 3; i++) { var id = Guid.NewGuid(); budget.Reserve(id); budget.Complete(id, 1); }
+            budget.AmendLearningTargets();
+        }
         if (mode.StartsWith("amended", StringComparison.Ordinal))
         {
             using var budget = new CameraBudget(path);
@@ -90,6 +99,41 @@ internal static class CameraBudgetFixture
                 await worker.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(2));
             }
             if (guard is not null) await guard.DisposeAsync();
+        }
+    }
+
+    internal static RecordedTrackingWindow CreateBudgetPreview(string mode)
+    {
+        AcceptanceHost.ValidateDesktop();
+        string store = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;
+        string root = Path.Combine(Path.GetDirectoryName(store)!, "camera-budget-fixture");
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, Guid.NewGuid().ToString("N") + ".json");
+        CameraBudget.Initialize(path);
+        using (var b = new CameraBudget(path))
+        {
+            b.AmendContinuation(); b.AmendLearning(); b.AmendLearningTargets();
+            int count = mode == "pending" ? 1 : 5;
+            for (int i = 0; i < count; i++)
+            {
+                var id = Guid.NewGuid(); b.Reserve(id);
+                if (mode != "pending") b.Complete(id, 1);
+            }
+        }
+        string? oldBudget = Environment.GetEnvironmentVariable("INVEY_CAMERA_BUDGET");
+        string? oldDiagnostics = Environment.GetEnvironmentVariable("INVEY_CAMERA_DIAGNOSTICS");
+        try
+        {
+            Environment.SetEnvironmentVariable("INVEY_CAMERA_BUDGET", path);
+            Environment.SetEnvironmentVariable("INVEY_CAMERA_DIAGNOSTICS", root);
+            var window = new RecordedTrackingWindow(acceptanceHost: true, testSettingsPath: Path.Combine(root, "calibration.json"));
+            window.ConfigureBudgetPreviewFixture();
+            return window;
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("INVEY_CAMERA_BUDGET", oldBudget);
+            Environment.SetEnvironmentVariable("INVEY_CAMERA_DIAGNOSTICS", oldDiagnostics);
         }
     }
 

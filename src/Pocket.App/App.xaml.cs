@@ -20,6 +20,25 @@ public partial class App : Application
         base.OnStartup(e);
         try
         {
+            if (e.Args.FirstOrDefault() == "--review-camera-release-after-exit")
+            {
+                Shutdown(Tracking.CameraReleaseRecovery.Run(e.Args));
+                return;
+            }
+            if (e.Args.Length == 2 && e.Args[0] == "--amend-camera-budget-learning-targets")
+            {
+                using var budget = new Pocket.Core.Tracking.CameraBudget(e.Args[1]);
+                budget.AmendLearningTargets();
+                Shutdown(0);
+                return;
+            }
+            if (e.Args.Length == 2 && e.Args[0] == "--amend-camera-budget-learning")
+            {
+                using var budget = new Pocket.Core.Tracking.CameraBudget(e.Args[1]);
+                budget.AmendLearning();
+                Shutdown(0);
+                return;
+            }
             if (e.Args.Length == 2 && e.Args[0] == "--amend-camera-budget-continuation")
             {
                 using var budget = new Pocket.Core.Tracking.CameraBudget(e.Args[1]);

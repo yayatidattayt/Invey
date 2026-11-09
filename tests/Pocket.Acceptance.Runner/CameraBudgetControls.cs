@@ -29,6 +29,17 @@ internal static partial class Program
                 Require(result.GetProperty("Permit").GetBoolean() == (i < 12), "Amended session-count enforcement failed.");
                 Require(result.GetProperty("WorkerExited").GetBoolean(), "Amended worker remained active.");
             }
+            for (int i = 0; i < 3; i++)
+            {
+                var state = await client.Command("budget-targets-series");
+                var result = state.GetProperty("BudgetResult");
+                outcomes.Add(result);
+                Require(result.GetProperty("Permit").GetBoolean() == (i < 2),
+                    "Target-lesson extension must grant exactly two further starts across supervisor processes.");
+                Require(result.GetProperty("WorkerExited").GetBoolean(), "Target-lesson worker remained active.");
+                Require(result.GetProperty("Started").GetBoolean() == (i < 2), "Denied target-lesson worker started.");
+                Require(result.GetProperty("ReservationReleased").GetBoolean(), "Target-lesson release not confirmed.");
+            }
             foreach (string mode in new[] { "missing", "corrupt", "directory", "canceled", "deadline", "interrupted" })
             {
                 var state = await client.Command("budget-" + mode);
@@ -43,7 +54,17 @@ internal static partial class Program
                     Require(!result.GetProperty("Permit").GetBoolean() && !result.GetProperty("Started").GetBoolean(),
                         "Invalid configuration or startup cancellation permitted activation: " + result.GetRawText());
             }
-            return new { Outcomes = outcomes, RealCameraActivations = 0 };
+            foreach (string mode in new[] { "pending", "exhausted" })
+            {
+                var state = await client.Command("budget-ui-" + mode);
+                var lab = state.GetProperty("Tracking");
+                Require(lab.GetProperty("DeviceSelected").GetBoolean(), "Budget fixture must have a selected dummy device.");
+                Require(!lab.GetProperty("CanStart").GetBoolean(), "Blocked budget offered an enabled Start button.");
+                Require(lab.GetProperty("LastWorkerPid").ValueKind == JsonValueKind.Null, "Budget preflight launched a worker.");
+                string message = lab.GetProperty("BudgetStatus").GetString() ?? "";
+                Require(message.Contains(mode == "pending" ? "verification" : "allowance used"), "Budget reason was not specific: " + message);
+            }
+            return new { Outcomes = outcomes, RealCameraActivations = 0, BudgetUiPreflight = true };
         });
     }
 }

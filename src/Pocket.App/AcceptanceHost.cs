@@ -99,6 +99,13 @@ internal sealed class AcceptanceHost : IDisposable
             case "preview-protocol-controls":
                 _previewResult = await CameraPreviewFixture.ExerciseAsync();
                 break;
+            case "budget-ui-pending":
+            case "budget-ui-exhausted":
+                if (_tracking is not null) await _tracking.CloseAsync();
+                _tracking = CameraBudgetFixture.CreateBudgetPreview(command[10..]);
+                _tracking.Show();
+                break;
+            case "budget-targets-series":
             case "budget-amended-series":
             case "budget-series":
             case "budget-corrupt":
@@ -234,9 +241,17 @@ internal sealed class AcceptanceHost : IDisposable
                 _simulation.Stop();if(NativeWindow.Exists(_overlay.Handle))_overlay.Hide();break;
             case "close-overlay":_overlay.Close();break;
             default:
+                if (command.StartsWith("learning-fixture|", StringComparison.Ordinal))
+                {
+                    ValidateDesktop();
+                    Application.Current.Windows.OfType<RecordedTrackingWindow>().Single().LearningFixture(command.Split('|')[1]);
+                    break;
+                }
                 if (command.StartsWith("demo-ui|", StringComparison.Ordinal) ||
                     command.StartsWith("demo-toggle|", StringComparison.Ordinal) ||
-                    command.StartsWith("demo-select|", StringComparison.Ordinal))
+                    command.StartsWith("demo-select|", StringComparison.Ordinal) ||
+                    command.StartsWith("demo-hand|", StringComparison.Ordinal) ||
+                    command.StartsWith("demo-expand|", StringComparison.Ordinal))
                 { DemoControlFixture.Apply(_product ?? throw new InvalidOperationException("No demo product."), command); break; }
                 throw new InvalidOperationException("Unsupported acceptance operation.");
         }

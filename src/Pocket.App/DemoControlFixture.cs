@@ -43,16 +43,23 @@ internal static class DemoControlFixture
             if (!button.IsEnabled || !button.IsVisible) throw new InvalidOperationException("Demo button is unavailable.");
             ((IInvokeProvider)new ButtonAutomationPeer(button).GetPattern(PatternInterface.Invoke)).Invoke();
         }
+        else if (parts[0] == "demo-expand")
+        {
+            var expander = Children(root).OfType<Expander>().Single(control => Text(control.Header) == parts[2]);
+            if (!expander.IsEnabled || !expander.IsVisible) throw new InvalidOperationException("Details are unavailable.");
+            ((IExpandCollapseProvider)new ExpanderAutomationPeer(expander).GetPattern(PatternInterface.ExpandCollapse)).Expand();
+        }
         else if (parts[0] == "demo-toggle")
         {
             var box = Children(root).OfType<CheckBox>().Single(control => Text(control.Content) == parts[2]);
             if (!box.IsEnabled || !box.IsVisible) throw new InvalidOperationException("Demo toggle is unavailable.");
             ((IToggleProvider)new CheckBoxAutomationPeer(box).GetPattern(PatternInterface.Toggle)).Toggle();
         }
-        else if (parts[0] == "demo-select")
+        else if (parts[0] is "demo-select" or "demo-hand")
         {
             var selector = Children(root).OfType<ComboBox>().Single(control =>
-                AutomationProperties.GetName(control) == (parts[1] == "tracking" ? "Recorded demonstration" : "Saved references"));
+                AutomationProperties.GetName(control) == (parts[0] == "demo-hand" ? "Hand used for calibration" :
+                    parts[1] == "tracking" ? "Recorded demonstration" : "Saved references"));
             if (!selector.IsEnabled || !int.TryParse(parts[2], out int index) || index < 0 || index >= selector.Items.Count)
                 throw new InvalidOperationException("Demo selection is unavailable.");
             selector.SelectedIndex = index;

@@ -109,12 +109,14 @@ def open_landmarker(mp, asset):
 def practice_fixture(send, stop):
     """Bounded, explicitly simulated local calibration-practice sequence."""
     send("ready")
-    for sequence in range(120):
+    for sequence in range(240):
         if stop.is_set():
             break
-        cycle = sequence % 54
-        closed = 20 <= cycle < 27 or 35 <= cycle < 43
-        ambiguous = 43 <= cycle < 49
+        # Longer deliberate phases tolerate UI scheduling/coalescing without weakening
+        # the actual practice reducer's consecutive-observation safety requirements.
+        cycle = sequence % 80
+        closed = 20 <= cycle < 40 or 55 <= cycle < 72
+        ambiguous = 72 <= cycle < 78
         points = [[.5, .5, 0] for _ in range(21)]
         points[4][0] = .51 if closed else .62
         points[5][0], points[17][0] = .4, .6

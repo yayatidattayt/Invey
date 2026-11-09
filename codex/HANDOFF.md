@@ -1,5 +1,19 @@
 # Invey — Current handoff
 
+## Execution18 UI and budget repair — 2026-11-09
+
+Participant requested a clear learning UI after a budget error. Guided single-action lesson replaces the button cluster; optional feedback/recovery/calibration remains tucked away. Budget eligibility is checked before worker launch, with specific blocked/exhausted messages. Cooperative stop170s retains the178s hard cutoff. Fourth live session had process exit but missing native release acknowledgement. After explicit user Exit/indicator-off confirmation and independent process/diagnostic review, it was completed at the FULL180000ms charge with a separate receipt; no API acknowledgement was fabricated. Nine rows total805498ms, same start count5, ONE previously authorized start remains. Never reset/renew the ledger or launch camera unattended.125 core tests/configuration,20 workers, two seeded guided learning/demo routes, budget preflight and11 native tracking cases pass; failures and inconclusive cursor controls are preserved in the report. Physical learning remains unvalidated.
+
+## Execution18 supervised continuation — 2026-11-09
+
+Participant confirmed live image/finger dots; three deliberate sessions released cleanly. Calibration Ready observed; no personal model accepted or physical accuracy improvement established. Original eight ledger rows total625498ms, no pending reservation. Fresh explicit authorization permits only TWO additional user-enabled≤180s sessions (five total Execution18), same12-session/1,800-second overall caps; version4 retains start count5. Never renew/reset the ledger.123 core tests/configuration and camera-free independent guardian sub-budget tests pass. Camera-off calibration settings preparation and full WPF learning/reversal pass; their stationary cursor controls were INCONCLUSIVE due cursor movement. See the supervised-continuation section of docs/EXECUTION_18_REPORT.md. Await prepared settings before another deliberate user Enable.
+
+## Execution18 — supervised local personal preview,2026-11-09
+
+Branch codex/execution-18-personalized-ghost-learning preserves PR1–6 at PR6 head99a2646. New bounded affine residual learning, independent validation, strict atomic profile persistence, rollback/reset and real WPF target controls are implemented. Corrections affect preview only; no MediaPipe retraining, gesture classifier or B2. See docs/EXECUTION_18_REPORT.md and docs/PERSONAL_LEARNING_GUIDE.md.
+
+121 core tests per configuration and20 worker tests pass. Two-seed actual WPF learning/restart/reversal and demo routes pass. Standard native regression:38 PASS, one Explorer BLOCKED; Default desktop restored. Physical personalization remains unvalidated until the creator deliberately Enables a camera and confirms real target observations. Explicit authorization amends the existing five-session ledger to version3, allowing only three more user-enabled sessions while retaining all306999ms charges and global caps. No new hardware session at this checkpoint. Never auto-start or reinitialize its budget. Draft PR7 is published; implementation e07d1d17da033dec94bd1842f70b05c3f370197b passed CI42520020144 and committed-binary WPF run20261108T202517208-194d6b02457642caa21d25dde7012f59. The verified camera-off demo app is intentionally open for manual participant Enable; no worker. Normal/legacy metadata hashes remain unchanged. Final documentation-only CI is checked separately at delivery.
+
 ## Execution17 — camera-free demo stabilization,2026-11-08
 
 Branch codex/execution-17-demo-stabilization starts at ab619be with all five parent PRs preserved. See [demo quickstart](../docs/DEMO_QUICKSTART.md), [feature inventory](../docs/DEMO_FEATURE_INVENTORY.md) and [Execution17 report](../docs/EXECUTION_17_DEMO_REPORT.md).

@@ -215,7 +215,7 @@ public sealed class PocketStoreTests
         var settings = new Pocket.Core.Tracking.CalibrationPreferences(1, new(1, 0, 0, 1920, 1200, 120), 1, 0, 12, 100);
         new Pocket.Core.Tracking.CalibrationPreferencesStore(Path.Combine(old, "calibration.json")).Save(settings);
         var result = InveyProfile.Resolve(folder.Path);
-        Assert.Equal(current, result.Root);
+        Assert.True(current == result.Root, $"Migration selected a fallback. {result.Notice} {result.Diagnostic}");
         Assert.Equal(item, Assert.Single(new PocketStore(current).Load().Items));
         Assert.Equal(Png(), new PocketStore(current).Open(item));
         Assert.Equal(settings, new Pocket.Core.Tracking.CalibrationPreferencesStore(Path.Combine(current, "calibration.json")).Load().Preferences);

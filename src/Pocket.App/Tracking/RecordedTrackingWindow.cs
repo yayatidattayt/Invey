@@ -9,12 +9,13 @@ using Pocket.Core.Tracking;
 
 namespace Pocket.App.Tracking;
 
-internal sealed class RecordedTrackingWindow : Window
+internal sealed partial class RecordedTrackingWindow : Window
 {
     private readonly RecordedTrackingController _controller = new();
     private readonly DispatcherTimer _refresh = new() { Interval = TimeSpan.FromMilliseconds(80) };
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 16, 0, 12) };
     private readonly TextBlock _sourceStatus = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
+    private readonly TextBlock _budgetStatus = new() { TextWrapping = TextWrapping.Wrap, Margin = new(0, 6, 0, 6) };
     private readonly TextBlock _inventoryStatus = new()
     {
         TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0)
@@ -30,6 +31,9 @@ internal sealed class RecordedTrackingWindow : Window
     private readonly Button _stop = new() { Content = "S_top", MinHeight = 34, Padding = new Thickness(12, 4, 12, 4) };
     private readonly Button _calibrate = new() { Content = "_Calibrate", MinHeight = 34, Margin = new Thickness(8, 0, 0, 0) };
     private readonly CalibrationPanel _calibration;
+    private readonly PersonalLearningPanel _learning;
+    private bool _preparingCalibration;
+    private readonly Expander _calibrationDetails = new() { Header = "Calibration settings & practice" };
     private readonly CheckBox _showPreview = new() { Content = "_Show local camera view and finger landmarks", Margin = new(0, 8, 0, 8) };
     private readonly CheckBox _mirrorCamera = new() { Content = "Mirror camera image", Margin = new(0, 4, 0, 4) };
     private readonly ComboBox _previewTiming = new() { ItemsSource = new[] { "Match landmarks to frame", "Latest completed image" }, SelectedIndex = 0, MinHeight = 28 };
@@ -87,9 +91,24 @@ internal sealed class RecordedTrackingWindow : Window
             await StopAsync();
             _start.Focus();
         }, settings is null ? null : new CalibrationPreferencesStore(settings, profileWritable));
+        _learning = new PersonalLearningPanel(settings is null ? null : Path.GetDirectoryName(settings), profileWritable);
+        _calibrationDetails.Content = _calibration;
+        _learning.RequestCalibration += () =>
+        {
+            if (_calibration.Visibility != Visibility.Visible)
+            {
+                var current = _controller.Read();
+                _calibration.Begin(_controller.HasDiagnostics && current.Source == TrackingSource.Camera ? current.SessionId : null, focus: false);
+                Render();
+            }
+            if (_calibration.LearningSetupIssue is not null) _calibrationDetails.IsExpanded = true;
+        };
+        _learning.LessonStarted += () => _calibrationDetails.IsExpanded = false;
         _calibrate.Click += (_, _) =>
         {
             var snapshot = _controller.Read();
+            _calibrationDetails.IsExpanded = true;
+            _preparingCalibration = snapshot.State is TrackingState.Off or TrackingState.Stopped or TrackingState.Unavailable;
             _calibration.Begin(_controller.HasDiagnostics && snapshot.Source == TrackingSource.Camera &&
                 _fixtureCameraFault is null ? snapshot.SessionId : null);
             _refresh.Interval = TimeSpan.FromMilliseconds(25);
@@ -119,12 +138,7 @@ internal sealed class RecordedTrackingWindow : Window
                 _recordedLabel,
                 _recordedDemo,
                 _sourceStatus,
-                new TextBlock
-                {
-                    Text = $"Local camera diagnostic · Stops automatically after {RecordedTrackingController.DiagnosticSeconds} seconds.",
-                    TextWrapping = TextWrapping.Wrap,
-                    Visibility = _controller.HasDiagnostics ? Visibility.Visible : Visibility.Collapsed
-                },
+                _budgetStatus,
                 _deviceOptions,
                 _status,
                 _showPreview,
@@ -134,11 +148,12 @@ internal sealed class RecordedTrackingWindow : Window
                 _overlayMode,
                 _liveView,
                 _previewStatus,
-                _calibration
+                _learning,
+                _calibrationDetails
             }
         } };
         MaxHeight = Math.Max(380, SystemParameters.WorkArea.Height - 32);
-        _visible = _controller.Read();
+        _visible = _learningFixture ?? _controller.Read();
         _inventoryStatus.Text = "Find connected cameras, then choose one to enable.";
         Render();
         _refresh.Tick += (_, _) => Render();
@@ -171,6 +186,7 @@ internal sealed class RecordedTrackingWindow : Window
 
     internal void OpenFingerFixture()
     {
+        _calibrationDetails.IsExpanded = true;
         _calibration.Begin(null);
         _calibration.EnableFixturePreview();
     }
@@ -280,7 +296,7 @@ internal sealed class RecordedTrackingWindow : Window
 
     private void Render()
     {
-        _visible = _controller.Read();
+        _visible = _learningFixture ?? _controller.Read();
         bool live = _live.IsChecked == true;
         bool available = !_closing && !_stopping && _scan is null && _controller.CanStart;
         _live.IsEnabled = _recorded.IsEnabled = _find.IsEnabled = available;
@@ -291,10 +307,14 @@ internal sealed class RecordedTrackingWindow : Window
         _recordedDemo.IsEnabled = available;
         _recordedDemo.Visibility = _recordedLabel.Visibility = live ? Visibility.Collapsed : Visibility.Visible;
         _deviceOptions.Visibility = live ? Visibility.Visible : Visibility.Collapsed;
-        bool budgetAvailable = !live || _fixtureFile is not null || _fixtureCameraFault is not null ||
-            _controller.DiagnosticBudgetAvailable;
+        var budget = live && available && _fixtureFile is null && _fixtureCameraFault is null
+            ? _controller.DiagnosticBudget() : null;
+        bool budgetAvailable = budget?.Available != false;
+        _budgetStatus.Text = budget?.Message ?? (live && _controller.HasDiagnostics && _visible.SessionId.HasValue
+            ? $"Timed camera test: automatic stop at{RecordedTrackingController.DiagnosticSeconds} seconds. Stop is always available." : "");
+        _budgetStatus.Visibility = string.IsNullOrEmpty(_budgetStatus.Text) ? Visibility.Collapsed : Visibility.Visible;
         _start.IsEnabled = available && budgetAvailable && (!live || _devices.SelectedItem is CameraDevice);
-        if (!budgetAvailable) _start.ToolTip = "The execution camera budget is missing or unavailable.";
+        if (!budgetAvailable) _start.ToolTip = budget!.Message;
         else _start.ToolTip = null;
         _stop.IsEnabled = !_stopping && _visible.SessionId.HasValue;
         bool showing = !simulated && _showPreview.IsChecked == true && _visible.SessionId.HasValue &&
@@ -311,8 +331,9 @@ internal sealed class RecordedTrackingWindow : Window
         _mirrorCamera.Visibility = showing ? Visibility.Visible : Visibility.Collapsed;
         bool canCalibrate = _visible.State is TrackingState.Ready or TrackingState.Observing
             or TrackingState.Lost or TrackingState.Stale or TrackingState.Partial or TrackingState.Ambiguous;
-        _calibrate.IsEnabled = canCalibrate && _calibration.Visibility != Visibility.Visible;
-        if (!canCalibrate && _calibration.Visibility == Visibility.Visible)
+        if (canCalibrate) _preparingCalibration = false;
+        _calibrate.IsEnabled = (canCalibrate || available) && _calibration.Visibility != Visibility.Visible;
+        if (!canCalibrate && _calibration.Visibility == Visibility.Visible && (!_preparingCalibration || !available))
         {
             _calibration.End();
             _refresh.Interval = TimeSpan.FromMilliseconds(80);
@@ -320,6 +341,9 @@ internal sealed class RecordedTrackingWindow : Window
         _refresh.Interval = TimeSpan.FromMilliseconds(showing ? 16 :
             _calibration.Visibility == Visibility.Visible ? 25 : 80);
         _calibration.Update(_visible);
+        var input = _calibration.LearningInput(_visible, _visible.Source == TrackingSource.Camera
+            ? (_devices.SelectedItem as CameraDevice)?.Id ?? "unknown" : _recordedDemo.SelectedIndex == 1 ? "simulated-practice" : "recorded-model");
+        _learning.Observe(_visible, input.Context, input.Point, _calibration.PracticeHeld, _calibration.LearningSetupIssue);
         string source = !live ? (_recordedDemo.SelectedIndex == 1 ? "simulated practice" : "recorded tracking") : _fixtureFile is not null ? "test video" : "live camera";
         _start.Content = (_startedInMode ? "_Restart " : "_Enable ") + source;
         string cameraStatus = _visible.Source == TrackingSource.Camera ? _visible.State switch
@@ -382,12 +406,12 @@ internal sealed class RecordedTrackingWindow : Window
             Failure = _visible.Failure?.ToString(), _visible.AcceptedObservations, _visible.SupersededObservations,
             CanStart = _start.IsEnabled, CanStop = _stop.IsEnabled, Status = _status.Text,
             SourceStatus = _sourceStatus.Text, SourceChoicesEnabled = _live.IsEnabled && _recorded.IsEnabled,
-            InventoryStatus = _inventoryStatus.Text, CameraCount = _devices.Items.Count, DeviceSelected = _devices.SelectedIndex >= 0,
+            BudgetStatus = _budgetStatus.Text, InventoryStatus = _inventoryStatus.Text, CameraCount = _devices.Items.Count, DeviceSelected = _devices.SelectedIndex >= 0,
             _controller.LastWorkerPid, _controller.ForcedStop, _controller.WorkerPhase, _controller.WorkerNativeCode,
             Sequence = sample?.Sequence, WristX = sample?.Point(0)?.X,
             SourceMs = sample is null ? (long?)null : sample.ResultMonoMs - sample.CaptureMonoMs,
             HostAgeMs = _visible.HostObservationAge?.TotalMilliseconds,
-            Calibration = _calibration.TestSnapshot(), IndexX = sample?.Point(8)?.X, Title
+            Calibration = _calibration.TestSnapshot(), Learning = _learning.TestSnapshot(), IndexX = sample?.Point(8)?.X, Title
         };
     }
 }

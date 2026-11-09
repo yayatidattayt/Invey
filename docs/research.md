@@ -1,5 +1,9 @@
 # POCKET × DUAL × GHOST — Living Engineering Research
 
+## 2026-11-09 — Execution18 supervised personalization
+
+A six-coefficient ridge residual corrects only local normalized preview mapping. A separate nine-region held-out set must improve mean error against identity and the incumbent without material regional/tail regressions. Coverage, finite bounds, matching context, strict freshness and user-confirmed targets gate the update. Parameters/aggregate metrics persist; examples do not. No detector retraining or learned gesture authority. Controlled error improvements,121 core tests/configuration,20 worker tests, actual WPF reload/reversal and38 native cases are evidenced in docs/EXECUTION_18_REPORT.md. Physical improvement is not yet evidenced. Original failed runs remain preserved. Official references: https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Ridge.html and https://learn.microsoft.com/en-us/dotnet/api/system.io.file.replace?view=net-10.0 .
+
 ## 2026-11-06 — Execution 12 reliability
 
 The baseline reproduced two issues through targeted assertions. A superseded ambiguity result was omitted from host counts, and duplicate mirror settings silently used the last property. The repairs distinguish worker output, host transitions and calibration UI observation. Physical Ready remains unresolved pending fresh device evidence. See `docs/EXECUTION_12_REPORT.md`.
