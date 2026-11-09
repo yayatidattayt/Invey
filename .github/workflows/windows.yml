@@ -2,7 +2,7 @@ name: Windows verification
 
 on:
   pull_request:
-    branches: [main, codex/execution-11-calibration-ci, codex/execution-13-pocket-capture, codex/execution-14-invey-cards-migration, codex/execution-15-workspace-shortcuts-reliability, codex/execution-16-precision-finger-tracking, codex/execution-17-demo-stabilization]
+    branches: [main, codex/execution-11-calibration-ci, codex/execution-13-pocket-capture, codex/execution-14-invey-cards-migration, codex/execution-15-workspace-shortcuts-reliability, codex/execution-16-precision-finger-tracking, codex/execution-17-demo-stabilization, codex/execution-18-personalized-ghost-learning]
   push:
     branches: [main]
 

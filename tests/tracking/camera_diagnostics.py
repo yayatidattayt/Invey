@@ -57,6 +57,8 @@ class CameraDiagnostics:
         kind = ("hand" if fields["tracked"] else "ambiguous" if fields.get("ambiguous")
                 else "partial" if fields.get("partial") else "empty")
         self.data["results"][kind] += 1
+        if fields.get("visual"):
+            self.count("visualContinuationObservations")
         if fields.get("partial") and "points" in fields:
             points = fields["points"]
             self.count("partialModelObservations")

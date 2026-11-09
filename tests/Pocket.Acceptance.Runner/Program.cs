@@ -150,6 +150,7 @@ internal static partial class Program
             }
             if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_FINGER_ONLY") == "1")
             {
+                await RunPrecisionPreview(client);
                 await RunFingerPreview(client);
                 await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
                 return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
@@ -172,6 +173,7 @@ internal static partial class Program
             }
             if (TrackingOnly)
             {
+                await RunPrecisionPreview(client);
                 await RunRecordedTracking(client);
                 await RunCalibration(client);
                 await RunNativeTrackingFixture(client);
@@ -282,6 +284,7 @@ internal static partial class Program
             await RunRecordedTracking(client);
             await RunCalibration(client);
             await RunNativeTrackingFixture(client);
+            await RunPrecisionPreview(client);
             await RunFingerPreview(client);
             await RunPocketCapture(client, output);
             await Measure("OVERLAY_CLOSED_DURING_PRESS","NATIVE_SOFTWARE_TEST","Closing owned overlay cancels claim and timer immediately",async()=>

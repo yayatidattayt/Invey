@@ -141,14 +141,18 @@ def stream(args, pipe, stop, diagnostic=None):
     if args.fault == "startup-hang":
         stop.wait(30)
         return
-    if args.fault == "finger-preview":
+    if args.fault in ("finger-preview", "finger-visual"):
         if args.camera or args.fixture_file:
             raise ValueError("Pointer fixture requires the recorded source.")
         sys.path.insert(0, str(args.site_packages))
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         from preview_pipeline import PreviewSender
         with PreviewSender(args.preview_pipe) if args.preview_pipe else nullcontext() as preview:
-            finger_preview_fixture(send, stop, preview)
+            if args.fault == "finger-visual":
+                from precision_fixture import visual_fixture
+                visual_fixture(send, stop, preview)
+            else:
+                finger_preview_fixture(send, stop, preview)
         return
     if args.fault == "calibration-practice":
         if args.camera or args.fixture_file:
@@ -214,9 +218,11 @@ def stream(args, pipe, stop, diagnostic=None):
                     stop.wait(0.9)
 
             measured = diagnostic.measure_tracker(tracker) if diagnostic else tracker
+            from finger_visual import FingerVisual
+            visual = None if os.environ.get("INVEY_LEGACY_POINTER") == "1" else FingerVisual()
             run_frames(source, stop, measured, mp, np, normalize, send,
                        diagnostic.sample if diagnostic else delay_result if args.fault == "result-gap" else None,
-                       diagnostic, preview)
+                       diagnostic, preview, visual)
     except InvalidLandmarkOutput:
         if diagnostic:
             diagnostic.count("invalidModelOutputs")
@@ -255,7 +261,7 @@ def main():
     source.add_argument("--fixture-file", type=Path)
     parser.add_argument("--fault", choices=["startup-hang", "crash", "malformed", "ignore-stop",
                                           "bad-model", "result-gap", "camera-denied", "camera-busy",
-                                          "camera-missing", "calibration-practice", "finger-preview"])
+                                          "camera-missing", "calibration-practice", "finger-preview", "finger-visual"])
     args = parser.parse_args()
     if not args.list_cameras and not all((args.pipe, args.session, args.site_packages, args.model, args.palm)):
         parser.error("The tracking worker requires a pipe, session, runtime, and asset paths.")

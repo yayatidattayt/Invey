@@ -46,6 +46,13 @@ class FramePipelineTests(unittest.TestCase):
         self.assertFalse(self.wire[0][1]["tracked"])
         self.assertEqual(self.wire[0][1]["captureMonoMs"], stamp)
 
+    def test_native_sequence_reordering_is_rejected_even_with_increasing_timestamps(self):
+        pixels=np.zeros((50,50,3),np.uint8)
+        now=time.perf_counter_ns()-10000000
+        with self.assertRaisesRegex(ValueError,"Out-of-order"):
+            self.run_source(Frame(pixels,now,sequence=9),Frame(pixels,now+1000000,sequence=8))
+        self.assertEqual(len(self.inputs),1)
+
     def test_invalid_layout_is_rejected_before_inference_or_wire_output(self):
         for pixels in (np.zeros((1, 1, 4), np.uint8), np.zeros((1, 1, 3), np.float32)):
             with self.subTest(shape=pixels.shape, dtype=pixels.dtype):

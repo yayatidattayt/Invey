@@ -214,6 +214,7 @@ internal sealed class AcceptanceHost : IDisposable
             case "tracking-finger-preview-open": _tracking!.OpenFingerFixture(); break;
             case "tracking-enable-video-fixture": _tracking!.EnablePreviewFixture(); break;
             case "tracking-start-finger-preview": _tracking!.Start("finger-preview"); break;
+            case "tracking-start-finger-visual": _tracking!.Start("finger-visual"); break;
             case "tracking-start-calibration-practice": _tracking!.Start("calibration-practice"); break;
             case "tracking-display-disconnect": _tracking!.SimulateDisplayDisconnect(); break;
             case "tracking-stop": if (_tracking is not null) await _tracking.StopAsync(); break;

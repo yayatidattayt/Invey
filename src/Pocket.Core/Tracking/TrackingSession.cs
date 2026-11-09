@@ -163,6 +163,7 @@ public sealed class TrackingSession(TimeProvider? clock = null)
             {
                 { Ambiguous: true } => TrackingBreak.Ambiguous,
                 { Partial: true } => TrackingBreak.Partial,
+                { Visual: not null } => TrackingBreak.Partial,
                 { Tracked: false } => TrackingBreak.Loss,
                 _ when observation.FrameSize != prior.FrameSize || observation.Handedness != prior.Handedness => TrackingBreak.HandChanged,
                 _ when observation.CaptureMonoMs - prior.CaptureMonoMs is <= 0 or > 220 => TrackingBreak.Gap,
@@ -181,9 +182,9 @@ public sealed class TrackingSession(TimeProvider? clock = null)
         else if (observation.Ambiguous) _ambiguous++;
         else if (observation.Partial) _partial++;
         else _loss++;
-        _latest = observation.HasModelPoints ? observation : null;
+        _latest = observation.HasModelPoints || observation.Visual is not null ? observation : null;
         _observedByConsumer = false;
-        _state = observation.Ambiguous ? TrackingState.Ambiguous : observation.Partial ? TrackingState.Partial :
+        _state = observation.Ambiguous ? TrackingState.Ambiguous : observation.Partial || observation.Visual is not null ? TrackingState.Partial :
             observation.Tracked ? TrackingState.Observing : TrackingState.Lost;
         return true;
     }
@@ -212,7 +213,9 @@ public sealed class TrackingSession(TimeProvider? clock = null)
     private void Break(TrackingBreak reason)
     {
         _continuity++;
-        if (reason != TrackingBreak.Partial) _pointerContinuity++;
+        // Gesture/readiness continuity still breaks on movement; the pointer's outlier gate must
+        // see the discontinuity instead of resetting directly onto a one-frame spike.
+        if (reason is not (TrackingBreak.Partial or TrackingBreak.Movement)) _pointerContinuity++;
         _lastBreak = reason;
         _breakCounts[(int)reason]++;
     }

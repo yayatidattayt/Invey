@@ -71,7 +71,9 @@ internal sealed class CameraPreviewView : Grid
 
     private Point? Position(int index)
     {
-        if (_frame is not { } frame || _observation?.Point(index) is not { } point) return null;
+        var observed = index == 8 && _observation?.Visual is { } visual ?
+            new ImageLandmark(visual.X, visual.Y, 0) : _observation?.Point(index);
+        if (_frame is not { } frame || observed is not { } point) return null;
         var box = CalibrationReadiness.FitAspect(frame.Image.PixelWidth, frame.Image.PixelHeight, ActualWidth, ActualHeight);
         return new(box.X + (_mirror ? 1 - point.X : point.X) * box.Width, box.Y + point.Y * box.Height);
     }
@@ -81,6 +83,7 @@ internal sealed class CameraPreviewView : Grid
         for (int i = 0; i < _points.Length; i++)
         {
             var visual = _points[i];
+            visual.Fill = i == 8 && _observation?.Visual is not null ? Brushes.DarkOrange : SystemColors.HighlightBrush;
             var point = Position(i);
             visual.Visibility = point is null || OverlayMode == 0 ||
                 (OverlayMode == 1 && i is not (4 or 8 or 12 or 16 or 20)) ? Visibility.Collapsed : Visibility.Visible;

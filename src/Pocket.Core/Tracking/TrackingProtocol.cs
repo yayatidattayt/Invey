@@ -10,6 +10,7 @@ public readonly record struct TrackingFrameSize(int Width, int Height)
     public bool IsValid => Width is > 0 and <= 4096 && Height is > 0 and <= 4096;
 }
 public enum HandSide { Left, Right }
+public sealed record VisualIndex(double X, double Y, long AnchorMonoMs, double Residual);
 public enum TrackingFailure
 {
     NoDevice, PermissionDenied, DeviceBusy, DeviceLost, UnsupportedFormat,
@@ -27,7 +28,7 @@ public sealed record TrackerError(Guid SessionId, TrackingFailure Failure) : Tra
 public sealed record HandObservation(Guid SessionId, long Sequence, long CaptureMonoMs, long ResultMonoMs,
     ImmutableArray<ImageLandmark> Landmarks, HandSide? Handedness = null, double? HandednessScore = null,
     bool Partial = false, TrackingFrameSize? FrameSize = null, bool Ambiguous = false,
-    ImmutableArray<ImageLandmark?> PartialLandmarks = default, int ProtocolVersion = 1)
+    ImmutableArray<ImageLandmark?> PartialLandmarks = default, int ProtocolVersion = 1, VisualIndex? Visual = null)
     : TrackerMessage(SessionId)
 {
     public bool Tracked => !Landmarks.IsDefault && Landmarks.Length == 21;
@@ -38,7 +39,12 @@ public sealed record HandObservation(Guid SessionId, long Sequence, long Capture
         : null;
 
     public bool IsValid =>
-        ProtocolVersion is 1 or 2 &&
+        ProtocolVersion is 1 or 2 or 3 &&
+        (ProtocolVersion == 3 ? Visual is { } visual && Landmarks.IsEmpty && PartialLandmarks.IsDefaultOrEmpty &&
+            !Partial && !Ambiguous && Handedness.HasValue && FrameSize.HasValue &&
+            visual.X is >= 0 and <= 1 && visual.Y is >= 0 and <= 1 &&
+            visual.Residual is >= 0 and <= 12 && visual.AnchorMonoMs >= 0 &&
+            CaptureMonoMs - visual.AnchorMonoMs is > 0 and <= 600 : Visual is null) &&
         (PartialLandmarks.IsDefaultOrEmpty ||
             (ProtocolVersion == 2 && Partial && !Ambiguous && Landmarks.IsEmpty && PartialLandmarks.Length == 21 &&
              PartialLandmarks.Any(p => p is null) &&
@@ -48,7 +54,7 @@ public sealed record HandObservation(Guid SessionId, long Sequence, long Capture
         (!(Partial || Ambiguous) || Landmarks.IsEmpty) && !(Partial && Ambiguous) &&
         (FrameSize is null || FrameSize.Value.IsValid) &&
         Landmarks.All(p => p.X is >= 0 and <= 1 && p.Y is >= 0 and <= 1 && double.IsFinite(p.Z)) &&
-        (Handedness is null || (HasModelPoints && Enum.IsDefined(Handedness.Value))) &&
+        (Handedness is null || ((HasModelPoints || Visual is not null) && Enum.IsDefined(Handedness.Value))) &&
         (HandednessScore is null || (Handedness.HasValue && HandednessScore is >= 0 and <= 1));
 
     private static bool ValidPoint(ImageLandmark p) =>
@@ -72,7 +78,7 @@ public static class TrackingProtocol
             using var document = JsonDocument.Parse(utf8, new JsonDocumentOptions { MaxDepth = 6 });
             var fields = ReadFields(document.RootElement);
             int version = fields["v"].GetInt32();
-            if (version is not (1 or 2) || !fields["session"].TryGetGuid(out var session) || session == Guid.Empty)
+            if (version is not (1 or 2 or 3) || !fields["session"].TryGetGuid(out var session) || session == Guid.Empty)
                 throw new InvalidDataException("Invalid tracker version or session.");
 
             return fields["kind"].GetString() switch
@@ -105,7 +111,7 @@ public static class TrackingProtocol
     private static HandObservation ReadObservation(Guid session, Dictionary<string, JsonElement> fields, int version)
     {
         if (fields.Keys.Any(name => name is not ("v" or "kind" or "session" or "seq" or "captureMonoMs" or
-            "resultMonoMs" or "tracked" or "landmarks" or "handedness" or "quality" or "partial" or "ambiguous" or "frame" or "points")))
+            "resultMonoMs" or "tracked" or "landmarks" or "handedness" or "quality" or "partial" or "ambiguous" or "frame" or "points" or "visual")))
             throw new InvalidDataException("Unknown observation field.");
 
         bool tracked = fields["tracked"].GetBoolean();
@@ -159,8 +165,15 @@ public static class TrackingProtocol
         if (version == 2 && partial && sparse.IsEmpty)
             throw new InvalidDataException("Version 2 partial observations require explicit points.");
 
+        VisualIndex? visual = null;
+        if (fields.TryGetValue("visual", out var visualField))
+        {
+            var v = ReadFields(visualField);
+            if (v.Count != 4) throw new InvalidDataException("Invalid visual evidence.");
+            visual = new(v["x"].GetDouble(), v["y"].GetDouble(), v["anchorMonoMs"].GetInt64(), v["residual"].GetDouble());
+        }
         var observation = new HandObservation(session, fields["seq"].GetInt64(), fields["captureMonoMs"].GetInt64(),
-            fields["resultMonoMs"].GetInt64(), landmarks.MoveToImmutable(), side, score, partial, size, ambiguous, sparse, version);
+            fields["resultMonoMs"].GetInt64(), landmarks.MoveToImmutable(), side, score, partial, size, ambiguous, sparse, version, visual);
         if (!observation.IsValid) throw new InvalidDataException("Invalid hand observation.");
         return observation;
     }

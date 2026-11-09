@@ -302,8 +302,14 @@ internal sealed class CalibrationPanel : StackPanel
                     _filteredMoments.Add(filtered);
                 }
             }
-            string fingers = string.Join(" · ", _fingerSample.Fingers.Select(f => $"{f.Finger} {f.Evidence.ToString().ToLowerInvariant()}"));
-            Announce(_fingerStatus, $"Pointer {_fingerSample.State.ToString().ToLowerInvariant()}. {fingers}");
+            Announce(_fingerStatus, _fingerSample.State switch {
+                FingerPointerState.FingerVisual => "Tracking visible finger · visual continuation, preview only",
+                FingerPointerState.Stable => "Tracking hand",
+                FingerPointerState.Partial => "Tracking partial hand · preview only",
+                FingerPointerState.Stabilizing => "Reacquiring",
+                FingerPointerState.Ambiguous => "Show one hand",
+                _ => "Finger tracking lost · show your full selected hand"
+            });
         }
         else _fingerStatus.Text = "";
         DipPoint? anchor = _pointerPreview.IsChecked == true ? _fingerSample.Position :

@@ -1,5 +1,11 @@
 # Invey — Current handoff
 
+## Execution19 — precision preview, 2026-11-09
+
+Branch codex/execution-19-precision-ghost starts at PR7 head769bf27. New motion-aware One Euro preview and600ms bounded warm image correspondence are experimental; see docs/EXECUTION_19_REPORT.md and docs/GHOST_PRECISION_GUIDE.md. V3 visual evidence is not a model landmark and cannot grant gestures or learning labels. Full native regression39 PASS/Explorer BLOCKED;132 core tests/configuration and29 worker tests pass. Initial failures remain preserved. Physical wrist-out/cold-start accuracy is NOT verified.
+
+IMPORTANT: the actual camera ledger now has TEN released rows totaling809686ms. All five Execution18 starts since startCount5 are used. No authorized session remains. Do not reuse the older one-session-remaining statement, reset/extend the ledger, clear diagnostics to bypass it, or auto-enable a webcam. Execution19 performed camera-free work only. Parents PR1–7 remain unmerged; publish this branch as a draft against PR7 and verify exact-head CI. Final delivery linkage follows in the report/local delivery receipt.
+
 ## Execution18 UI and budget repair — 2026-11-09
 
 Participant requested a clear learning UI after a budget error. Guided single-action lesson replaces the button cluster; optional feedback/recovery/calibration remains tucked away. Budget eligibility is checked before worker launch, with specific blocked/exhausted messages. Cooperative stop170s retains the178s hard cutoff. Fourth live session had process exit but missing native release acknowledgement. After explicit user Exit/indicator-off confirmation and independent process/diagnostic review, it was completed at the FULL180000ms charge with a separate receipt; no API acknowledgement was fabricated. Nine rows total805498ms, same start count5, ONE previously authorized start remains. Never reset/renew the ledger or launch camera unattended.125 core tests/configuration,20 workers, two seeded guided learning/demo routes, budget preflight and11 native tracking cases pass; failures and inconclusive cursor controls are preserved in the report. Physical learning remains unvalidated.

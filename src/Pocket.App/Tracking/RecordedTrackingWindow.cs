@@ -366,6 +366,7 @@ internal sealed partial class RecordedTrackingWindow : Window
             TrackingState.Ready => "Waiting for a hand observation.",
             TrackingState.Observing => "Hand detected · 21 landmarks",
             TrackingState.Lost => "No hand detected. The current observation is clear.",
+            TrackingState.Partial when _visible.Observation?.Visual is not null => "Tracking visible finger · short visual continuation, preview only.",
             TrackingState.Partial => "Partial hand. In-frame points may support the experimental finger preview.",
             TrackingState.Ambiguous => "Multiple hands detected. Show one hand to continue.",
             TrackingState.Stale => "No recent tracking result. The current observation is clear.",
@@ -411,7 +412,8 @@ internal sealed partial class RecordedTrackingWindow : Window
             Sequence = sample?.Sequence, WristX = sample?.Point(0)?.X,
             SourceMs = sample is null ? (long?)null : sample.ResultMonoMs - sample.CaptureMonoMs,
             HostAgeMs = _visible.HostObservationAge?.TotalMilliseconds,
-            Calibration = _calibration.TestSnapshot(), Learning = _learning.TestSnapshot(), IndexX = sample?.Point(8)?.X, Title
+            Calibration = _calibration.TestSnapshot(), Learning = _learning.TestSnapshot(), IndexX = sample?.Point(8)?.X,
+            VisualIndex = sample?.Visual, Title
         };
     }
 }
