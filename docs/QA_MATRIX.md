@@ -117,3 +117,7 @@ Main navigation, explicit isolated sample profile, launcher and labeled recorded
 | Physical before/after personalization | Requires deliberate user Enable and confirmed independent targets | NOT RUN at publication checkpoint |
 
 Learning affects only its labeled preview. Existing F06 lifecycle, F07 readiness/practice, partial-preview restrictions, Gate A/M02 and B1 acceptance boundaries remain authoritative. See EXECUTION_18_REPORT.md for preserved failures, binary linkage and remaining physical gaps.
+
+## Execution19 — precision preview (experimental)
+
+132 core tests per configuration;29 workers; two full isolated native seeds each39 PASS/Explorer BLOCKED. Actual WPF visual continuation and Stop during fallback pass, as do preserved Pocket/Dual/learning routes. Evidence source is generated signals/images and controlled recorded inference, not physical fingertip validation. V3 visual coordinates have no full-hand learning/gesture authority. Physical wrist-out and cold acquisition remain BLOCKED/open respectively; existing camera allowance is exhausted and unchanged. See EXECUTION_19_REPORT.md and GHOST_PRECISION_GUIDE.md.

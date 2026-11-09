@@ -117,3 +117,13 @@ Final review found repeated UI reads could retain an otherwise fresh visual samp
 The signal benchmark additionally estimates trajectory lag by minimum squared alignment on the same generated trajectories: slow100→60ms, rapid60→20ms, curve60→20ms; reversal80→40ms. These are discrete20ms-grid signal estimates, not camera-to-screen latency.
 
 The research-sync script was refused by the shell signing policy; the reviewed script's sole copy operation was performed directly to keep the canonical document and root mirror identical. No system execution policy was changed.
+
+## Published implementation and final cleanup
+
+Draft PR8: https://github.com/yayatidattayt/Invey/pull/8 . Exact implementation39b6506bde3e4c66138f9655be6047ca2eec3bd5 passed Windows CI42620766922: https://github.com/yayatidattayt/Invey/actions/runs/42620766922 . PR1–7 remain open and unmerged. The subsequent evidence-only head is independently checked and recorded on PR8 and in the local final-delivery.json; it does not change the tested application source.
+
+Committed-binary full native seed99174 run20261109T125344565-2126ee42f163460dad7c61e9db0be6c0 passes39 cases, zero failures and one Explorer-only blocked case, including the final expiry guard. This confirms the full inherited feature stack after the narrow final source change. Launchable executable: src/Pocket.App/bin/Release/net10.0-windows/Invey.exe. Its Invey.dll version1.0.0+39b6506bde3e4c66138f9655be6047ca2eec3bd5 has SHA256CE081A9AF82834C34FA845EF9E07C8E9B8F10CDF16AD55F9E763480E0E94E345, matching the final acceptance record. The generated resource benchmark uses320x240 images, not FHD camera frames.
+
+Independent environment audit: input desktop Default; zero owned Invey/tracking/test processes. Launcher CheckOnly confirms executable/runtime/optional tracking assets and zero running instances. App is intentionally left closed. Camera ledger SHA25601A3B86D3121061FCDE4D4BC2903F1C0DADDF4B5D6F928F207BE7A937BE78D58 is unchanged; ten rows809686ms, zero pending releases, zero remaining authorized Execution18 starts. No Windows restart, display change, normal-desktop input injection, unrelated process closure or real-profile write was performed.
+
+Final recommendation remains PARTIAL / review the experimental camera-free implementation. Physical warm continuation is BLOCKED, cold acquisition remains an open research requirement, and physical personalization remains unvalidated. Guide launch instructions preserve the exhausted guardian. No tests or CI are left running at delivery.
