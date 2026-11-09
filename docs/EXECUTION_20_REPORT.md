@@ -128,4 +128,4 @@ Several early acceptance attempts failed before fixes or under setup constraints
 
 At this addendum’s creation, PR#9 still points at published baseline `84b8102275292a2b3ecf79ccf4728768cbccd76f`; its description still calls Execution20 incomplete. Delivery remains pending until the reviewed local changes are committed and pushed to PR#9 and GitHub Actions passes on that exact commit. Physical hand actuation remains blocked and is not part of this camera-free result.
 
-**Controlled product verification: PASS. Repository delivery: PENDING exact published-head CI. Physical hand acceptance: BLOCKED.**
+**Controlled product verification: PASS.** The implementation commit `fc1d83125ef48d972cc9aeac5b484a00429ffcaf` is published on PR#9 and its exact-head GitHub Actions run `42645452357` completed successfully. **Physical hand acceptance: BLOCKED.** The GitHub connector rejected the attempted PR title/body update with HTTP403; PR#9 remains open and unmerged with its pre-existing description. No parent PR was merged.
