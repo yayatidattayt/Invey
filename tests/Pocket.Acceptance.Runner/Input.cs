@@ -96,7 +96,10 @@ internal static class Input
             windows.Add($"{window.ToInt64()}:{type}:{text}:visible={IsWindowVisible(window)}:style=0x{GetWindowLongPtr(window,-16).ToInt64():X}:ex=0x{GetWindowLongPtr(window,-20).ToInt64():X}:rect={bounds.Left},{bounds.Top},{bounds.Right},{bounds.Bottom}");
             return true;
         },0);
-        return $"hwnd={hwnd.ToInt64()},pid={pid},class={className},title={title}; windows=[{string.Join(";",windows)}]";
+        uint thread=GetWindowThreadProcessId(hwnd,out _);
+        string ownerDesktop;
+        try {ownerDesktop=Desktop.Name(GetThreadDesktop(thread));}catch(Exception error){ownerDesktop="unavailable:"+error.GetType().Name;}
+        return $"inputDesktop={Desktop.InputDesktopName()},foregroundDesktop={ownerDesktop},hwnd={hwnd.ToInt64()},pid={pid},thread={thread},class={className},title={title}; windows=[{string.Join(";",windows)}]";
     }
     public static bool Focus(nint hwnd)=>SetForegroundWindow(hwnd);
     public static bool Exists(nint hwnd)=>IsWindow(hwnd);
@@ -118,4 +121,5 @@ internal static class Input
     [DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")]private static extern nint GetWindowLongPtr(nint hwnd,int index);
     [DllImport("user32.dll")]private static extern bool SetForegroundWindow(nint hwnd);
     [DllImport("user32.dll")]private static extern bool IsWindow(nint hwnd);
+    [DllImport("user32.dll",SetLastError=true)]private static extern nint GetThreadDesktop(uint thread);
 }

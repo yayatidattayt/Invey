@@ -36,6 +36,8 @@ internal sealed class GesturePracticePanel : StackPanel
         };
     }
     private void Reset(){_stage=0;_open.Clear();_pinch.Clear();_release.Clear();_context=null;_session=null;_sequence=_capture=-1;}
+    internal int Stage => _stage;
+    internal void AdvanceFixture(){Pocket.App.AcceptanceHost.ValidateDesktop();_next.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));}
     public void Update(TrackingSnapshot snapshot,LearningContext? context)
     {
         if(_stage==0)return;

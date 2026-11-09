@@ -20,6 +20,11 @@ public partial class App : Application
         base.OnStartup(e);
         try
         {
+            if(e.Args.Length==2&&e.Args[0]=="--amend-camera-budget-pointer-qualification")
+            {
+                using var budget=new Pocket.Core.Tracking.CameraBudget(e.Args[1]);
+                budget.AmendPointerQualification();Shutdown(0);return;
+            }
             if (e.Args.FirstOrDefault() == "--review-camera-release-after-exit")
             {
                 Shutdown(Tracking.CameraReleaseRecovery.Run(e.Args));

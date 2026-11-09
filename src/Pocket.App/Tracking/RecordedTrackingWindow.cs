@@ -61,6 +61,7 @@ internal sealed partial class RecordedTrackingWindow : Window
     private readonly CheckBox _desktopPreview=new(){Content="Desktop Ghost preview · no live actions"};
     internal Func<string>? DesktopStatus { get; set; }
     private readonly TextBlock _desktopStatus=new(){TextWrapping=TextWrapping.Wrap};
+    private readonly TextBlock _qualification=new(){TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,6,0,6)};
 
     public RecordedTrackingWindow(string? fixtureFile = null, string? fixtureCameraFault = null,
         string? testSettingsPath = null, bool acceptanceHost = false, string? profileSettingsPath = null,
@@ -158,6 +159,7 @@ internal sealed partial class RecordedTrackingWindow : Window
                 _showPreview,
                 _desktopPreview,
                 _desktopStatus,
+                _qualification,
                 _gesturePractice,
                 actions,
                 _previewTiming,
@@ -169,6 +171,12 @@ internal sealed partial class RecordedTrackingWindow : Window
                 _calibrationDetails
             }
         } };
+        // Stop stays reachable even when preview/calibration content needs scrolling.
+        var scrolling=(ScrollViewer)Content;
+        ((StackPanel)scrolling.Content).Children.Remove(actions);
+        Content=null;
+        actions.Margin=new Thickness(24,12,24,0);DockPanel.SetDock(actions,Dock.Top);
+        Content=new DockPanel{Children={actions,scrolling}};
         MaxHeight = Math.Max(380, SystemParameters.WorkArea.Height - 32);
         _visible = _learningFixture ?? _controller.Read();
         _inventoryStatus.Text = "Find connected cameras, then choose one to enable.";
@@ -367,6 +375,14 @@ internal sealed partial class RecordedTrackingWindow : Window
             DesktopPointerChanged?.Invoke(_visible,_calibration.DesktopContext(_visible,_visible.Source==TrackingSource.Camera
                 ? (_devices.SelectedItem as CameraDevice)?.Id??"unknown" : _recordedDemo.SelectedIndex==1?"simulated-practice":"recorded-model"),null,_learning.AcceptedPreviewModel);
         _desktopStatus.Text=_desktopPreview.IsChecked==true ? "Desktop Ghost · "+(DesktopStatus?.Invoke()??"Preview unavailable") : "";
+        var selectedContext=_calibration.DesktopContext(_visible,(_devices.SelectedItem as CameraDevice)?.Id??"recorded");
+        _qualification.Text=$"{(_devices.SelectedItem as CameraDevice)?.Name??"No camera selected"} · "+
+            (selectedContext is {} configured?$"Display {configured.Display.Number} · {(configured.Hand==1?"Left":"Right")} hand · Mirror {(configured.Mirror?"on":"off")}":"Choose display and hand in Calibration")+
+            "\n"+(_visible.State==TrackingState.Stopped?"Stop complete · worker exited":
+            _visible.Observation is {Visual:not null}?"Visual fingertip continuation · preview only":
+            _visible.Observation is {Partial:true}?"Partial hand · gesture evidence incomplete":
+            _visible.Observation is {Tracked:true}?"Full hand observed": "Finger tracking unavailable")+
+            " · Pocket actions disabled";
         string source = !live ? (_recordedDemo.SelectedIndex == 1 ? "simulated practice" : "recorded tracking") : _fixtureFile is not null ? "test video" : "live camera";
         _start.Content = (_startedInMode ? "_Restart " : "_Enable ") + source;
         string cameraStatus = _visible.Source == TrackingSource.Camera ? _visible.State switch

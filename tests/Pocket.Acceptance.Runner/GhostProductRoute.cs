@@ -28,6 +28,7 @@ internal static partial class Program
                 await Send("ghost-controls-place");
                 long editor=initial.GetProperty("FixtureHandle").GetInt64();
                 var fixture=(await Send("status")).GetProperty("Fixture").GetProperty("Editor");
+                await FocusTrackingAsync(client,editor);
                 Input.Click(fixture.GetProperty("X").GetDouble(),fixture.GetProperty("Y").GetDouble());
                 await Until(client,s=>s.GetProperty("Fixture").GetProperty("EditorFocused").GetBoolean()&&
                     s.GetProperty("Native").GetProperty("Foreground").GetInt64()==editor);
@@ -93,6 +94,8 @@ internal static partial class Program
                 var feedback=await Send("feedback-open");
                 Require(Product(feedback).GetProperty("FeedbackVisible").GetBoolean()&&Product(feedback).GetProperty("FeedbackButtonVisible").GetBoolean(),"Built-in feedback form did not open.");
                 await Send("feedback-close");
+                var practice=await Send("ghost-practice-ui");
+                Require(practice.GetProperty("PreviewResult").GetProperty("GuidedLesson").GetBoolean(),"Tracking UI gesture lesson failed.");
 
                 // Real mouse drag on A with shared Ghost input on B, checking rendered local positions.
                 await FocusTrackingAsync(client,ProductHandle(editorState));AccessKey(0x57);

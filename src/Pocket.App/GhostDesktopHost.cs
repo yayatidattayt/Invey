@@ -72,7 +72,7 @@ internal sealed class GhostDesktopHost : IDisposable
     {
         if(_controlled || !TrackingEnabled) return;
         _trackingKind=kind;
-        if(_trackingSource!=source || Engine.Session is null)
+        if(_trackingSource!=source || Engine.Session is null || Engine.Source!=kind)
         { Engine.Begin(_trackingKind); _trackingSource=source; }
         if(point is null) { Engine.Lose("Tracking lost — released"); return; }
         Engine.Observe(new(Engine.Session!.Value,sequence,Environment.TickCount64-age,point.Value,evidence));

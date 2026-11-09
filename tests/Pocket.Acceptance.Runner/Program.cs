@@ -29,7 +29,7 @@ internal static partial class Program
         string output=Path.GetFullPath(Path.Combine("artifacts","automated-acceptance",DateTime.UtcNow.ToString("yyyyMMddTHHmmssfff")+"-"+Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(output);
         try{return Desktop.LaunchIsolated(Environment.ProcessPath!,typeof(Program).Assembly.Location,output);}
-        catch(Exception ex){File.WriteAllText(Path.Combine(output,"environment-blocked.json"),JsonSerializer.Serialize(new{Status="BLOCKED",Reason=ex.ToString(),InputInjected=false}));Console.WriteLine("BLOCKED: "+ex.Message);return 2;}
+        catch(Exception ex){File.WriteAllText(Path.Combine(output,"environment-blocked.json"),JsonSerializer.Serialize(new{Status="BLOCKED",Reason=ex.ToString(),InputInjection="Unknown; child may have run before timeout. Consult run evidence."}));Console.WriteLine("BLOCKED: "+ex.Message);return 2;}
     }
     private static async Task Measure(string id,string evidence,string expected,Func<Task<object>> action)
     {
@@ -124,6 +124,8 @@ internal static partial class Program
             (host, client) = StartAcceptanceHost(app, output);
             await client.Connect();
             var initial=await client.Command("status");fixtureHandle=initial.GetProperty("FixtureHandle").GetInt64();overlayHandle=initial.GetProperty("OverlayHandle").GetInt64();
+            // Read-only diagnostic: preserve desktop/foreground identity before any test input.
+            File.WriteAllText(Path.Combine(output,"foreground-preflight.txt"),Input.ForegroundDescription());
             if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_LEARNING_CONTROLS_ONLY") == "1")
             {
                 var learningHost = host; var learningClient = client; host = null; client = null;
