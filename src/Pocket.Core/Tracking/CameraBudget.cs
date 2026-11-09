@@ -17,6 +17,7 @@ public sealed class CameraBudget : IDisposable
     public const int TotalMilliseconds = 720_000;
     public const string ContinuationAmendment = "execution-16-continuation-2026-11-08";
     public const string LearningAmendment = "execution-18-user-enabled-2026-11-09";
+    public const string LearningTargetsAmendment = "execution-18-two-more-user-enabled-2026-11-09";
     public int SessionLimitMilliseconds => _state.Version >= 2 ? 180_000 : SessionMilliseconds;
     public int SessionLimitCount => _state.Version >= 2 ? 12 : MaxSessions;
     public int TotalLimitMilliseconds => _state.Version >= 2 ? 1_800_000 : TotalMilliseconds;
@@ -48,11 +49,12 @@ public sealed class CameraBudget : IDisposable
             if (stream.Length is <= 0 or > 8192) throw new InvalidDataException("Invalid camera budget size.");
             _state = JsonSerializer.Deserialize<CameraBudgetState>(stream, Schema)
                 ?? throw new InvalidDataException("Invalid camera budget.");
-            if (_state.Sessions is null || (_state.Version is < 1 or > 3) ||
+            if (_state.Sessions is null || (_state.Version is < 1 or > 4) ||
                 (_state.Version == 1 ? _state.Amendment is not null :
-                    _state.Version == 2 ? _state.Amendment != ContinuationAmendment : _state.Amendment != LearningAmendment) ||
-                (_state.Version == 3 ? _state.Execution18StartCount is not { } start || start < 0 ||
-                    start > _state.Sessions.Length || _state.Sessions.Length - start > 3 : _state.Execution18StartCount is not null) ||
+                    _state.Version == 2 ? _state.Amendment != ContinuationAmendment :
+                    _state.Version == 3 ? _state.Amendment != LearningAmendment : _state.Amendment != LearningTargetsAmendment) ||
+                (_state.Version >= 3 ? _state.Execution18StartCount is not { } start || start < 0 ||
+                    start > _state.Sessions.Length || _state.Sessions.Length - start > (_state.Version == 4 ? 5 : 3) : _state.Execution18StartCount is not null) ||
                 _state.Execution != "execution-16" || _state.Sessions is null ||
                 _state.Sessions.Length > SessionLimitCount || _state.Sessions.Any(row => row is null || row.Session == Guid.Empty ||
                     row.ChargedMs < 0 || row.ChargedMs > SessionLimitMilliseconds) ||
@@ -74,15 +76,24 @@ public sealed class CameraBudget : IDisposable
 
     public void AmendLearning()
     {
-        if (_state.Version == 3) return;
+        if (_state.Version >= 3) return;
         if (_state.Version != 2 || _state.Sessions.Any(row => !row.Released))
             throw new InvalidDataException("Cannot amend an incompatible or active camera budget.");
         Commit(_state with { Version = 3, Amendment = LearningAmendment, Execution18StartCount = _state.Sessions.Length });
     }
 
+    public void AmendLearningTargets()
+    {
+        if (_state.Version == 4) return;
+        if (_state.Version != 3 || _state.Sessions.Any(row => !row.Released))
+            throw new InvalidDataException("Cannot extend an incompatible or unconfirmed camera budget.");
+        // Original start count and every charge remain immutable: this adds two, never renews five.
+        Commit(_state with { Version = 4, Amendment = LearningTargetsAmendment });
+    }
+
     public void Reserve(Guid session)
     {
-        if ((_state.Version == 3 && _state.Sessions.Length - _state.Execution18StartCount!.Value >= 3) ||
+        if ((_state.Version >= 3 && _state.Sessions.Length - _state.Execution18StartCount!.Value >= (_state.Version == 4 ? 5 : 3)) ||
             session == Guid.Empty || _state.Sessions.Any(row => !row.Released || row.Session == session) ||
             _state.Sessions.Length >= SessionLimitCount ||
             _state.Sessions.Sum(row => row.ChargedMs) + SessionLimitMilliseconds > TotalLimitMilliseconds)

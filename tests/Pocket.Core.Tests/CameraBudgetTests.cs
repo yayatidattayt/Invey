@@ -111,6 +111,43 @@ public sealed class CameraBudgetTests
         Assert.Equal(81609 + 51000, budget.Read().Sessions.Sum(x => x.ChargedMs));
     }
 
+    [Fact]
+    public void TargetsAmendmentPreservesEightRowsAndAllowsOnlyTwoFurtherStartsAcrossRestart()
+    {
+        using var f = new Fixture();
+        using (var budget = new CameraBudget(f.Path))
+        {
+            for (int i = 0; i < 5; i++) { var id = Guid.NewGuid(); budget.Reserve(id); budget.Complete(id, 1000); }
+            budget.AmendContinuation(); budget.AmendLearning();
+            for (int i = 0; i < 3; i++) { var id = Guid.NewGuid(); budget.Reserve(id); budget.Complete(id, 12000); }
+            Assert.Throws<InvalidDataException>(() => budget.Reserve(Guid.NewGuid()));
+            var history = budget.Read().Sessions;
+            budget.AmendLearningTargets(); budget.AmendLearningTargets();
+            Assert.Equal(history, budget.Read().Sessions);
+            Assert.Equal(5, budget.Read().Execution18StartCount);
+            Assert.Equal(12, budget.SessionLimitCount);
+            Assert.Equal(1800000, budget.TotalLimitMilliseconds);
+            for (int i = 0; i < 2; i++) { var id = Guid.NewGuid(); budget.Reserve(id); budget.Complete(id, 180000); }
+        }
+        using var restarted = new CameraBudget(f.Path);
+        restarted.AmendLearningTargets(); restarted.AmendLearning();
+        Assert.Equal(10, restarted.Read().Sessions.Length);
+        Assert.Equal(401000, restarted.Read().Sessions.Sum(s => s.ChargedMs));
+        Assert.Throws<InvalidDataException>(() => restarted.Reserve(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void TargetsAmendmentCannotRefundOrBypassUnconfirmedReservation()
+    {
+        using var f = new Fixture(); using var budget = new CameraBudget(f.Path);
+        Assert.Throws<InvalidDataException>(() => budget.AmendLearningTargets());
+        budget.AmendContinuation(); budget.AmendLearning(); budget.Reserve(Guid.NewGuid());
+        var before = budget.Read();
+        Assert.Throws<InvalidDataException>(() => budget.AmendLearningTargets());
+        Assert.Equal(before.Sessions, budget.Read().Sessions);
+        Assert.Equal(3, budget.Read().Version);
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly string _root = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "InveyBudget-" + Guid.NewGuid().ToString("N"));

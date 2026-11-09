@@ -149,3 +149,23 @@ The currently open manual-test instance already carries the bounded guardian con
 Final recommendation: **READY FOR ENGINEERING REVIEW, PHYSICALLY UNVALIDATED**. Retain the PR as draft pending physical learning evidence and parent-stack review. No claim of full B1, physical accuracy improvement, Explorer acceptance or release readiness.
 
 See PERSONAL_LEARNING_GUIDE.md for ordinary-language controls and data handling.
+
+## Supervised continuation — 2026-11-09
+
+The participant deliberately enabled three camera sessions after publication. The participant confirms the camera image and finger dots were visible. Aggregate diagnostics establish real full-hand results, calibration Ready and cleanup, but no accepted personal model or held-out physical accuracy improvement.
+
+| Session | Charged ms | Accepted host observations | Full-hand host observations | End | Native release / worker exit |
+|---|---:|---:|---:|---|---|
+| cca69508… |178000 |4757 |1175 | DiagnosticLimit | confirmed / confirmed |
+| dc29720d… |124093 |3509 |1770 | Explicit Stop | confirmed / confirmed |
+|118f10f6… |16406 |429 |152 | Explicit Stop | confirmed / confirmed |
+
+The first session's calibration UI recorded11 Ready entries/displayed and maximum302 consecutive observations, with selected-hand index2 and mapping mirror enabled. This is not independent proof of handedness, mirror direction, two-hand detection reliability or target accuracy. One/ two ambiguity observations in the first/second sessions were recognized, but no physical two-hand scenario was independently confirmed. No raw camera imagery or landmarks were retained.
+
+All eight ledger rows are released, total625498ms, with no pending reservation. The initial three-session Execution18 allowance was exhausted. The participant explicitly authorized **at most two additional user-enabled sessions≤180 seconds**, retaining all eight charges and the overall12-session/1,800-second caps. Version4 adds exactly two to the original Execution18 cap (five total since the unchanged start count5); it does not reset the ledger or renew five sessions on repeated amendment. The existing178-second guardian cutoff remains.
+
+Tests for this narrow continuation:123/123 core tests in Debug and Release, zero warnings/errors. Camera-free independent guardian run20261109T070852032-c787fcae0e8e45799484a2b85274ce9d passed durable supervisor/sub-budget enforcement and cleanup, including exactly two new permits and rejection of a third. Closed-app stationary cursor control was INCONCLUSIVE because the cursor moved; it is not relabeled PASS.
+
+To avoid spending live allowance on setup, Calibrate can now open while the camera/source is OFF. Display/hand settings can be explicitly saved before Enable. The source still remains off, no observations or learning authority are granted, and starting a source closes the preparation view until the user reopens calibration. Active-session Stop/cleanup behavior remains unchanged. Actual WPF run20261109T071126358-5f416df471f5402ebf2e90e3ad53270f passed camera-off preparation/save plus the complete learning/restart/rollback/reset loop. Its separate closed-app stationary cursor control was also INCONCLUSIVE; only the intended learning-control case is reported PASS.
+
+The physical baseline/teaching/independent-validation loop remains incomplete. The next user-enabled sessions are for confirmed targets, not a claim that image visibility alone proves learning. Updated publication and binary linkage are retained in the local delivery record and PR7 checks.

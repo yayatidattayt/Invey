@@ -18,6 +18,13 @@ internal static partial class Program
                 var opened = await Until(client, s => DemoTracking(s).ValueKind == JsonValueKind.Object && DemoTracking(s).GetProperty("WindowLoaded").GetBoolean());
                 Require(DemoTracking(opened).GetProperty("State").GetString() == "Off", "Unexpected camera/source startup.");
                 Require(!Learning(opened).GetProperty("Enabled").GetBoolean(), "New profile learning should default off.");
+                await client.Command("demo-ui|tracking|Calibrate");
+                await Until(client, s => DemoTracking(s).GetProperty("Calibration").GetProperty("Open").GetBoolean());
+                await client.Command("demo-hand|tracking|2");
+                await client.Command("demo-ui|tracking|Save settings");
+                var prepared = await Until(client, s => DemoTracking(s).GetProperty("Calibration").GetProperty("SettingsStatus").GetString() == "Calibration settings saved.");
+                Require(DemoTracking(prepared).GetProperty("State").GetString() == "Off", "Preparing calibration activated a source.");
+                Require(!Learning(prepared).GetProperty("CanConfirm").GetBoolean(), "Camera-off setup granted teaching authority.");
                 await client.Command("demo-toggle|tracking|Learn from my tracking sessions");
                 await Until(client, s => Learning(s).GetProperty("Enabled").GetBoolean());
                 await client.Command("learning-fixture|begin");

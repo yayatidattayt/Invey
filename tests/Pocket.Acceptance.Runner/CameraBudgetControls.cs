@@ -29,6 +29,17 @@ internal static partial class Program
                 Require(result.GetProperty("Permit").GetBoolean() == (i < 12), "Amended session-count enforcement failed.");
                 Require(result.GetProperty("WorkerExited").GetBoolean(), "Amended worker remained active.");
             }
+            for (int i = 0; i < 3; i++)
+            {
+                var state = await client.Command("budget-targets-series");
+                var result = state.GetProperty("BudgetResult");
+                outcomes.Add(result);
+                Require(result.GetProperty("Permit").GetBoolean() == (i < 2),
+                    "Target-lesson extension must grant exactly two further starts across supervisor processes.");
+                Require(result.GetProperty("WorkerExited").GetBoolean(), "Target-lesson worker remained active.");
+                Require(result.GetProperty("Started").GetBoolean() == (i < 2), "Denied target-lesson worker started.");
+                Require(result.GetProperty("ReservationReleased").GetBoolean(), "Target-lesson release not confirmed.");
+            }
             foreach (string mode in new[] { "missing", "corrupt", "directory", "canceled", "deadline", "interrupted" })
             {
                 var state = await client.Command("budget-" + mode);

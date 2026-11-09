@@ -4,7 +4,7 @@ Experimental local mapping correction; gesture practice and the Windows mouse re
 
 ## Enable and teach
 
-1. Open Invey → Ghost Tracking. Nothing starts automatically.
+1. Open Invey → Ghost Tracking. Nothing starts automatically. You can open Calibrate with the camera off, select your display and Left/Right hand, and explicitly Save settings before enabling a source.
 2. Choose Recorded, or deliberately select and Enable a live camera when appropriate. Recorded and simulated results are not physical tracking evidence.
 3. Open Calibration. Select a connected display and **Left hand** or **Right hand**. “Any hand” cannot teach. Check pointer direction and mirroring first.
 4. In **Personal Learning**, turn on **Learn from my tracking sessions**. This preference persists independently of camera Enable.
@@ -44,5 +44,7 @@ There may be no update because targets were skipped, coverage was poor, directio
 ## Supervised Execution18 check
 
 The owner authorized at most three additional user-enabled sessions, each bounded to180 seconds, carrying forward the five prior ledger charges. The independent guardian uses a178-second cutoff and retains the original12-session/1,800-second totals. This is a test-specific allowance; do not renew it by replacing the ledger.
+
+A later explicit amendment authorized two more sessions after the original three were used and released. The version4 ledger preserves all eight prior rows (625498ms), the original start count and global caps; it allows five total Execution18 starts, not five fresh starts.
 
 Use deliberate Enable only. Complete baseline → teach → independent validation, then Stop and confirm release. Restart with the camera off, inspect persisted results, compare rollback/reapply, then deliberately Enable again only if another session is needed. Report “physically unvalidated” unless real confirmed observations support the comparison.

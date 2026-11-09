@@ -49,10 +49,11 @@ internal static class DemoControlFixture
             if (!box.IsEnabled || !box.IsVisible) throw new InvalidOperationException("Demo toggle is unavailable.");
             ((IToggleProvider)new CheckBoxAutomationPeer(box).GetPattern(PatternInterface.Toggle)).Toggle();
         }
-        else if (parts[0] == "demo-select")
+        else if (parts[0] is "demo-select" or "demo-hand")
         {
             var selector = Children(root).OfType<ComboBox>().Single(control =>
-                AutomationProperties.GetName(control) == (parts[1] == "tracking" ? "Recorded demonstration" : "Saved references"));
+                AutomationProperties.GetName(control) == (parts[0] == "demo-hand" ? "Hand used for calibration" :
+                    parts[1] == "tracking" ? "Recorded demonstration" : "Saved references"));
             if (!selector.IsEnabled || !int.TryParse(parts[2], out int index) || index < 0 || index >= selector.Items.Count)
                 throw new InvalidOperationException("Demo selection is unavailable.");
             selector.SelectedIndex = index;

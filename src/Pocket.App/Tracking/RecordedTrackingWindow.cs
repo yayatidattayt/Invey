@@ -31,6 +31,7 @@ internal sealed partial class RecordedTrackingWindow : Window
     private readonly Button _calibrate = new() { Content = "_Calibrate", MinHeight = 34, Margin = new Thickness(8, 0, 0, 0) };
     private readonly CalibrationPanel _calibration;
     private readonly PersonalLearningPanel _learning;
+    private bool _preparingCalibration;
     private readonly CheckBox _showPreview = new() { Content = "_Show local camera view and finger landmarks", Margin = new(0, 8, 0, 8) };
     private readonly CheckBox _mirrorCamera = new() { Content = "Mirror camera image", Margin = new(0, 4, 0, 4) };
     private readonly ComboBox _previewTiming = new() { ItemsSource = new[] { "Match landmarks to frame", "Latest completed image" }, SelectedIndex = 0, MinHeight = 28 };
@@ -92,6 +93,7 @@ internal sealed partial class RecordedTrackingWindow : Window
         _calibrate.Click += (_, _) =>
         {
             var snapshot = _controller.Read();
+            _preparingCalibration = snapshot.State is TrackingState.Off or TrackingState.Stopped or TrackingState.Unavailable;
             _calibration.Begin(_controller.HasDiagnostics && snapshot.Source == TrackingSource.Camera &&
                 _fixtureCameraFault is null ? snapshot.SessionId : null);
             _refresh.Interval = TimeSpan.FromMilliseconds(25);
@@ -314,8 +316,9 @@ internal sealed partial class RecordedTrackingWindow : Window
         _mirrorCamera.Visibility = showing ? Visibility.Visible : Visibility.Collapsed;
         bool canCalibrate = _visible.State is TrackingState.Ready or TrackingState.Observing
             or TrackingState.Lost or TrackingState.Stale or TrackingState.Partial or TrackingState.Ambiguous;
-        _calibrate.IsEnabled = canCalibrate && _calibration.Visibility != Visibility.Visible;
-        if (!canCalibrate && _calibration.Visibility == Visibility.Visible)
+        if (canCalibrate) _preparingCalibration = false;
+        _calibrate.IsEnabled = (canCalibrate || available) && _calibration.Visibility != Visibility.Visible;
+        if (!canCalibrate && _calibration.Visibility == Visibility.Visible && (!_preparingCalibration || !available))
         {
             _calibration.End();
             _refresh.Interval = TimeSpan.FromMilliseconds(80);

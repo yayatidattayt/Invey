@@ -99,6 +99,7 @@ internal sealed class AcceptanceHost : IDisposable
             case "preview-protocol-controls":
                 _previewResult = await CameraPreviewFixture.ExerciseAsync();
                 break;
+            case "budget-targets-series":
             case "budget-amended-series":
             case "budget-series":
             case "budget-corrupt":
@@ -242,7 +243,8 @@ internal sealed class AcceptanceHost : IDisposable
                 }
                 if (command.StartsWith("demo-ui|", StringComparison.Ordinal) ||
                     command.StartsWith("demo-toggle|", StringComparison.Ordinal) ||
-                    command.StartsWith("demo-select|", StringComparison.Ordinal))
+                    command.StartsWith("demo-select|", StringComparison.Ordinal) ||
+                    command.StartsWith("demo-hand|", StringComparison.Ordinal))
                 { DemoControlFixture.Apply(_product ?? throw new InvalidOperationException("No demo product."), command); break; }
                 throw new InvalidOperationException("Unsupported acceptance operation.");
         }

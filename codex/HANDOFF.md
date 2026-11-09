@@ -1,5 +1,9 @@
 # Invey — Current handoff
 
+## Execution18 supervised continuation — 2026-11-09
+
+Participant confirmed live image/finger dots; three deliberate sessions released cleanly. Calibration Ready observed; no personal model accepted or physical accuracy improvement established. Original eight ledger rows total625498ms, no pending reservation. Fresh explicit authorization permits only TWO additional user-enabled≤180s sessions (five total Execution18), same12-session/1,800-second overall caps; version4 retains start count5. Never renew/reset the ledger.123 core tests/configuration and camera-free independent guardian sub-budget tests pass. Camera-off calibration settings preparation and full WPF learning/reversal pass; their stationary cursor controls were INCONCLUSIVE due cursor movement. See the supervised-continuation section of docs/EXECUTION_18_REPORT.md. Await prepared settings before another deliberate user Enable.
+
 ## Execution18 — supervised local personal preview,2026-11-09
 
 Branch codex/execution-18-personalized-ghost-learning preserves PR1–6 at PR6 head99a2646. New bounded affine residual learning, independent validation, strict atomic profile persistence, rollback/reset and real WPF target controls are implemented. Corrections affect preview only; no MediaPipe retraining, gesture classifier or B2. See docs/EXECUTION_18_REPORT.md and docs/PERSONAL_LEARNING_GUIDE.md.
