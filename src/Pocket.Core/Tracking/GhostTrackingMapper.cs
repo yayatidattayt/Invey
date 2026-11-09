@@ -10,7 +10,11 @@ public sealed class GhostTrackingMapper
     private long _sequence=-1;
     private DipPoint? _position;
     public GhostProvenance Provenance { get; private set; }
-    public string Status {get;private set;}="Pointer preview off";
+    private string _status="Pointer preview off";
+    private readonly Dictionary<string,long> _rejectionPolls=[];
+    /// <summary>UI-observed rejection polls, not worker frames; bounded reason vocabulary.</summary>
+    public IReadOnlyDictionary<string,long> UiRejectionPolls=>_rejectionPolls;
+    public string Status {get=>_status;private set{_status=value;if(!value.StartsWith("Pointer preview active",StringComparison.Ordinal))_rejectionPolls[value]=_rejectionPolls.GetValueOrDefault(value)+1;}}
     public void Reset(){_eligibility=new(false);_filter.Reset();_context=null;_session=null;_sequence=-1;_position=null;}
     public DipPoint? Map(TrackingSnapshot snapshot,LearningContext? context,PersonalModel? model)
     {

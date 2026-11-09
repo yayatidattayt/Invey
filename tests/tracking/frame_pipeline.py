@@ -73,6 +73,7 @@ def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diag
             raise ValueError("Out-of-order source sequence.")
         previous_sequence = sequence
         before_conversion = time.perf_counter_ns()
+        if diagnostic:diagnostic.timing("captureToSubmissionWaitMs",before_conversion-frame.acquired_ns)
         pixels = to_srgb(frame, np)
         if not previous_ns < frame.acquired_ns <= before_conversion:
             raise ValueError("Invalid frame clock.")
