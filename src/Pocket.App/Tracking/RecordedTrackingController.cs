@@ -46,6 +46,7 @@ internal sealed class RecordedTrackingController
         !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("INVEY_CAMERA_EXECUTION")) ||
         !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("INVEY_CAMERA_BUDGET"));
     private CameraBudgetAvailability? _budgetStatus;
+    public string? RequiredPerformanceMode { get; private set; }
     private long _budgetReadAt;
     public CameraBudgetAvailability DiagnosticBudget(bool refresh = false)
     {
@@ -56,6 +57,7 @@ internal sealed class RecordedTrackingController
             if (!Directory.Exists(_diagnostics) || _budgetLedger is not { Length: > 0 } ledger)
                 return Cache(new(false, 0, 0, 0, "Camera test configuration is unavailable. Camera stays off."));
             using var budget = new CameraBudget(ledger);
+            RequiredPerformanceMode = budget.RequiredPerformanceMode;
             return Cache(budget.Availability);
         }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
@@ -82,7 +84,8 @@ internal sealed class RecordedTrackingController
         var source = device is null || fixtureFile is not null ? TrackingSource.Recorded : TrackingSource.Camera;
         bool boundedCamera = source == TrackingSource.Camera && testFault is null && HasDiagnostics;
         if (performance is not null && (!boundedCamera || performance is not ("capture" or "full"))) return false;
-        if (!CanStart || (boundedCamera && !DiagnosticBudget(refresh: true).Available) || _session.Enable(source) is not { } id) return false;
+        if (!CanStart || (boundedCamera && (!DiagnosticBudget(refresh: true).Available ||
+            RequiredPerformanceMode is { } required && performance != required)) || _session.Enable(source) is not { } id) return false;
         _stop?.Dispose();
         _stop = new CancellationTokenSource();
         _explicitStop = false;

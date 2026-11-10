@@ -26,9 +26,19 @@ internal static class CameraBudgetFixture
         string store = Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;
         string root = Path.Combine(Path.GetDirectoryName(store)!, "camera-budget-fixture");
         Directory.CreateDirectory(root);
-        string path = Path.Combine(root, mode is "series" or "amended-series" or "targets-series" ? mode + ".json" : Guid.NewGuid().ToString("N") + ".json");
+        bool performance = mode is "performance-series" or "performance-followup";
+        string path = Path.Combine(root, performance ? "performance-series.json" : mode is "series" or "amended-series" or "targets-series" ? mode + ".json" : Guid.NewGuid().ToString("N") + ".json");
         bool fresh = !File.Exists(path);
-        if (fresh) CameraBudget.Initialize(path);
+        if (fresh && performance)
+            File.WriteAllText(path,JsonSerializer.Serialize(new CameraBudgetState(6,"execution-16",
+                Enumerable.Range(0,12).Select(_=>new CameraBudgetEntry(Guid.NewGuid(),80000,true)).ToArray(),CameraBudget.PointerRetestAmendment,5,10)));
+        else if (fresh) CameraBudget.Initialize(path);
+        if (performance)
+        {
+            using var budget = new CameraBudget(path);
+            budget.AmendPerformanceCheck();
+            if (mode == "performance-followup") budget.AmendPerformanceFollowup();
+        }
         if (fresh && mode == "targets-series")
         {
             using var budget = new CameraBudget(path);
@@ -109,9 +119,16 @@ internal static class CameraBudgetFixture
         string root = Path.Combine(Path.GetDirectoryName(store)!, "camera-budget-fixture");
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, Guid.NewGuid().ToString("N") + ".json");
-        CameraBudget.Initialize(path);
-        using (var b = new CameraBudget(path))
+        if (mode == "performance")
         {
+            File.WriteAllText(path,JsonSerializer.Serialize(new CameraBudgetState(6,"execution-16",
+                Enumerable.Range(0,12).Select(_=>new CameraBudgetEntry(Guid.NewGuid(),80000,true)).ToArray(),CameraBudget.PointerRetestAmendment,5,10)));
+            using var b=new CameraBudget(path);b.AmendPerformanceCheck();
+        }
+        else
+        {
+            CameraBudget.Initialize(path);
+            using var b = new CameraBudget(path);
             b.AmendContinuation(); b.AmendLearning(); b.AmendLearningTargets();
             int count = mode == "pending" ? 1 : 5;
             for (int i = 0; i < count; i++)

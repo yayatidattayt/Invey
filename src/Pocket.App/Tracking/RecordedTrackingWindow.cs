@@ -396,7 +396,11 @@ internal sealed partial class RecordedTrackingWindow : Window
         _budgetStatus.Text = budget?.Message ?? (live && _controller.HasDiagnostics && _visible.SessionId.HasValue
             ? $"Timed camera test: automatic stop at{RecordedTrackingController.DiagnosticSeconds} seconds. Stop is always available." : "");
         _budgetStatus.Visibility = string.IsNullOrEmpty(_budgetStatus.Text) ? Visibility.Collapsed : Visibility.Visible;
-        _start.IsEnabled = available && budgetAvailable && (!live || _devices.SelectedItem is CameraDevice);
+        string? selectedPerformance = _performanceMode.SelectedIndex switch { 1 => "capture", 2 => "full", _ => null };
+        bool permittedMode = !live || _controller.RequiredPerformanceMode is not { } required || selectedPerformance == required;
+        if (live && available && budgetAvailable && !permittedMode)
+        { _budgetStatus.Text += " Choose " + (_controller.RequiredPerformanceMode == "capture" ? "raw → conversion" : "full pointer") + " under Ghost Camera Performance Check before Enable."; _budgetStatus.Visibility = Visibility.Visible; }
+        _start.IsEnabled = available && budgetAvailable && permittedMode && (!live || _devices.SelectedItem is CameraDevice);
         if (!budgetAvailable) _start.ToolTip = budget!.Message;
         else _start.ToolTip = null;
         _stop.IsEnabled = !_stopping && _visible.SessionId.HasValue;

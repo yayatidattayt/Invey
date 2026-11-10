@@ -141,3 +141,5 @@ Direct RGB copy synthetic1080p7.90→6.16ms, identical pixels; offered-only30Hz 
 
 ## Execution25 —2026-11-10
 Use bounded accepted-message dispatcher wakeup instead of label polling for desktop positions; current-session reads preserve coalesced Stop/continuity. Raw/native→RGB phases retain exact offered type on same reader, no model/images/actions. Preserve filters, safety warmup, shared pointer and action gates. No new backend or camera-cap amendment; hardware requires explicit policy decision. See docs/EXECUTION_25_REPORT.md for full evidence.
+
+Execution25 approved policy: staged versions7/8 permit at most two new starts under14/1800000ms caps; second needs release/separate go-ahead. Version7 applied with12 historical rows/1054077ms unchanged; no camera opened.181 core/config pass, including unchanged-history, no-renewal, time/pending gating and bounded atomic-replace contention tests. Both inherited/new pre-repair File.Replace failures retained. See Execution25 report and policy receipt.

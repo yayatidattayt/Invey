@@ -1,3 +1,5 @@
+Current policy update: the creator explicitly approved two additional supervised starts under total cap14 and unchanged1800000ms. Version7 is applied, preserving all12 rows/1054077ms. First RAW->CONVERSION session only is unlocked. Version8/second FULL session requires first safe release and separate creator go-ahead. No camera has opened at this checkpoint. Creator Enable is always required. Older unapproved-policy text below describes the pre-approval state.
+
 # Ghost Camera Performance Check
 
 The existing allowance is exhausted: 12 released sessions, 1,054,077 ms, no pending reservation. This guide and launcher grant no camera permission. An explicitly approved policy amendment and creator Enable are required before a physical experiment. No amendment has been applied by Execution25's camera-free preparation.

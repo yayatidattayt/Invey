@@ -16,6 +16,11 @@ internal sealed partial class RecordedTrackingWindow
         _live.IsChecked = true;
         Render();
     }
+    internal void ChoosePerformanceFixture()
+    {
+        AcceptanceHost.ValidateDesktop();
+        _performanceMode.SelectedIndex=1;Render(); // Selection only, never Enable.
+    }
 
     internal void LearningFixture(string operation)
     {

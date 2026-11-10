@@ -127,12 +127,17 @@ internal sealed class AcceptanceHost : IDisposable
                 _previewResult = await CameraPreviewFixture.ExerciseAsync();
                 break;
             case "budget-ui-pending":
+            case "budget-ui-performance":
             case "budget-ui-exhausted":
                 if (_tracking is not null) await _tracking.CloseAsync();
                 _tracking = CameraBudgetFixture.CreateBudgetPreview(command[10..]);
                 _tracking.Show();
                 break;
+            case "budget-ui-choose-capture":
+                _tracking!.ChoosePerformanceFixture();break;
             case "budget-targets-series":
+            case "budget-performance-series":
+            case "budget-performance-followup":
             case "budget-amended-series":
             case "budget-series":
             case "budget-corrupt":
