@@ -280,7 +280,7 @@ internal sealed class GhostDesktopHost : IDisposable
 
     private sealed class PointerWindow : Window
     {
-        private readonly Canvas _canvas=new(); private readonly Ellipse _dot=new(){Width=18,Height=18,Stroke=SystemColors.HighlightBrush,StrokeThickness=3,Fill=SystemColors.WindowBrush};
+        private readonly Canvas _canvas=new(); private readonly Ellipse _dot=new(){Width=18,Height=18,Stroke=SystemColors.HighlightBrush,StrokeThickness=3,Fill=Brushes.Transparent};
         private readonly Border _reveal=new(){Background=SystemColors.WindowBrush,BorderBrush=SystemColors.HighlightBrush,BorderThickness=new(1),Child=new TextBlock{Text="Pocket",Margin=new(4)}};
         public long Styles { get; private set; }
         private System.Drawing.Rectangle? _screenBounds;
@@ -301,8 +301,7 @@ internal sealed class GhostDesktopHost : IDisposable
             var p=PointFromScreen(new(physical.X,physical.Y));Canvas.SetLeft(_dot,p.X-9);Canvas.SetTop(_dot,p.Y-9);
             var reveal=RevealBounds(physical);var a=PointFromScreen(new(reveal.X,reveal.Y));var b=PointFromScreen(new(reveal.X+reveal.Width,reveal.Y+reveal.Height));
             Canvas.SetLeft(_reveal,a.X);Canvas.SetTop(_reveal,a.Y);_reveal.Width=b.X-a.X;_reveal.Height=b.Y-a.Y;
-            _dot.Stroke=mode switch{GhostControlMode.Holding=>Brushes.LimeGreen,GhostControlMode.Armed=>Brushes.DarkOrange,_=>SystemColors.HighlightBrush};
-            _dot.Fill=mode==GhostControlMode.Holding?Brushes.LimeGreen:mode==GhostControlMode.Armed?Brushes.DarkOrange:Brushes.White;
+            _dot.Stroke=mode==GhostControlMode.Holding?Brushes.Cyan:mode==GhostControlMode.Armed?Brushes.DarkOrange:Brushes.DodgerBlue;
             _dot.StrokeThickness=hovering?4:2;
         }
     }

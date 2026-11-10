@@ -59,6 +59,33 @@ public partial class MainWindow : Window
             { Status.Text = "Could not restore the Pocket library."; }
         };
     }
+    internal object SpatialFixture()
+    {
+        HomeScroll.ScrollToTop(); UpdateLayout();
+        var timer=System.Diagnostics.Stopwatch.StartNew();
+        var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)ActualWidth,(int)ActualHeight,96,96,System.Windows.Media.PixelFormats.Pbgra32);
+        bitmap.Render(this);timer.Stop();
+        var folder=Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;
+        var image=Path.Combine(Path.GetDirectoryName(folder)!,"spatial-home.png");
+        var encoder=new System.Windows.Media.Imaging.PngBitmapEncoder();encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+        using(var stream=File.Create(image))encoder.Save(stream);
+        ToggleNavigation(this,new());bool compact=Navigation.Width==54;
+        ToggleNavigation(this,new());bool expanded=Navigation.Width==156;
+        return new { Compact=compact,Expanded=expanded,CameraOff=!DesktopGhost.TrackingEnabled,RenderMs=timer.Elapsed.TotalMilliseconds,Image=image };
+    }
+    private bool _navigationCompact;
+    private void HomeClick(object sender, RoutedEventArgs e) { HomeScroll.ScrollToTop(); HomeScroll.Focus(); }
+    private void ToggleNavigation(object sender, RoutedEventArgs e)
+    {
+        _navigationCompact = !_navigationCompact;
+        Navigation.Width = _navigationCompact ? 54 : 156;
+        foreach (var button in Navigation.Children.OfType<Button>().Skip(1))
+        {
+            button.Tag ??= button.Content;
+            button.Content = _navigationCompact ? button.Tag.ToString()![..1] : button.Tag;
+            System.Windows.Automation.AutomationProperties.SetName(button, button.ToolTip?.ToString() ?? "Navigation");
+        }
+    }
     private void EnsureOverlay()
     {
         if(_overlay!=null) return;

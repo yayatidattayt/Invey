@@ -1,0 +1,9 @@
+# Continue Execution29 — do not restart
+
+Branch codex/execution-20-interaction-engine, PR9. Read latest report and local artifacts/execution-29/final-delivery.json for published SHA/CI. Preserve all existing changes and evidence. Implementation is PARTIAL, not complete UI acceptance.
+
+Implemented: shared dark resources, Ghost-first left collapsible rail with real existing routes,16/32 perspective tesseract mouse/keyboard/reset, transparent Ghost centers, larger existing camera preview. Core199/config and workers52. Current native results in report/receipt. No camera authorization: unchanged16 released/1459827ms/0pending, hash496EC1EDFBED1C9F7F7BFC4A0E6D145FA96D16C817F43D7566CD12299A2D1FEF.
+
+Continue this same milestone: (1) inspect generated spatial-home.png and complete native/visual issue remediation, (2) WindowChrome shell preserving Snap/system menu/maximized bounds/resize/DPI and keyboard; current native chrome intentionally retained until qualified, (3) bounded tesseract inertia and reduced-motion/hidden/inactive cancellation plus actual drag/capture tests, (4) Ghost essential/status hierarchy and responsive integrated preview, retaining source/footer, calibration/diagnostics and all modes, (5) audit Pocket/cards/shelf/Workspace/settings/external windows for hardcoded surfaces and complete semantic control styles, (6) native keyboard/navigation/window/transparency/preview/DPI/performance tests, (7) full regression, report and exact final CI. No camera, no Cube implementation, no parent merges or new branch. Do not treat projection tests as input/refresh-rate acceptance.
+
+Initial core-*.log ran stale155 tests due to Platform=x64 project output mismatch; verified-core-* runs current199. Preserve the discarded invocation and all native failures. Use standard solution build Platform=x64, but core test command without Platform like existing CI.

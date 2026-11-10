@@ -40,10 +40,10 @@ internal sealed class CameraPreviewView : Grid
 
     public CameraPreviewView()
     {
-        Height = 230;
+        Height = 300;
         Loaded += (_, _) => CompositionTarget.Rendering += Presented;
         Unloaded += (_, _) => CompositionTarget.Rendering -= Presented;
-        Background = SystemColors.ControlBrush;
+        Background = new SolidColorBrush(Color.FromRgb(11,14,19));
         Visibility = Visibility.Collapsed;
         Children.Add(_image);
         Children.Add(_overlay);

@@ -1,3 +1,7 @@
+# Execution29 staged UI delivery — PARTIAL
+
+Shared resources, Ghost-first rail, interactive16/32 tesseract, transparent Ghost center and enlarged preview implemented. Debug/Release199/config,52workers; full seed29002=42PASS/2BLOCKED after explicit external-fixture shell minimization. First external failure and visual style/clipping findings retained; final visual corrections passed focused29003. Read EXECUTION_29_REPORT.md, INVEY_UI_DESIGN_SYSTEM.md and EXECUTION_29_RESUME.md. Custom chrome, inertia, complete Ghost/feature UI and accessibility/DPI/input/performance qualification remain unfinished. Camera OFF,16starts exhausted, ledger unchanged. Same branch/PR9; no merge. Final SHA/CI in artifacts/execution-29/final-delivery.json.
+
 # Execution28 camera-free continuation
 
 Fast-motion pending gate and full-after-optical-expiry reacquisition repaired. Core197/config and workers52 pass; new transition regression retains600ms lifetime/protocol and all identity negatives. No camera permission:16released/1459827ms/0pending ledger unchanged. Native/CI final receipt follows; do not claim physical improvement. Ghost-first product hierarchy and future UI brief updated; no Cube/UI redesign implemented. Read EXECUTION_28_REPORT.md.

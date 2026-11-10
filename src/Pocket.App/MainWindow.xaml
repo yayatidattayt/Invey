@@ -1,17 +1,32 @@
-<Window x:Class="Pocket.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Title="Invey" Width="560" Height="480" MinWidth="400" MinHeight="320" WindowStartupLocation="CenterScreen">
- <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24">
+<Window x:Class="Pocket.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:views="clr-namespace:Pocket.App.Views"
+ Style="{StaticResource {x:Type Window}}" Title="Invey" Width="1000" Height="720" MinWidth="640" MinHeight="440" WindowStartupLocation="CenterScreen">
+ <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+<Border Background="{DynamicResource Surface}" Padding="12"><StackPanel x:Name="Navigation" Width="156">
+<Button Content="☰" Click="ToggleNavigation" ToolTip="Expand or collapse navigation" AutomationProperties.Name="Expand or collapse navigation"/>
+<Button Content="⌂  Home" Click="HomeClick" ToolTip="Home"/>
+<Button Content="◎  Ghost" Click="OpenTrackingLab" ToolTip="Ghost tracking and calibration"/>
+<Button Content="▣  Pocket" Click="OpenPocket" ToolTip="Pocket references"/>
+<Button Content="▥  Workspace" Click="WorkspaceClick" ToolTip="Dual Workspace"/>
+<TextBlock Text="◇  Cube · planned" Foreground="{DynamicResource Muted}" Margin="8,12" TextWrapping="Wrap"/>
+<Button Content="Pause Ghost" Click="PauseClick" ToolTip="Stop Ghost interaction"/>
+<Button Content="⚙  Settings" Click="OpenSettings" ToolTip="Settings"/>
+</StackPanel></Border>
+<ScrollViewer x:Name="HomeScroll" Grid.Column="1" VerticalScrollBarVisibility="Auto"><StackPanel Margin="32,24">
  <TextBlock Text="invey." FontSize="24" FontWeight="SemiBold" AutomationProperties.Name="Invey"/>
  <TextBlock x:Name="ProfileNotice" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,8,0,4"/>
- <TextBlock Margin="0,8,0,20" Text="Capture and keep screen references. Use Pocket with the camera off." TextWrapping="Wrap"/>
- <WrapPanel>
+ <TextBlock Margin="0,8,0,20" Text="An independent interaction space. Your ordinary mouse stays yours." TextWrapping="Wrap"/>
+ <TextBlock Text="GHOST / INDEPENDENT INTERACTION" Foreground="{DynamicResource Cyan}" FontSize="12" Margin="0,8"/>
+<views:TesseractView Height="270" AutomationProperties.Name="Interactive tesseract. Arrow keys rotate. Home resets." ToolTip="Drag to rotate · Arrow keys rotate · Home resets"/>
+<TextBlock Text="A different dimension of control." FontSize="26" Margin="0,12"/>
+<TextBlock Text="Ghost is experimental. Explore recorded tracking or the controlled keyboard preview. Cube is a future workspace." Foreground="{DynamicResource Muted}" TextWrapping="Wrap" Margin="0,0,0,16"/>
+<WrapPanel>
   <Button x:Name="PocketButton" Content="_Pocket" Click="OpenPocket"/>
   <Button Content="_Workspace" Click="WorkspaceClick"/>
   <Button Content="Ghost _Tracking" Click="OpenTrackingLab"/>
   <Button Content="_Settings" Click="OpenSettings"/>
   <Button Content="Try Ghost _Beta" Click="OpenControlledGhost"/>
  </WrapPanel>
- <TextBlock Margin="0,8,0,8" TextWrapping="Wrap" Text="Pocket saves screen references. Workspace compares them. Ghost shows local tracking and practice."/>
+ <TextBlock Margin="0,8,0,8" TextWrapping="Wrap" Text="Pocket keeps useful references nearby. Workspace gives them independent interaction targets."/>
  <TextBlock Text="Controlled Ghost uses keyboard input; live camera starts only when you enable it in Tracking." FontWeight="SemiBold" Margin="0,2,0,8"/>
  <Button Content="_Capture region" Click="CaptureClick" HorizontalAlignment="Left"/>
  <Expander Header="Demo guide · camera off" Margin="0,8,0,0"><TextBlock Margin="0,8,0,8" TextWrapping="Wrap" Text="1. Pocket: capture, preview, save, open and pin a reference.&#10;2. Workspace: load A and B, then move, resize or zoom. Try the labeled simulated Ghost demo.&#10;3. Ghost Tracking: choose recorded tracking or simulated practice. Live camera is optional and requires Enable.&#10;4. Exit and reopen to show saved references. Demo-profile samples are synthetic, not screen captures."/></Expander>
@@ -33,5 +48,5 @@
  </Expander>
  <TextBlock x:Name="Status" TextWrapping="Wrap" Margin="0,12,0,12" AutomationProperties.LiveSetting="Polite"/>
  <Button Content="E_xit" Click="ExitApp" HorizontalAlignment="Left"/>
- </StackPanel></ScrollViewer>
+ </StackPanel></ScrollViewer></Grid>
 </Window>

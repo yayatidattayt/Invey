@@ -43,6 +43,7 @@ internal static partial class Program
             try
             {
                 await client.Command("external-demo-start");await client.Command("ghost-pattern-hide");
+                await client.Command("product-minimize"); // Keep the external target uncovered by the larger shell.
                 await client.Command("ghost-start");await client.Command("ghost-controls");await client.Command("ghost-controls-place");
                 var s=await Demo();long hwnd=s.GetProperty("Handle").GetInt64();Require(s.GetProperty("Pid").GetInt32()==demo.Id,"Not a separate process");
                 // Selection/consent and actions use the actual product controller; no second pointer.
@@ -64,7 +65,7 @@ internal static partial class Program
                 var nativeBefore=Input.Cursor();var keyboardForeground=Input.Foreground;int countBefore=(await Demo()).GetProperty("Count").GetInt32();
                 Input.Key(0x45,false);Input.Key(0x45,true);
                 var uiWait=Stopwatch.StartNew();while((await Demo()).GetProperty("Count").GetInt32()==countBefore&&uiWait.ElapsedMilliseconds<3000)await Task.Delay(20);
-                Require((await Demo()).GetProperty("Count").GetInt32()==countBefore+1,"User-facing E action did not invoke the separate process");
+                Require((await Demo()).GetProperty("Count").GetInt32()==countBefore+1,"User-facing E action did not invoke the separate process: "+DesktopGhost(await client.Command("status")).GetProperty("External").GetRawText());
                 await Until(client,state=>DesktopGhost(state).GetProperty("External").GetProperty("Unknown").GetBoolean()&&!DesktopGhost(state).GetProperty("External").GetProperty("Busy").GetBoolean());
                 var nativeAfter=Input.Cursor();Require(nativeBefore.X==nativeAfter.X&&nativeBefore.Y==nativeAfter.Y,"Controlled E action moved native cursor");
                 outcomes.Add(new{ActualKeyboardActivation=true,PhysicalMouseDoesNotMoveGhost=true,NativeCursorUnchanged=true,ForegroundBefore=keyboardForeground.ToInt64(),ForegroundAfter=Input.Foreground.ToInt64()});

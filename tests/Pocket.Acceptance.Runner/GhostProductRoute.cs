@@ -24,6 +24,9 @@ internal static partial class Program
                 if(connection is null)await client.Connect();
                 var initial=await Send("dual-demo-start");Require(CameraOff(initial),"Product startup activated tracking.");
                 await Until(client,s=>Product(s).GetProperty("WindowLoaded").GetBoolean());
+                var spatial=(await Send("spatial-ui")).GetProperty("PreviewResult");
+                Require(spatial.GetProperty("Compact").GetBoolean()&&spatial.GetProperty("Expanded").GetBoolean()&&spatial.GetProperty("CameraOff").GetBoolean(),"Spatial navigation/camera-off check failed.");
+                File.WriteAllText(Path.Combine(output,"spatial-ui.json"),spatial.GetRawText());
                 await Send("ghost-pattern-hide");
                 await Send("ghost-controls");
                 await Send("ghost-controls-place");
