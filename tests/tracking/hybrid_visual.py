@@ -170,7 +170,15 @@ class HybridFingerVisual:
         if tip is not None and side is not None:
             model=np.array((tip[0]*(image.shape[1]-1),tip[1]*(image.shape[0]-1)))
             conflict=measured is not None and np.linalg.norm(model-measured[0])>8
-            if conflict or self.fallback and measured is None:
+            if self.fallback and measured is None and points:
+                # Full model is a fresh identity source; reacquire rather than discard it
+                # solely because the older optical anchor expired. No old warmup survives.
+                self.reset("full-model-reacquisition")
+                self.geometry=geometry;self.last_ms=stamp;self.last_sequence=sequence
+                self.checks["arbitration"]="full-reacquisition"
+            elif self.fallback and measured is None:
+                self.reset("reacquisition-unverified");return [],{}
+            if conflict:
                 self.reset("reacquisition-conflict" if self.fallback else "source-conflict")
                 self.checks["arbitration"]="conflict"
                 self.durations["sourceArbitrationMs"]=time.perf_counter_ns()-select_at

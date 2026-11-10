@@ -1,3 +1,7 @@
+# Execution28 camera-free continuation
+
+Fast-motion pending gate and full-after-optical-expiry reacquisition repaired. Core197/config and workers52 pass; new transition regression retains600ms lifetime/protocol and all identity negatives. No camera permission:16released/1459827ms/0pending ledger unchanged. Native/CI final receipt follows; do not claim physical improvement. Ghost-first product hierarchy and future UI brief updated; no Cube/UI redesign implemented. Read EXECUTION_28_REPORT.md.
+
 # Execution27 FINAL — camera OFF, app CLOSED
 
 Final post-A/B full27020 run20261110T123910021-189a834ba65d4030a68279f8ac5828c6=42PASS/0FAIL/2BLOCKED/0INCONCLUSIVE. Real ledger identical before/after. Final source195 core/config and50 workers. Publishing documentation-head CI/delivery receipt only; no more camera or source changes.

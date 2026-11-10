@@ -1,3 +1,7 @@
+# Execution28 product hierarchy
+
+Invey is the product; Ghost is its core independent interaction system. Pocket and future Cube are features around Ghost. Cube is planned, NOT implemented. Mandatory recurring software/runtime cost target is ₹0; no paid API or cloud backend requirement. Existing Windows/native mouse/privacy and capability gates remain unchanged.
+
 # POCKET × DUAL × GHOST — Product and Engineering Specification v2.0
 **Status:** experimental implementation exists; this document is the release contract, not a claim of completed physical acceptance. **Date:** 2026-11-04. **Target:** Windows 11 x64 first, Windows 10 later only if tested. **Cost:** mandatory software/AI subscriptions ₹0; existing Windows computer, webcam and mouse. Developer time, code signing and optional accessories are not included.
 

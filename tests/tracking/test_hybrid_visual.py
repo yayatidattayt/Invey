@@ -24,6 +24,19 @@ class HybridTests(unittest.TestCase):
             self.assertGreaterEqual(new['valid'],12);self.assertGreater(new['valid'],old['valid'])
             self.assertLess(new['maxErrorPixels'],1)
 
+    def test_partial_chain_handoff_distinguishes_current_flow_from_full_identity_age(self):
+        for partial_frames,expected in ((3,True),(14,False)):
+            t=HybridFingerVisual()
+            for i in range(4):t.update(image(170),i,1000+i*50,*model(170))
+            anchor=t.anchor_ms
+            for j in range(partial_frames):
+                x=171+j;sparse=[None]*21;sparse[8]=[x/399,110/279,0]
+                t.update(image(x),4+j,1200+j*50,[],{'v':2,'partial':True,'points':sparse,'handedness':'right'})
+            _,fields=t.update(image(171+partial_frames),4+partial_frames,1200+partial_frames*50,[],{})
+            self.assertEqual(fields.get('v')==3,expected,t.checks)
+            if expected:self.assertEqual(fields['visual']['anchorMonoMs'],anchor)
+            else:self.assertEqual(t.reason,'anchor-expired')
+
     def test_model_and_partial_observations_keep_real_geometry_and_never_averaged(self):
         t=self.anchor();points,fields=model(171)
         p,f=t.update(image(171),4,1132,points,fields)
@@ -37,6 +50,14 @@ class HybridTests(unittest.TestCase):
         _,f=t.update(image(173),6,1198,[],{})
         self.assertEqual(f.get('v'),3,t.reason);self.assertNotIn('landmarks',f)
         self.assertNotIn('points',f);self.assertEqual(t.source,'visual')
+
+    def test_full_model_reacquires_after_optical_expiry_without_dropping_first_valid_full(self):
+        t=self.anchor();t.update(image(171),4,1132,[],{})
+        for seq in range(5,22):t.update(image(171),seq,1000+seq*33,[],{})
+        points,fields=model(171)
+        p,f=t.update(image(171),22,1726,points,fields)
+        self.assertIs(p,points);self.assertEqual(t.full_count,1)
+        self.assertIsNone(t.anchor)
 
     def test_returning_conflicting_model_cancels_instead_of_averaging_or_jumping(self):
         t=self.anchor();t.update(image(171),4,1132,[],{})
