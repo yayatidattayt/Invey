@@ -114,3 +114,47 @@ Main navigation, explicit isolated sample profile, launcher and labeled recorded
 # Execution19 decision — 2026-11-09
 
 Use one motion-aware One Euro filter with bounded spike confirmation, retaining legacy comparison. Use existing NumPy for experimental fixed-template warm correspondence,600ms anchor expiry and explicit v3 visual provenance. It is not anatomy recognition and never grants full-hand readiness, gesture or learning authority. Preserve the existing separate raw-mapped learning path. Cold acquisition and physical qualification remain open; no camera allowance is renewed. Details/evidence: EXECUTION_19_REPORT.md.
+
+## Execution20 interaction boundary — 2026-11-09
+
+Keep action authority restricted to the explicitly controlled source and registered Invey-owned targets. Recorded and camera sources remain preview-only; partial/visual evidence cannot authorize actions. Loss, ambiguity, stale generation, target closure and Stop release active interaction. Physical hand actuation remains unqualified. Evidence and test boundary: [Execution20 report](EXECUTION_20_REPORT.md).
+
+## Execution21 beta interaction boundary — 2026-11-09
+
+Keep the ordinary mouse independent and restrict controlled Ghost actions to visible, registered Invey Pocket targets. User keyboard steering is enabled only while the focused Try Ghost panel is active; focus loss disarms and releases. Add a standalone full-hand gesture intent state prototype using existing practice thresholds, but keep `MayExecute` permanently false and do not connect it to production actions before physical qualification and separate review. Camera remains off; prior allowance remains exhausted.
+
+## Execution22 — 2026-11-10
+
+Typed dispatcher gesture coordinator, neutral-before-pinch, Pause/gap/context/target binding, bounded open/pinch/release lesson and controlled mapped WPF gesture replay added. Final core167/167 Debug and Release; builds0 warnings/errors; worker29/29. Actual WPF E20 gesture/card route passed seed22003; final native regression BLOCKED by GameInputServiceWindow foreground, failure runs retained. Live authorization absent; camera ledger unchanged; no production action issuer. Physical/DPI/shell and final native/lesson acceptance remain open. See EXECUTION_22_REPORT.md and LIVE_GHOST_TEST_GUIDE.md; do not infer physical success or complete software acceptance.
+
+## Execution23 — physical evidence and camera-free quality repair,2026-11-10
+
+Full preparation native39 PASS/0 FAIL/1 INCONCLUSIVE/1 Explorer BLOCKED. Actual guided lesson and Camera-protocol routing passed. Creator confirmed usable scrollbar repair. One authorized physical session117094ms:1141 results,full1033/partial63/empty45;native/guardian release and worker exit confirmed. Real desktop Ghost moved correctly, but user reports jitter/choppiness/disappearance; quality NOT ACCEPTED and fingers-only NOT TESTED. Ledger11 released/926780ms/version5, historical ten rows unchanged. Camera-free cadence repairs pass172 Core tests/configuration and focused WPF seed23009. Preview250ms lifetime is separate from unchanged150ms gesture readiness;50ms interpolation is visual-only, not new observations or higher camera FPS. Raw source rate9.76 results/s unresolved; separate native Tracking run blocked again by service-window foreground on private desktop. Fresh physical retest approval pending; never infer it from prepared version6 code. See EXECUTION_23_REPORT.md.
+
+## Execution23 final retest and recovery —2026-11-10
+
+Second separately approved session127297ms released; ledger12 released,total1054077ms,0 pending,original session cap exhausted. Creator reports worse/jittery/glitching pointer and missing preview; physical quality FAILED, wrist-out NOT TESTED. Removed candidate interpolation and its feature-specific test, preserved inherited suite. Deduplicated unchanged WPF preview frames/landmarks/transforms; placed image before calibration and made Live selection default local preview without activation; exposed mapping rejection reasons. Final171 Core tests/configuration,0 build warnings/errors, worker29/29; final focused WPF/native image+product route seed23010 passes. Raw source about9.8/s unresolved; final physical benefit unverified. No release/live gesture qualification. Full native preparation39pass with cursor/shell gaps remains historical source evidence. See EXECUTION_23_REPORT and leading handoff; no further camera starts without new explicit policy decision.
+
+## Execution24 camera-free capture candidate —2026-11-10
+
+Direct RGB copy synthetic1080p7.90→6.16ms, identical pixels; offered-only30Hz format policy with explicit size/rate negotiation and legacy fallback; bounded PTS/delivery diagnostics. No inference resizing adopted: larger still fixtures lost detection, retained as negative evidence. Core171/config,workers32,native focused product PASS; broader Pocket native blocked by service foreground,3 failures preserved. No physical30FPS/live improvement claim, no camera or ledger change. Presentation wrapper and guide supplied. See EXECUTION_24_REPORT.md; camera cap remains exhausted.
+
+## Execution25 —2026-11-10
+Use bounded accepted-message dispatcher wakeup instead of label polling for desktop positions; current-session reads preserve coalesced Stop/continuity. Raw/native→RGB phases retain exact offered type on same reader, no model/images/actions. Preserve filters, safety warmup, shared pointer and action gates. No new backend or camera-cap amendment; hardware requires explicit policy decision. See docs/EXECUTION_25_REPORT.md for full evidence.
+
+Execution25 approved policy: staged versions7/8 permit at most two new starts under14/1800000ms caps; second needs release/separate go-ahead. Version7 applied with12 historical rows/1054077ms unchanged; no camera opened.181 core/config pass, including unchanged-history, no-renewal, time/pending gating and bounded atomic-replace contention tests. Both inherited/new pre-repair File.Replace failures retained. See Execution25 report and policy receipt.
+
+Execution25 final physical evidence: approved raw/conversion check28.606/29.370 unique frames/s; final full capture/model29.492/29.485/s, host4256 accepted, logical pointer3052 updates including loss intervals. Creator confirmed image/dots/Ghost, improved motion/jitter and mouse independence, but unstable tracking and wrist-out froze/disappeared. Physical quality CHANGES REQUIRED, B1/live gestures NOT accepted. Both native/worker/guardian releases, light-off/Exit confirmed. Final ledger14 released/1262999ms/0pending, all starts consumed. Camera-free weak-anchor retention preserves original600ms deadline and requires fresh unique image match; old-code negative control fails,39 worker tests pass. No interpolation/new model/60Hz capability or physical post-fix claim. Details: EXECUTION_25_REPORT.md.
+
+## Execution26 —2026-11-10
+Use same-frame sparse pyramidal LK as Engine B with original MediaPipe A, no second acquisition. Select model unchanged when qualified, visual v3 only when independently validated and model absent; unresolved conflict cancels, never average. Reject drift using fixed-anchor and current-patch checks. Keep600ms protocol/identity lifetime and unchanged final filter/action gating. Preserve legacy baseline/fallback. No long-timeout, prediction, new model or camera-budget change.
+
+
+## Execution27
+
+Execution27 —2026-11-10: Cross-application interaction is a core long-term objective with a present experimental semantic MVP. Reuse existing worker; v1 fixture and v2 external consent are separate. One selected window/pattern, one shared Ghost, no global mouse injection or camera authority. Provider focus may cancel Mouse ownership; coordinates and focus are separate acceptance dimensions. Same-integrity exception only for exact project-owned synthetic demo; ordinary elevated apps denied. Synthetic pen/touch remains researched/deferred. See EXECUTION_27_REPORT.
+
+
+## Execution27 physical outcome
+
+E27 physical result is CHANGES REQUIRED. Keep source/gesture gates closed and do not label optical-only wrist-out qualified: logged image-only handoffs0 despite creator-reported improvement. Preserve baseline invalid-stationary aggregate and never claim its difference as a jitter percentage. No threshold weakening, interpolation or last-minute unverified tracker rewrite. All16 authorized starts consumed; future hardware requires a new explicit decision. Retain verified controlled external semantic MVP with honest focus and genuine-app gaps.

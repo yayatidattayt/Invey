@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.Text.Json;
 
 namespace Pocket.Acceptance.Runner;
@@ -65,6 +66,16 @@ internal static partial class Program
                 await FocusTrackingAsync(client, cardHandle);
                 AccessKey(0x50); // Pin actual card.
                 await Until(client, s => ProductPocket(s).GetProperty("Pinned").GetBoolean());
+                // Keep the legitimate topmost card, but move it through its real native title bar
+                // so it cannot occlude the Workspace controls or the B grip.
+                var pinned=await client.Command("status");var bounds=ProductPocket(pinned).GetProperty("ViewerBounds");
+                double cardX=bounds.GetProperty("X").GetDouble(),cardY=bounds.GetProperty("Y").GetDouble();
+                double parkedY=initial.GetProperty("Monitor").GetProperty("Top").GetDouble()+
+                    initial.GetProperty("Monitor").GetProperty("Height").GetDouble()-bounds.GetProperty("Height").GetDouble()-10;
+                Input.Move(cardX+100,cardY+12);Input.Down();
+                try{Input.Move(initial.GetProperty("Monitor").GetProperty("Left").GetDouble()+110,parkedY+12);}
+                finally{Input.Up();}
+                await Until(client,s=>Math.Abs(ProductPocket(s).GetProperty("ViewerBounds").GetProperty("Y").GetDouble()-parkedY)<4);
                 await FocusTrackingAsync(client, shelfHandle);
                 AccessKey(0x54); // Tuck shelf.
                 await Until(client, s => !ShelfVisible(s));
@@ -84,7 +95,11 @@ internal static partial class Program
                     Slot(loaded, "B").GetProperty("ImageLoaded").GetBoolean(), "Workspace did not load both PNGs.");
                 double widthBefore = Slot(loaded, "B").GetProperty("Width").GetDouble();
                 var larger = Board(loaded).GetProperty("Larger");
-                Input.Click(larger.GetProperty("X").GetDouble(), larger.GetProperty("Y").GetDouble());
+                File.WriteAllText(Path.Combine(output,"resize-before.json"), loaded.GetRawText());
+                // Pinning legitimately occludes the mouse route. Enlarge has a unique accelerator;
+                // the previous Alt+L collided with Move left. Verify focus before using it.
+                await FocusTrackingAsync(client, boardHandle);
+                AccessKey(0x45);
                 await Until(client, s => Slot(s, "B").GetProperty("Width").GetDouble() > widthBefore);
                 var beforeDemo = await client.Command("status");
                 double beforeX = Slot(beforeDemo, "B").GetProperty("X").GetDouble();
@@ -108,8 +123,8 @@ internal static partial class Program
                 AccessKey(0x54);
                 await Until(client, s => DemoTracking(s).GetProperty("State").GetString() == "Stopped");
                 Require(!ProcessExists(workerPid), "Recorded Stop leaked worker.");
-                AccessKey(0x51); Press(0x23); // Explicit simulated-practice choice.
-                await Until(client, s => DemoTracking(s).GetProperty("SourceStatus").GetString()!.Contains("SIMULATED"));
+                AccessKey(0x51); Press(0x24); Press(0x28); // Home then one item: explicit simulated-practice choice, independent of later options.
+                await Until(client, s => DemoTracking(s).GetProperty("SourceStatus").GetString()!.StartsWith("SIMULATED practice",StringComparison.Ordinal));
                 AccessKey(0x45);
                 var simulated = await Until(client, s => DemoTracking(s).GetProperty("State").GetString() == "Observing", 8000);
                 workerPid = DemoTracking(simulated).GetProperty("LastWorkerPid").GetInt32();

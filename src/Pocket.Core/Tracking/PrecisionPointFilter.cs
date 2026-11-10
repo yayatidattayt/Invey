@@ -17,12 +17,14 @@ public sealed class PrecisionPointFilter
     {
         if (!point.IsFinite || point.X is < 0 or > 1 || point.Y is < 0 or > 1)
             throw new ArgumentException("Expected a finite normalized point.");
-        if (_accepted is not { } previous || milliseconds - _time is <= 0 or > 150)
+        long interval=milliseconds-_time;
+        if (_accepted is not { } previous || interval is <= 0 or > 250)
         { Reset(); _time = milliseconds; _accepted = point; return (_output = _filter.Apply(point, milliseconds)).Value; }
         _time = milliseconds;
         // One large discontinuity needs a second nearby measurement. A real sustained step is accepted
         // on that second measurement; an isolated spike never poisons the derivative estimate.
-        if (Distance(point, previous) > .08 && (_pending is not { } pending || Distance(point, pending) > .04))
+        double jump=Math.Clamp(.08*interval/40d,.08,.20);
+        if (Distance(point, previous) > jump && (_pending is not { } pending || Distance(point, pending) > .04 && !ConsistentMotion(previous,pending,point,interval,jump)))
         { _pending = point; _pendingSince ??= milliseconds; return _output!.Value; }
         _pending = null; _pendingSince=null; _accepted = point;
         _window.Enqueue((milliseconds,point));
@@ -41,6 +43,13 @@ public sealed class PrecisionPointFilter
             else if(_moving>0) _moving--;
         }
         return (_output = _filter.Apply(point, milliseconds, _moving>0 ? 2 : .7)).Value;
+    }
+    private static bool ConsistentMotion(DipPoint origin,DipPoint pending,DipPoint current,long interval,double jump)
+    {
+        double ax=pending.X-origin.X,ay=pending.Y-origin.Y,bx=current.X-pending.X,by=current.Y-pending.Y;
+        double a=Math.Sqrt(ax*ax+ay*ay),b=Math.Sqrt(bx*bx+by*by);
+        return a>0 && b>0 && b<=2*jump && b*1000/interval<=4 && b/a is >=.5 and <=2 &&
+            (ax*bx+ay*by)/(a*b)>=.95;
     }
     private static double Distance(DipPoint a, DipPoint b) => Math.Sqrt(Math.Pow(a.X-b.X, 2) + Math.Pow(a.Y-b.Y, 2));
 }

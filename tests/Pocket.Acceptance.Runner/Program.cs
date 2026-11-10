@@ -29,7 +29,7 @@ internal static partial class Program
         string output=Path.GetFullPath(Path.Combine("artifacts","automated-acceptance",DateTime.UtcNow.ToString("yyyyMMddTHHmmssfff")+"-"+Guid.NewGuid().ToString("N")));
         Directory.CreateDirectory(output);
         try{return Desktop.LaunchIsolated(Environment.ProcessPath!,typeof(Program).Assembly.Location,output);}
-        catch(Exception ex){File.WriteAllText(Path.Combine(output,"environment-blocked.json"),JsonSerializer.Serialize(new{Status="BLOCKED",Reason=ex.ToString(),InputInjected=false}));Console.WriteLine("BLOCKED: "+ex.Message);return 2;}
+        catch(Exception ex){File.WriteAllText(Path.Combine(output,"environment-blocked.json"),JsonSerializer.Serialize(new{Status="BLOCKED",Reason=ex.ToString(),InputInjection="Unknown; child may have run before timeout. Consult run evidence."}));Console.WriteLine("BLOCKED: "+ex.Message);return 2;}
     }
     private static async Task Measure(string id,string evidence,string expected,Func<Task<object>> action)
     {
@@ -46,7 +46,7 @@ internal static partial class Program
         var clock=Stopwatch.StartNew();
         while(clock.ElapsedMilliseconds<timeoutMs){var state=await client.Command("status");if(predicate(state))return state;await Task.Delay(10);}
         var last=await client.Command("status");var cursor=Input.Cursor();
-        throw new TimeoutException("Fixture postcondition not reached. Cursor="+cursor.X+","+cursor.Y+"; state="+last.GetRawText());
+        throw new TimeoutException("Fixture postcondition not reached. Cursor="+cursor.X+","+cursor.Y+"; foreground="+Input.ForegroundDescription()+"; state="+last.GetRawText());
     }
     private static async Task CursorScenario(string id, Process? host = null, Client? client = null, bool active = false)
     {
@@ -124,11 +124,30 @@ internal static partial class Program
             (host, client) = StartAcceptanceHost(app, output);
             await client.Connect();
             var initial=await client.Command("status");fixtureHandle=initial.GetProperty("FixtureHandle").GetInt64();overlayHandle=initial.GetProperty("OverlayHandle").GetInt64();
+            // Read-only diagnostic: preserve desktop/foreground identity before any test input.
+            File.WriteAllText(Path.Combine(output,"foreground-preflight.txt"),Input.ForegroundDescription());
+            if(Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_EXTERNAL_ONLY")=="1")
+            {
+                await RunExternalRoute(client,output);
+                await RunWindowsCompatibility(client,output);
+                var demoUi=await client.Command("external|demo-ui");
+                int ownedDemo=DesktopGhost(demoUi).GetProperty("External").GetProperty("OwnedDemoPid").GetInt32();
+                Require(ProcessExists(ownedDemo),"Actual external demo UI button did not launch its owned process");
+                await ExitAndVerifyAsync(client,host,overlayHandle,fixtureHandle);
+                Require(!ProcessExists(ownedDemo),"UI-owned external demo remained after Exit");
+                return Cases.Any(c=>c.Status=="FAIL")?1:0;
+            }
             if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_LEARNING_CONTROLS_ONLY") == "1")
             {
                 var learningHost = host; var learningClient = client; host = null; client = null;
                 await RunLearningControls(app, output, learningHost, learningClient);
                 return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
+            }
+            if(Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_DUAL_PRODUCT_ONLY")=="1")
+            {
+                var owned=host;var connected=client;host=null;client=null;
+                await RunGhostProductRoute(app,output,owned,connected);
+                return Cases.Any(c=>c.Status=="FAIL")?1:0;
             }
             if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_DEMO_CONTROLS_ONLY") == "1")
             {
@@ -161,6 +180,12 @@ internal static partial class Program
                 await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
                 return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
             }
+            if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_TYPING_ONLY") == "1")
+            {
+                await TypingSoak(client,fixtureHandle,output);
+                await ExitAndVerifyAsync(client,host,overlayHandle,fixtureHandle);
+                return Cases.Any(c=>c.Status=="FAIL")?1:0;
+            }
             if (PocketOnly)
             {
                 await RunPocketCapture(client, output);
@@ -168,6 +193,7 @@ internal static partial class Program
                 await RunPocketRestart(app, output);
                 await RunProductIntegration(app, output);
             await RunDemoWorkflow(app, output);
+            await RunGhostProductRoute(app, output);
                 CleanPocketFixture(output);
                 return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
             }
@@ -299,6 +325,8 @@ internal static partial class Program
             await RunPocketRestart(app, output);
             await RunProductIntegration(app, output);
             await RunDemoWorkflow(app, output);
+            await RunGhostProductRoute(app, output);
+            await RunExternalSession(app,output);
         }
         catch(Exception ex){Cases.Add(new("SESSION","NATIVE_SOFTWARE_TEST","Complete bounded isolated session",ex.ToString(),"FAIL",0));}
         finally

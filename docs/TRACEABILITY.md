@@ -80,3 +80,40 @@ Evidence location per executed row belongs in TEST_RESULTS with OS/app/build/dis
 ## Execution17 — camera-free demo stabilization (2026-11-08)
 
 Main navigation, explicit isolated sample profile, launcher and labeled recorded/simulated entry points reuse existing implementations. Pinning now handles checked-state changes, including accessibility Toggle. Two seeded supplemental WPF-control/GDI/model/restart rehearsals passed. They do not replace native input acceptance: the final standard run was refused at foreground ownership by the existing safety guard. Debug/Release100 core tests and20 worker tests pass; readiness is PARTIAL with a manual remote-session checklist. No webcam acquisition or normal/legacy library migration was performed. See docs/EXECUTION_17_DEMO_REPORT.md and docs/DEMO_FEATURE_INVENTORY.md.
+
+## Execution20 controlled interaction trace — 2026-11-09
+
+The supported controlled desktop-pointer route is implemented and verified through native isolated acceptance, alongside source/capability gates, target lifetime/stacking, stop/loss cancellation and recorded-preview denial. Core Debug/Release150/150; worker29/29; isolated full run40 PASS,0 FAIL,1 environment BLOCKED. See [Execution20 report](EXECUTION_20_REPORT.md). Physical hand route is not accepted; camera remained off.
+
+## Execution21 controlled beta trace — 2026-11-09
+
+Product controls expose focused keyboard steering, hold/release, target status and explicit Stop. Isolated D17/E20 routes exercise actual WPF targets and native input on the private desktop; 39 cases pass, Explorer is blocked, and the closed-cursor control remains inconclusive. The live gesture adapter is unit-tested but hard-disabled (`MayExecute=false`) and not connected to Pocket. Human normal-desktop and physical camera acceptance remain NOT TESTED. See [Execution21 report](EXECUTION_21_REPORT.md) and [creator checklist](INVEY_BETA_TEST_CHECKLIST.md).
+
+## Execution22 — 2026-11-10
+
+Typed dispatcher gesture coordinator, neutral-before-pinch, Pause/gap/context/target binding, bounded open/pinch/release lesson and controlled mapped WPF gesture replay added. Final core167/167 Debug and Release; builds0 warnings/errors; worker29/29. Actual WPF E20 gesture/card route passed seed22003; final native regression BLOCKED by GameInputServiceWindow foreground, failure runs retained. Live authorization absent; camera ledger unchanged; no production action issuer. Physical/DPI/shell and final native/lesson acceptance remain open. See EXECUTION_22_REPORT.md and LIVE_GHOST_TEST_GUIDE.md; do not infer physical success or complete software acceptance.
+
+## Execution23 — physical evidence and camera-free quality repair,2026-11-10
+
+Full preparation native39 PASS/0 FAIL/1 INCONCLUSIVE/1 Explorer BLOCKED. Actual guided lesson and Camera-protocol routing passed. Creator confirmed usable scrollbar repair. One authorized physical session117094ms:1141 results,full1033/partial63/empty45;native/guardian release and worker exit confirmed. Real desktop Ghost moved correctly, but user reports jitter/choppiness/disappearance; quality NOT ACCEPTED and fingers-only NOT TESTED. Ledger11 released/926780ms/version5, historical ten rows unchanged. Camera-free cadence repairs pass172 Core tests/configuration and focused WPF seed23009. Preview250ms lifetime is separate from unchanged150ms gesture readiness;50ms interpolation is visual-only, not new observations or higher camera FPS. Raw source rate9.76 results/s unresolved; separate native Tracking run blocked again by service-window foreground on private desktop. Fresh physical retest approval pending; never infer it from prepared version6 code. See EXECUTION_23_REPORT.md.
+
+## Execution23 final retest and recovery —2026-11-10
+
+Second separately approved session127297ms released; ledger12 released,total1054077ms,0 pending,original session cap exhausted. Creator reports worse/jittery/glitching pointer and missing preview; physical quality FAILED, wrist-out NOT TESTED. Removed candidate interpolation and its feature-specific test, preserved inherited suite. Deduplicated unchanged WPF preview frames/landmarks/transforms; placed image before calibration and made Live selection default local preview without activation; exposed mapping rejection reasons. Final171 Core tests/configuration,0 build warnings/errors, worker29/29; final focused WPF/native image+product route seed23010 passes. Raw source about9.8/s unresolved; final physical benefit unverified. No release/live gesture qualification. Full native preparation39pass with cursor/shell gaps remains historical source evidence. See EXECUTION_23_REPORT and leading handoff; no further camera starts without new explicit policy decision.
+
+## Execution24 camera-free capture candidate —2026-11-10
+
+Direct RGB copy synthetic1080p7.90→6.16ms, identical pixels; offered-only30Hz format policy with explicit size/rate negotiation and legacy fallback; bounded PTS/delivery diagnostics. No inference resizing adopted: larger still fixtures lost detection, retained as negative evidence. Core171/config,workers32,native focused product PASS; broader Pocket native blocked by service foreground,3 failures preserved. No physical30FPS/live improvement claim, no camera or ledger change. Presentation wrapper and guide supplied. See EXECUTION_24_REPORT.md; camera cap remains exhausted.
+
+## Execution25 —2026-11-10
+F06 guarded modes/counters/timings/exact-type transition and cleanup tested without camera. F07 accepted snapshots feed existing calibrated/personalized mapper via bounded dispatcher; strict gesture freshness/identity warmup preserved. Logical updates and local unique image presentations counted separately. Physical B03/B04/B05/B07 and Gate A/M02/B1 not promoted by fixtures. See docs/EXECUTION_25_REPORT.md for full evidence.
+
+Execution25 final physical evidence: approved raw/conversion check28.606/29.370 unique frames/s; final full capture/model29.492/29.485/s, host4256 accepted, logical pointer3052 updates including loss intervals. Creator confirmed image/dots/Ghost, improved motion/jitter and mouse independence, but unstable tracking and wrist-out froze/disappeared. Physical quality CHANGES REQUIRED, B1/live gestures NOT accepted. Both native/worker/guardian releases, light-off/Exit confirmed. Final ledger14 released/1262999ms/0pending, all starts consumed. Camera-free weak-anchor retention preserves original600ms deadline and requires fresh unique image match; old-code negative control fails,39 worker tests pass. No interpolation/new model/60Hz capability or physical post-fix claim. Details: EXECUTION_25_REPORT.md.
+
+## Execution26 —2026-11-10
+F06 same timestamped frame/worker/camera guardian, bounded optional optical processing, explicit counters. F07/current shared Ghost: model/partial/v3 visual arbitration with strict clock/identity/lifetime and single final filter. Actual generated-image source reaches existing WPF shared pointer, Recorded cannot Arm. Pocket/Dual regressions preserved. Canonical B1/Gate A/M02 and live gesture acceptance not promoted by camera-free evidence.
+
+
+## Execution27 delivery
+
+E27: external v2 grant/protocol195-core authority tests; actual E27_EXTERNAL_SHARED_GHOST demonstrates six patterns via same shared pointer, source Camera/Recorded denied, expired/moved/closed/restarted tokens rejected, sensitive point/parent Scroll denied, Unknown/reconciliation/no replay, WPF responsive at provider timeout. Genuine app compatibility BLOCKED; Mouse held during external Toggle loses focus and safely cancels. Physical A/B2sessions observed image/dots/Ghost and native mouse independence, clean release; stability CHANGES REQUIRED, visual-only emissions0. Gate A/M02/B1/live gesture authority remain unaccepted. Final full27020=42PASS/0FAIL/2BLOCKED, earlier failures/inconclusive preserved.

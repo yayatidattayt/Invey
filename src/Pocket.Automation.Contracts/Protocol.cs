@@ -17,9 +17,9 @@ public sealed record TargetBinding(string Root, string Element, double Left, dou
 }
 
 public sealed record Request(int Version,string Id,string Operation,long Window,int ProcessId,string? Target=null,string? Token=null,double? Value=null,double? X=null,double? Y=null,
-    TargetBinding? Binding=null);
+    TargetBinding? Binding=null, string? Grant=null, Guid? Generation=null);
 public sealed record Reply(string Id,string Status,string? Token=null,string? Pattern=null,double? Value=null,string? Error=null,string? Resolution=null,bool OutcomeUnknown=false,
-    MutationOutcome? Outcome=null, TargetBinding? Binding=null, Observation? Observation=null)
+    MutationOutcome? Outcome=null, TargetBinding? Binding=null, Observation? Observation=null, string? Label=null)
 {
     public Reply WithOutcome(MutationOutcome outcome) => this with
     {
@@ -32,11 +32,25 @@ public static class Protocol
     public const int MaxLine=16384;
     public static readonly IReadOnlyDictionary<string,string> Targets=new Dictionary<string,string>
     { ["GhostFixture.Invoke"]="Invoke",["GhostFixture.Toggle"]="Toggle",["GhostFixture.Range"]="RangeValue",["GhostFixture.Scroll"]="Scroll" };
-    public static bool Valid(Request r)=>r.Version==1 && Guid.TryParse(r.Id,out _) && r.Window>0 && r.ProcessId>0 &&
-        r.Operation is "Probe" or "ProbePoint" or "Execute" or "Observe" && r.Target is not null && Targets.ContainsKey(r.Target) &&
+    public static bool Valid(Request r)=>Guid.TryParse(r.Id,out _) && r.Window>0 && r.ProcessId>0 &&
+        r.Operation is "Probe" or "ProbePoint" or "Execute" or "Observe" && r.Target is not null &&
+        ((r.Version==1 && r.Grant is null && r.Generation is null && Targets.ContainsKey(r.Target)) ||
+         (r.Version==2 && Guid.TryParse(r.Grant,out _) && r.Generation is { } generation && generation!=Guid.Empty && ExternalGrant.Patterns.Contains(r.Target) && r.X.HasValue && r.Y.HasValue && r.Operation!="Probe")) &&
         ((!r.X.HasValue && !r.Y.HasValue && r.Operation!="ProbePoint") || (r.X.HasValue && r.Y.HasValue && double.IsFinite(r.X.Value) && double.IsFinite(r.Y.Value))) &&
         (!r.Value.HasValue || double.IsFinite(r.Value.Value)) && (r.Operation!="Execute" || Guid.TryParse(r.Token,out _)) &&
         (r.Operation=="Observe" ? r.Binding is not null && r.Token is null : r.Binding is null);
+}
+
+/// <summary>Explicit session-only consent for one external top-level window. Never fixture authority.</summary>
+public sealed record ExternalGrant(string Id, Guid Generation, long Window, int ProcessId, long Lifetime,
+    int HostProcessId, long HostLifetime, string[] Actions)
+{
+    public static readonly IReadOnlySet<string> Patterns = new HashSet<string> { "Invoke", "Toggle", "Scroll", "RangeValue", "ExpandCollapse", "SelectionItem" };
+    public bool Valid => Guid.TryParse(Id,out _) && Generation!=Guid.Empty && Window>0 && ProcessId>0 && Lifetime>0 &&
+        HostProcessId>0 && HostProcessId!=ProcessId && HostLifetime>0 && Actions is { Length: >0 and <=6 } &&
+        Actions.Distinct().Count()==Actions.Length && Actions.All(Patterns.Contains);
+    public bool Permits(Request r) => Valid && r.Version==2 && r.Grant==Id && r.Generation==Generation &&
+        r.Window==Window && r.ProcessId==ProcessId && r.Target is not null && Actions.Contains(r.Target);
 }
 
  

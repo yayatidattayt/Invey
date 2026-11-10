@@ -8,12 +8,21 @@ using Pocket.Automation.Contracts;
 
 namespace Pocket.Automation.Worker;
 
-internal static class Program
+internal static partial class Program
 {
     private sealed record Capability(Request Request, long Created, TargetBinding Binding);
     [MTAThread] private static int Main(string[] args)
     {
-        if(args.Length!=4 || args[0]!="--fixture-pid" || !int.TryParse(args[1],out int allowedPid) || args[2]!="--lifetime" || !long.TryParse(args[3],out long lifetime))return 2;
+        SetProcessDpiAwarenessContext(new nint(-4));
+        ExternalGrant? external=null;
+        int allowedPid;long lifetime;
+        if(args.Length==2 && args[0]=="--external-grant")
+        {
+            try{external=JsonSerializer.Deserialize<ExternalGrant>(args[1]);}catch(JsonException){return 2;}
+            if(external is null || !external.Valid || !ExternalWindows.Current(external))return 2;
+            allowedPid=external.ProcessId;lifetime=external.Lifetime;
+        }
+        else if(args.Length!=4 || args[0]!="--fixture-pid" || !int.TryParse(args[1],out allowedPid) || args[2]!="--lifetime" || !long.TryParse(args[3],out lifetime))return 2;
         var tokens=new Dictionary<string,Capability>();var requests=new RequestLedger();
         try
         {
@@ -28,7 +37,8 @@ internal static class Program
                     if (!Protocol.Valid(request) || !requests.TryAdd(request.Id))
                         result = new(request.Id, "Denied", Error: "Invalid request, duplicate ID or session limit.");
                     else
-                        result = Handle(request, allowedPid, lifetime, tokens, ref dispatched);
+                        result = external is null ? request.Version==1 ? Handle(request, allowedPid, lifetime, tokens, ref dispatched) : new(request.Id,"Denied")
+                            : HandleExternal(request,external,tokens,ref dispatched);
                 }
                 catch (Exception ex) when (ex is not OutOfMemoryException)
                 {
@@ -118,6 +128,10 @@ internal static class Program
             bounds.Left, bounds.Top, bounds.Width, bounds.Height, null);
         return pattern switch
         {
+            "ExpandCollapse" when element.TryGetCurrentPattern(ExpandCollapsePattern.Pattern,out var expand) =>
+                identity with { Before=(int)((ExpandCollapsePattern)expand).Current.ExpandCollapseState },
+            "SelectionItem" when element.TryGetCurrentPattern(SelectionItemPattern.Pattern,out var select) =>
+                identity with { Before=((SelectionItemPattern)select).Current.IsSelected?1:0 },
             "Toggle" when element.TryGetCurrentPattern(TogglePattern.Pattern, out var toggle) =>
                 identity with { Before = (int)((TogglePattern)toggle).Current.ToggleState },
             "RangeValue" when element.TryGetCurrentPattern(RangeValuePattern.Pattern, out var range) =>
@@ -155,6 +169,8 @@ internal static class Program
         {
             "RangeValue" when current.Minimum != original.Minimum || current.Maximum != original.Maximum => Observation.StateConflict,
             "RangeValue" when request.Value is double expected && Matches(value, expected) => Observation.ExpectedObserved,
+            "ExpandCollapse" when before is 0 or 1 && value==1-before => Observation.ExpectedObserved,
+            "SelectionItem" when before==0 && value==1 => Observation.ExpectedObserved,
             "Toggle" when before is 0 or 1 && value == 1 - before => Observation.ExpectedObserved,
             "Scroll" when value > before && value <= 100 => Observation.ExpectedObserved,
             _ when value == before => Observation.PriorStateObserved,
@@ -186,7 +202,7 @@ internal static class Program
     };
     private static Reply Execute(Request r, AutomationElement e, Capability capability, ref bool dispatched)
     {
-        string pattern=Protocol.Targets[r.Target!];
+        string pattern=r.Version==2?r.Target!:Protocol.Targets[r.Target!];
         var original = capability.Binding;
         bool Expired() => Stopwatch.GetElapsedTime(capability.Created) > TimeSpan.FromMilliseconds(300);
         switch(pattern)
@@ -234,6 +250,7 @@ internal static class Program
         while((c=Console.In.Read())!=-1){if(c=='\n')return text.ToString().TrimEnd('\r');if(text.Length>=Protocol.MaxLine)throw new IOException("Oversized IPC.");text.Append((char)c);}
         if(text.Length>0)throw new IOException("Partial IPC.");return null;
     }
+    [DllImport("user32.dll")]private static extern bool SetProcessDpiAwarenessContext(nint context);
     [DllImport("user32.dll")]private static extern uint GetWindowThreadProcessId(nint hwnd,out uint pid);
     [DllImport("user32.dll")]private static extern bool IsWindow(nint hwnd);
 }

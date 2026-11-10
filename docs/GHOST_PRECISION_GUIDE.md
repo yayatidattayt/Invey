@@ -1,3 +1,5 @@
+Execution25 current status: real ASUS capture/conversion/inference measured near29–30Hz; creator confirms smoother motion and improved-but-persistent jitter. Repeated model loss and wrist-out freeze/disappearance remain FAILED. A bounded-anchor retention repair has only camera-free evidence. Four-observation identity warmup and action safety remain unchanged. All14 approved starts are consumed; ledger version8/1262999ms/0pending. No new camera permission. Older session counts below are history; see EXECUTION_25_REPORT.md.
+
 # Ghost precision preview
 
 Open **Invey → Ghost Tracking**. Recorded tracking remains the camera-free demonstration. Open **Calibrate**, choose your display and hand, and enable **Experimental finger pointer preview** to see the logical pointer. Camera-image mirror and horizontal pointer mapping are separate settings.
@@ -34,3 +36,11 @@ For an engineering comparison only, set `INVEY_LEGACY_POINTER=1` before launch t
 ## Future supervised check
 
 Only after a new explicit bounded authorization, prepare settings with the camera off, then let the participant press Enable. Spend roughly 20 seconds holding still, 20 moving along simple paths, 30 moving the palm out and back while keeping the tip visible, and 20 removing/reintroducing the finger. Stop well before the session limit and verify the indicator, worker exit and guardian release. Record aggregate metrics and participant observations separately; do not save camera imagery or raw landmark streams.
+
+## Execution26 —2026-11-10
+Execution26 uses one final existing precision filter after model/partial/validated optical source selection. No smoothing tuning/interpolation/predicted positions. Recorded selector has a clearly SIMULATED image-motion option using a right-index fixture; choose Right in Calibration. User-reported physical wrist-out failure remains unresolved until separately approved retest. All14 camera starts remain consumed.
+
+
+## Execution27 delivery
+
+Execution27 real A/B: source18.857/19.307s, hybrid creator-designated10s stillness198samples RMS11.834px; baseline motion/uncertainty invalidates a quantitative jitter comparison. Creator still sees jumps/flicker/unstable wrist-out. Worker optical-only handoffs0, so better subjective wrist behavior is not proof of Engine B continuation. Do not extend600ms, weaken identity/drift or reintroduce interpolation to produce a pass. All16 authorized starts released/exhausted; no further capture. Live gesture gates remain closed.

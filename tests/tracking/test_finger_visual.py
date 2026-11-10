@@ -117,5 +117,25 @@ class VisualTests(unittest.TestCase):
         self.assertEqual(t.update(frame(151),4,1132,[],fields)[1],fields)
         self.assertEqual(t.anchor_ms,initial)
 
+    def test_weak_full_patch_does_not_destroy_recent_anchor_but_fresh_match_is_required(self):
+        t=self.anchor(); original=t.template.copy(); anchor=t.anchor_ms
+        weak=np.full_like(frame(),80)
+        t.update(weak,4,1132,*full())
+        np.testing.assert_array_equal(t.template,original)
+        self.assertEqual(t.anchor_ms,anchor)
+        _,fields=t.update(frame(152),5,1165,[],{})
+        self.assertEqual(fields.get("v"),3,t.reason)
+        self.assertEqual(fields["visual"]["anchorMonoMs"],anchor)
+        self.assertAlmostEqual(fields["visual"]["x"]*319,152,delta=1)
+        t=self.anchor();t.update(weak,4,1132,*full())
+        self.assertNotIn("visual",t.update(frame(visible=False),5,1165,[],{})[1])
+
+    def test_weak_full_patches_cannot_extend_visual_deadline(self):
+        t=self.anchor();anchor=t.anchor_ms
+        for i in range(4,24):t.update(np.full_like(frame(),80),i,1000+i*33,*full())
+        self.assertEqual(t.anchor_ms,anchor)
+        self.assertIsNone(t.template)
+        self.assertNotIn("visual",t.update(frame(),24,1792,[],{})[1])
+
 
 if __name__=="__main__": unittest.main()

@@ -73,6 +73,7 @@ def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diag
             raise ValueError("Out-of-order source sequence.")
         previous_sequence = sequence
         before_conversion = time.perf_counter_ns()
+        if diagnostic:diagnostic.timing("captureToSubmissionWaitMs",before_conversion-frame.acquired_ns)
         pixels = to_srgb(frame, np)
         if not previous_ns < frame.acquired_ns <= before_conversion:
             raise ValueError("Invalid frame clock.")
@@ -97,6 +98,12 @@ def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diag
             if diagnostic:
                 diagnostic.timing("visualTrackingMs", time.perf_counter_ns() - visual_at)
                 diagnostic.count("visual-" + visual.reason)
+                for stage, outcome in getattr(visual,"checks",{}).items():
+                    diagnostic.count("hybrid-"+stage+"-"+outcome)
+                if hasattr(visual,"source"):
+                    diagnostic.count("hybrid-source-"+visual.source)
+                for stage,duration in getattr(visual,"durations",{}).items():
+                    diagnostic.timing(stage,duration)
         if stop.is_set():
             if diagnostic:
                 diagnostic.count("cancelAfterInference")
@@ -113,6 +120,7 @@ def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diag
             raise
         if diagnostic:
             diagnostic.timing("pipeWriteMs", time.perf_counter_ns() - finished)
+            diagnostic.publish()
         if preview is not None:
             preview_at = time.perf_counter_ns()
             preview.offer(sequence, pixels)

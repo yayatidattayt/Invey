@@ -79,6 +79,28 @@ internal static class Input
     }
     public static Point Cursor(){if(!GetPhysicalCursorPos(out var point))throw new Win32Exception();return point;}
     public static nint Foreground=>GetForegroundWindow();
+    public static string ForegroundDescription()
+    {
+        Desktop.Guard();
+        var hwnd=GetForegroundWindow();var title=new System.Text.StringBuilder(256);var className=new System.Text.StringBuilder(128);
+        _=GetWindowText(hwnd,title,title.Capacity);_=GetClassName(hwnd,className,className.Capacity);
+        _=GetWindowThreadProcessId(hwnd,out uint pid);
+        var windows=new List<string>();
+        _=EnumWindows((window,parameter)=>
+        {
+            _=GetWindowThreadProcessId(window,out uint owner);
+            if(owner!=ExpectedPid)return true;
+            var text=new System.Text.StringBuilder(128);var type=new System.Text.StringBuilder(128);
+            _=GetWindowText(window,text,text.Capacity);_=GetClassName(window,type,type.Capacity);
+            _=GetWindowRect(window,out var bounds);
+            windows.Add($"{window.ToInt64()}:{type}:{text}:visible={IsWindowVisible(window)}:style=0x{GetWindowLongPtr(window,-16).ToInt64():X}:ex=0x{GetWindowLongPtr(window,-20).ToInt64():X}:rect={bounds.Left},{bounds.Top},{bounds.Right},{bounds.Bottom}");
+            return true;
+        },0);
+        uint thread=GetWindowThreadProcessId(hwnd,out _);
+        string ownerDesktop;
+        try {ownerDesktop=Desktop.Name(GetThreadDesktop(thread));}catch(Exception error){ownerDesktop="unavailable:"+error.GetType().Name;}
+        return $"inputDesktop={Desktop.InputDesktopName()},foregroundDesktop={ownerDesktop},hwnd={hwnd.ToInt64()},pid={pid},thread={thread},class={className},title={title}; windows=[{string.Join(";",windows)}]";
+    }
     public static bool Focus(nint hwnd)=>SetForegroundWindow(hwnd);
     public static bool Exists(nint hwnd)=>IsWindow(hwnd);
     [DllImport("user32.dll",SetLastError=true)]private static extern bool SetProcessDpiAwarenessContext(nint context);
@@ -89,6 +111,15 @@ internal static class Input
     [DllImport("user32.dll")]private static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll")]private static extern nint GetForegroundWindow();
     [DllImport("user32.dll")]private static extern uint GetWindowThreadProcessId(nint hwnd,out uint pid);
+    [DllImport("user32.dll",CharSet=CharSet.Unicode,SetLastError=true)]private static extern int GetWindowText(nint hwnd,System.Text.StringBuilder text,int maxCount);
+    [DllImport("user32.dll",CharSet=CharSet.Unicode,SetLastError=true)]private static extern int GetClassName(nint hwnd,System.Text.StringBuilder className,int maxCount);
+    [StructLayout(LayoutKind.Sequential)]private struct Rect{public int Left,Top,Right,Bottom;}
+    private delegate bool EnumWindowsProc(nint hwnd,nint parameter);
+    [DllImport("user32.dll")]private static extern bool EnumWindows(EnumWindowsProc callback,nint parameter);
+    [DllImport("user32.dll")]private static extern bool GetWindowRect(nint hwnd,out Rect rect);
+    [DllImport("user32.dll")]private static extern bool IsWindowVisible(nint hwnd);
+    [DllImport("user32.dll",EntryPoint="GetWindowLongPtrW")]private static extern nint GetWindowLongPtr(nint hwnd,int index);
     [DllImport("user32.dll")]private static extern bool SetForegroundWindow(nint hwnd);
     [DllImport("user32.dll")]private static extern bool IsWindow(nint hwnd);
+    [DllImport("user32.dll",SetLastError=true)]private static extern nint GetThreadDesktop(uint thread);
 }

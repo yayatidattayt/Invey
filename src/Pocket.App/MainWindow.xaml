@@ -1,27 +1,38 @@
-<Window x:Class="Pocket.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Title="Invey" Width="560" Height="480" MinWidth="400" MinHeight="320" WindowStartupLocation="CenterScreen">
- <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="24">
- <TextBlock Text="invey." FontSize="24" FontWeight="SemiBold" AutomationProperties.Name="Invey"/>
+<Window x:Class="Pocket.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:views="clr-namespace:Pocket.App.Views" xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+ Style="{StaticResource {x:Type Window}}" Title="Invey" Width="1000" Height="720" MinWidth="640" MinHeight="440" WindowStartupLocation="CenterScreen" WindowStyle="None">
+ <shell:WindowChrome.WindowChrome><shell:WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="0" UseAeroCaptionButtons="False"/></shell:WindowChrome.WindowChrome>
+ <DockPanel>
+ <Grid DockPanel.Dock="Top" Height="40" Background="{DynamicResource Base}"><TextBlock Text="invey." Margin="20,0" VerticalAlignment="Center" Foreground="{DynamicResource Muted}"/><StackPanel Orientation="Horizontal" HorizontalAlignment="Right" shell:WindowChrome.IsHitTestVisibleInChrome="True"><Button Content="−" Width="44" Margin="0" Click="MinimizeShell" AutomationProperties.Name="Minimize"/><Button Content="□" Width="44" Margin="0" Click="MaximizeShell" AutomationProperties.Name="Maximize or restore"/><Button Content="×" Width="44" Margin="0" Click="CloseShell" AutomationProperties.Name="Close"/></StackPanel></Grid>
+ <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+<Border Background="{DynamicResource Surface}" Padding="12"><StackPanel x:Name="Navigation" Width="156">
+<Button Content="☰" Click="ToggleNavigation" ToolTip="Expand or collapse navigation" AutomationProperties.Name="Expand or collapse navigation"/>
+<Button Content="⌂  Home" Click="HomeClick" ToolTip="Home"/>
+<Button Content="◎  Ghost" Click="OpenTrackingLab" ToolTip="Ghost tracking and calibration"/>
+<Button x:Name="PocketButton" Content="▣  _Pocket" Click="OpenPocket" ToolTip="Pocket references"/>
+<Button Content="▥  _Workspace" Click="WorkspaceClick" ToolTip="Dual Workspace"/>
+<TextBlock Text="◇  Cube · planned" Foreground="{DynamicResource Muted}" Margin="8,12" TextWrapping="Wrap"/>
+<Button Content="Pause Ghost" Click="PauseClick" ToolTip="Stop Ghost interaction"/>
+<Button Content="⚙  _Settings" Click="OpenSettings" ToolTip="Settings"/>
+</StackPanel></Border>
+<ScrollViewer x:Name="HomeScroll" Grid.Column="1" VerticalScrollBarVisibility="Auto"><StackPanel Margin="32,24">
+ <TextBlock Text="invey." FontSize="20" FontWeight="SemiBold" AutomationProperties.Name="Invey"/>
  <TextBlock x:Name="ProfileNotice" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,8,0,4"/>
- <TextBlock Margin="0,8,0,20" Text="Capture and keep screen references. Use Pocket with the camera off." TextWrapping="Wrap"/>
- <WrapPanel>
-  <Button x:Name="PocketButton" Content="_Pocket" Click="OpenPocket"/>
-  <Button Content="_Workspace" Click="WorkspaceClick"/>
+ <views:TesseractView Height="370" AutomationProperties.Name="Interactive tesseract. Arrow keys rotate. Home resets." ToolTip="Drag to rotate · Arrow keys rotate · Home resets"/>
+ <WrapPanel HorizontalAlignment="Center">
   <Button Content="Ghost _Tracking" Click="OpenTrackingLab"/>
-  <Button Content="_Settings" Click="OpenSettings"/>
+  <Button Content="Key_board preview" Click="OpenControlledGhost" ToolTip="Controlled Ghost preview; camera off"/>
  </WrapPanel>
- <TextBlock Margin="0,8,0,8" TextWrapping="Wrap" Text="Pocket saves screen references. Workspace compares them. Ghost shows local tracking and practice."/>
- <Button Content="_Capture region" Click="CaptureClick" HorizontalAlignment="Left"/>
- <Expander Header="Demo guide · camera off" Margin="0,8,0,0"><TextBlock Margin="0,8,0,8" TextWrapping="Wrap" Text="1. Pocket: capture, preview, save, open and pin a reference.&#10;2. Workspace: load A and B, then move, resize or zoom. Try the labeled simulated Ghost demo.&#10;3. Ghost Tracking: choose recorded tracking or simulated practice. Live camera is optional and requires Enable.&#10;4. Exit and reopen to show saved references. Demo-profile samples are synthetic, not screen captures."/></Expander>
+ <Expander Header="Help" Margin="0,8,0,0"><TextBlock Margin="0,8,0,8" TextWrapping="Wrap" Text="1. Pocket: capture, preview, save, open and pin a reference.&#10;2. Workspace: load A and B, then move, resize or zoom. Try the labeled simulated Ghost demo.&#10;3. Ghost Tracking: choose recorded tracking or simulated practice. Live camera is optional and requires Enable.&#10;4. Exit and reopen to show saved references. Demo-profile samples are synthetic, not screen captures."/></Expander>
  <TextBlock x:Name="GhostState" Text="Ghost · Camera off" FontWeight="SemiBold" Margin="0,12,0,8" AutomationProperties.LiveSetting="Polite"/>
  <WrapPanel>
-  <Button Content="Pa_use Ghost" Click="PauseClick"/>
+ 
+  <Button x:Name="FeedbackButton" Content="Report a problem" Click="OpenFeedback"/>
  </WrapPanel>
  <Expander Header="_Diagnostics" Margin="0,12,0,0">
   <StackPanel Margin="0,8,0,0">
    <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" Text="Run a timed replay in the passive overlay or inspect a controlled test fixture."/>
    <WrapPanel>
-    <Button Content="S_how overlay" Click="ShowOverlay"/><Button Content="H_ide overlay" Click="HideOverlay"/>
+    <Button Content="_Capture region" Click="CaptureClick"/><Button Content="S_how overlay" Click="ShowOverlay"/><Button Content="H_ide overlay" Click="HideOverlay"/>
     <Button x:Name="StartButton" Content="Sta_rt timed replay" Click="StartReplay"/>
     <Button x:Name="StopButton" Content="Sto_p replay" Click="StopReplay" IsEnabled="False"/>
     <Button Content="_Open test fixture" Click="OpenFixture"/><Button Content="_Export evidence" Click="ExportEvidence"/>
@@ -30,5 +41,5 @@
  </Expander>
  <TextBlock x:Name="Status" TextWrapping="Wrap" Margin="0,12,0,12" AutomationProperties.LiveSetting="Polite"/>
  <Button Content="E_xit" Click="ExitApp" HorizontalAlignment="Left"/>
- </StackPanel></ScrollViewer>
+ </StackPanel></ScrollViewer></Grid></DockPanel>
 </Window>

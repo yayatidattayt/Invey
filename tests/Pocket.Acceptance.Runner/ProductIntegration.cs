@@ -265,9 +265,12 @@ internal static partial class Program
                     var cursor = Input.Cursor();
                     var movedB = await client.Command(i % 2 == 0 ? "product-ghost-move" : "product-ghost-back");
                     var afterGhost = Input.Cursor();
+                    double actualA=Slot(movedB,"A").GetProperty("X").GetDouble();
+                    double actualB=Slot(movedB,"B").GetProperty("X").GetDouble();
                     Require(Slot(movedB, "B").GetProperty("X").GetDouble() == startB + (i % 2 == 0 ? 8 : -8) &&
                         Slot(movedB, "A").GetProperty("X").GetDouble() == startA &&
-                        cursor.X == afterGhost.X && cursor.Y == afterGhost.Y, $"Trial {i + 1} Ghost affected mouse or failed to move B.");
+                        cursor.X == afterGhost.X && cursor.Y == afterGhost.Y,
+                        $"Trial {i + 1} Ghost affected mouse or failed to move B: startA={startA:R},actualA={actualA:R},startB={startB:R},actualB={actualB:R},deltaB={actualB-startB:R},cursor={cursor.X},{cursor.Y}->{afterGhost.X},{afterGhost.Y}.");
                     var heldB = Slot(movedB, "B").GetProperty("X").GetDouble();
                     Input.Move(x + (i % 2 == 0 ? 24 : -24), y);
                     await Until(client, s => Slot(s, "A").GetProperty("X").GetDouble() != startA &&

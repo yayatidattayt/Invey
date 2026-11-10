@@ -40,6 +40,15 @@ internal static partial class Program
                 Require(result.GetProperty("Started").GetBoolean() == (i < 2), "Denied target-lesson worker started.");
                 Require(result.GetProperty("ReservationReleased").GetBoolean(), "Target-lesson release not confirmed.");
             }
+            foreach (string mode in new[] { "performance-series", "performance-followup" })
+            for (int i=0;i<2;i++)
+            {
+                var state=await client.Command("budget-"+mode);
+                var result=state.GetProperty("BudgetResult");outcomes.Add(result);
+                Require(result.GetProperty("Permit").GetBoolean()==(i==0),"Performance stage renewed or bypassed its separate permission gate.");
+                Require(result.GetProperty("Started").GetBoolean()==(i==0)&&result.GetProperty("WorkerExited").GetBoolean(),"Performance guardian worker lifecycle failed.");
+                Require(result.GetProperty("ReservationReleased").GetBoolean(),"Performance synthetic reservation release failed.");
+            }
             foreach (string mode in new[] { "missing", "corrupt", "directory", "canceled", "deadline", "interrupted" })
             {
                 var state = await client.Command("budget-" + mode);
@@ -54,7 +63,7 @@ internal static partial class Program
                     Require(!result.GetProperty("Permit").GetBoolean() && !result.GetProperty("Started").GetBoolean(),
                         "Invalid configuration or startup cancellation permitted activation: " + result.GetRawText());
             }
-            foreach (string mode in new[] { "pending", "exhausted" })
+            foreach (string mode in new[] { "pending", "exhausted", "performance" })
             {
                 var state = await client.Command("budget-ui-" + mode);
                 var lab = state.GetProperty("Tracking");
@@ -62,7 +71,14 @@ internal static partial class Program
                 Require(!lab.GetProperty("CanStart").GetBoolean(), "Blocked budget offered an enabled Start button.");
                 Require(lab.GetProperty("LastWorkerPid").ValueKind == JsonValueKind.Null, "Budget preflight launched a worker.");
                 string message = lab.GetProperty("BudgetStatus").GetString() ?? "";
-                Require(message.Contains(mode == "pending" ? "verification" : "allowance used"), "Budget reason was not specific: " + message);
+                Require(message.Contains(mode == "pending" ? "verification" : mode == "performance" ? "Choose raw" : "allowance used"), "Budget reason was not specific: " + message);
+                if(mode=="performance")
+                {
+                    var selected=await client.Command("budget-ui-choose-capture");
+                    var configured=selected.GetProperty("Tracking");
+                    Require(configured.GetProperty("CanStart").GetBoolean(),"Approved raw mode did not enable the explicit user start.");
+                    Require(configured.GetProperty("LastWorkerPid").ValueKind==JsonValueKind.Null,"Choosing diagnostic mode activated a worker.");
+                }
             }
             return new { Outcomes = outcomes, RealCameraActivations = 0, BudgetUiPreflight = true };
         });

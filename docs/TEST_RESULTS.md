@@ -162,3 +162,53 @@ Main navigation, explicit isolated sample profile, launcher and labeled recorded
 # Execution19 precision continuation — 2026-11-09
 
 132 core tests per Debug/Release and29 workers pass. Full isolated Windows run20261109T101753949-5972d4d5d1bf410aa3e0d3a866bdc0da:39 PASS, Explorer BLOCKED, zero FAIL. Includes actual WPF generated-image visual movement/reacquisition/loss/Stop, sparse model preview, Pocket capture/restart, Workspace, shelf, shortcuts and native cursor controls. See EXECUTION_19_REPORT.md for source categories, earlier failures and final delivery evidence. Physical wrist-out/cold-start and personalized accuracy remain unverified; camera allowance exhausted, no camera started.
+
+## Execution20 recovery — 2026-11-09
+
+Final locked restore and Debug/Release solution builds passed with zero warnings/errors. Core suite:150/150 each configuration, zero skips; worker suite:29/29, zero skips. Isolated Windows suite:40 PASS,0 FAIL,1 BLOCKED (Explorer unavailable on private desktop). Seeded E20 routes and complete D17/E20 workflows passed. Detailed run identifiers, preserved failures, executable hashes and camera/cleanup evidence: [Execution20 report](EXECUTION_20_REPORT.md). Physical hand validation is blocked; camera remained off.
+
+## Execution21 hands-on beta continuation — 2026-11-09
+
+Pinned Debug/Release solution builds passed with 0 warnings/errors. Core:155/155 per configuration, zero skips. Worker:29/29, zero skips, with generated controlled video fixture. Full extended isolated Windows run `20261109T163409321-5611ac9b719c4475a7d7ee4700a732ba`:39 PASS,0 FAIL,1 INCONCLUSIVE (`CURSOR_CONTROL_GHOST_CLOSED`),1 BLOCKED (`A10_ALT_TAB_TRAY`, no Explorer on private desktop). D17/E20 both pass; E20 includes actual isolated keyboard steering and Escape Stop. Earlier run `20261109T162626252-f833bc11ac0c4196b6549652d9cf4666` preserved D17/E20 Alt+T failures caused by the new beta access-key collision; fixed to Alt+B. Initial Release `File.Replace` fixture failure and initial worker temp cleanup failure are preserved and pass on project-local TEMP/TMP reruns. Human ordinary-desktop behavior and physical hand control are not verified. Camera off; ledger unchanged. See [Execution21 report](EXECUTION_21_REPORT.md).
+
+## Execution22 — 2026-11-10
+
+Typed dispatcher gesture coordinator, neutral-before-pinch, Pause/gap/context/target binding, bounded open/pinch/release lesson and controlled mapped WPF gesture replay added. Final core167/167 Debug and Release; builds0 warnings/errors; worker29/29. Actual WPF E20 gesture/card route passed seed22003; final native regression BLOCKED by GameInputServiceWindow foreground, failure runs retained. Live authorization absent; camera ledger unchanged; no production action issuer. Physical/DPI/shell and final native/lesson acceptance remain open. See EXECUTION_22_REPORT.md and LIVE_GHOST_TEST_GUIDE.md; do not infer physical success or complete software acceptance.
+
+## Execution23 — physical evidence and camera-free quality repair,2026-11-10
+
+Full preparation native39 PASS/0 FAIL/1 INCONCLUSIVE/1 Explorer BLOCKED. Actual guided lesson and Camera-protocol routing passed. Creator confirmed usable scrollbar repair. One authorized physical session117094ms:1141 results,full1033/partial63/empty45;native/guardian release and worker exit confirmed. Real desktop Ghost moved correctly, but user reports jitter/choppiness/disappearance; quality NOT ACCEPTED and fingers-only NOT TESTED. Ledger11 released/926780ms/version5, historical ten rows unchanged. Camera-free cadence repairs pass172 Core tests/configuration and focused WPF seed23009. Preview250ms lifetime is separate from unchanged150ms gesture readiness;50ms interpolation is visual-only, not new observations or higher camera FPS. Raw source rate9.76 results/s unresolved; separate native Tracking run blocked again by service-window foreground on private desktop. Fresh physical retest approval pending; never infer it from prepared version6 code. See EXECUTION_23_REPORT.md.
+
+## Execution23 final retest and recovery —2026-11-10
+
+Second separately approved session127297ms released; ledger12 released,total1054077ms,0 pending,original session cap exhausted. Creator reports worse/jittery/glitching pointer and missing preview; physical quality FAILED, wrist-out NOT TESTED. Removed candidate interpolation and its feature-specific test, preserved inherited suite. Deduplicated unchanged WPF preview frames/landmarks/transforms; placed image before calibration and made Live selection default local preview without activation; exposed mapping rejection reasons. Final171 Core tests/configuration,0 build warnings/errors, worker29/29; final focused WPF/native image+product route seed23010 passes. Raw source about9.8/s unresolved; final physical benefit unverified. No release/live gesture qualification. Full native preparation39pass with cursor/shell gaps remains historical source evidence. See EXECUTION_23_REPORT and leading handoff; no further camera starts without new explicit policy decision.
+
+## Execution24 camera-free capture candidate —2026-11-10
+
+Direct RGB copy synthetic1080p7.90→6.16ms, identical pixels; offered-only30Hz format policy with explicit size/rate negotiation and legacy fallback; bounded PTS/delivery diagnostics. No inference resizing adopted: larger still fixtures lost detection, retained as negative evidence. Core171/config,workers32,native focused product PASS; broader Pocket native blocked by service foreground,3 failures preserved. No physical30FPS/live improvement claim, no camera or ledger change. Presentation wrapper and guide supplied. See EXECUTION_24_REPORT.md; camera cap remains exhausted.
+
+## Execution25 —2026-11-10
+176/176 core Debug/Release;36/36 workers/native MP4,0 skips. WPF run20261110T051544808-68f6f30bccb34ca69a30ccee5b7fef24 passed product route and polling-independent30/60Hz delivery (27 updates/1004.3ms,60/981.5ms). First timeout retained; cadence moved to separate bounded command without increasing timeout. Final full regression/CI and failures: EXECUTION_25_REPORT.md. Hardware NOT TESTED; ledger unchanged/exhausted. See docs/EXECUTION_25_REPORT.md for full evidence.
+
+Execution25 CI correction:42762095884 failed finite H.264 raw→RGB transition after consuming initial keyframe; locally reproduced. Positive same-reader transition uses its own bounded all-keyframe synthetic fixture; shared CI fixture untouched. Empty phase now fails NoFrames with source-ended outcome.37/37 workers pass locally against original CI fixture; failed evidence retained. No hardware acquisition.
+
+Execution25 approved policy: staged versions7/8 permit at most two new starts under14/1800000ms caps; second needs release/separate go-ahead. Version7 applied with12 historical rows/1054077ms unchanged; no camera opened.181 core/config pass, including unchanged-history, no-renewal, time/pending gating and bounded atomic-replace contention tests. Both inherited/new pre-repair File.Replace failures retained. See Execution25 report and policy receipt.
+
+Execution25 authorized physical A/B: ASUS1080p30 YUY2, raw28.6063 unique/s and converted29.3695/s across30-second phases; no model/actions. PTS medians~32ms; copy6.0596ms median. Native/worker/guardian release and creator light-off confirmed;13 rows/1115187ms/0pending. No physical pointer-quality claim. Second start still locked pending go-ahead. Full evidence in Execution25 report.
+
+Execution25 final physical evidence: approved raw/conversion check28.606/29.370 unique frames/s; final full capture/model29.492/29.485/s, host4256 accepted, logical pointer3052 updates including loss intervals. Creator confirmed image/dots/Ghost, improved motion/jitter and mouse independence, but unstable tracking and wrist-out froze/disappeared. Physical quality CHANGES REQUIRED, B1/live gestures NOT accepted. Both native/worker/guardian releases, light-off/Exit confirmed. Final ledger14 released/1262999ms/0pending, all starts consumed. Camera-free weak-anchor retention preserves original600ms deadline and requires fresh unique image match; old-code negative control fails,39 worker tests pass. No interpolation/new model/60Hz capability or physical post-fix claim. Details: EXECUTION_25_REPORT.md.
+
+Execution25 final post-feedback:184 core/config,39 workers; native extended25007=38PASS/1FAIL(A03 focus precondition before injection)/1cursor INCONCLUSIVE/1Explorer BLOCKED. Actual product/recorded/cleanup and60Hz software-delivery cases passed. No service/guard changes or clean-run fabrication. Physical quality remains CHANGES REQUIRED; ledger14/1262999ms released, no authorization remaining.
+
+## Execution26 —2026-11-10
+Execution26 baseline184 core/config and39 workers; final185 core/config,50 workers,0 skips. Full26005 run20261110T092241571-ce0fbf91716f47fba084dddb5165f1d6=40PASS/0FAIL/1Explorer BLOCKED. Focused typing26003 PASS; final actual simulated-selector optical worker/WPF/shared-pointer/denied-actions/product route26006 PASS. Earlier full26004=39PASS/1strict old-label FAIL/1BLOCKED; updated exact assertion to requested Tracking hand text, not removed. Initial product26001 passed optics but later mnemonic failed because fixture did not restore Restart/Enable state; corrected, preserved. Model/photo benchmarks and all failed candidates retained under artifacts/execution-26.
+
+
+## Execution27
+
+Execution27 baseline: Debug/Release185 core/config,50 workers pass. Candidate190 core/config passes; six-pattern external/native route and actual E activation verified. Bounded provider timeout preserves Unknown and stops worker while WPF pointer updates continue. Historical failed native/compilation results preserved; final full/focused native, worker, exact-head CI and cleanup in EXECUTION_27_REPORT and delivery receipt. No physical camera test.
+
+
+## Execution27 physical outcome
+
+E27 final source195 core/config,50 workers, CI533b699 success. Baseline sessione70583d3-f139-4031-9b2d-1800ca9c1a74=77125ms; hybridcf3832b3-71f7-4883-aa09-d9a192ab19b4=119703ms; both native/host/guardian/process release and creator light-off confirmed. Original14 rows/15th charge immutable. Finalversion10/16released/1459827ms/0pending, allstarts exhausted. Physical quality CHANGES REQUIRED, not synthetic-only/UNVERIFIED: live tested and failed stable-pointer qualification.195-core stage policy/stillness tests and guardian27019 pass. Final post-A/B full native/delivery evidence appended in report/receipt.

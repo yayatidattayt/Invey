@@ -31,7 +31,7 @@ internal static partial class Program
             Require(blank.GetProperty("Source").GetString() == "Recorded", "Recorded data was not identified as a recorded source.");
             var hand = Tracking(await Until(client, s => State(s) == "Observing", 5000));
             double firstHandMs = start.Elapsed.TotalMilliseconds;
-            Require(hand.GetProperty("Status").GetString()!.Contains("21 landmarks"), "Rendered observation status is missing.");
+            Require(hand.GetProperty("Status").GetString()=="Tracking hand", "Rendered observation status did not match the human-readable Tracking hand state.");
             Require(!hand.GetProperty("CanStart").GetBoolean(), "Start stayed enabled with an active worker.");
             int pid = hand.GetProperty("LastWorkerPid").GetInt32();
             double wrist = hand.GetProperty("WristX").GetDouble();

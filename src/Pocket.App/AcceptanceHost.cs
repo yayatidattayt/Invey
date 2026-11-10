@@ -90,8 +90,65 @@ internal sealed class AcceptanceHost : IDisposable
     }
     private async Task<string> DispatchAsync(string command)
     {
+        if(command.StartsWith("ghost-aim|",StringComparison.Ordinal)) { _product!.DesktopGhost.Aim(command[10..]);command="status"; }
+        if(command.StartsWith("ghost-control|",StringComparison.Ordinal)){_product!.DesktopGhost.ClickControlFixture(command[14..]);command="status";}
+        if(command.StartsWith("ghost-move|",StringComparison.Ordinal))
+        {
+            var values=command.Split('|');var host=_product!.DesktopGhost;
+            if(host.Engine.Position is { } p)host.MoveControlled(new(p.X+int.Parse(values[1]),p.Y+int.Parse(values[2])));
+            command="status";
+        }
+        if(command.StartsWith("external|",StringComparison.Ordinal))
+        {
+            ValidateDesktop();var v=command.Split('|');var ghost=_product!.DesktopGhost;var external=ghost.External;
+            external.PauseProbingForFixture();
+            switch(v[1])
+            {
+                case "select":
+                    var choice=Pocket.Automation.Contracts.ExternalWindows.List().SingleOrDefault(c=>c.Window==long.Parse(v[2])) ?? throw new InvalidOperationException(Pocket.Automation.Contracts.ExternalWindows.Diagnostic(long.Parse(v[2])));
+                    await external.AuthorizeAsync(choice,v[3]);break;
+                case "rapid":
+                    var rapidChoice=Pocket.Automation.Contracts.ExternalWindows.List().Single(c=>c.Window==long.Parse(v[2]));
+                    var firstConsent=external.AuthorizeAsync(rapidChoice,"Toggle");
+                    var secondConsent=external.AuthorizeAsync(rapidChoice,"Toggle");
+                    await external.StopAsync();await Task.WhenAll(firstConsent,secondConsent);break;
+                case "show":external.Show();break;
+                case "demo-ui":external.OpenDemoThroughUiFixture();break;
+                case "arm":external.Arm();break;
+                case "move":ghost.MoveControlled(new(double.Parse(v[2],System.Globalization.CultureInfo.InvariantCulture),double.Parse(v[3],System.Globalization.CultureInfo.InvariantCulture)));break;
+                case "probe":await external.ProbeAsync();break;
+                case "activate":await external.ActivateAsync();break;
+                case "review":await external.ReviewAsync();break;
+                case "dismiss":await external.DismissAsync();break;
+                case "stop":await external.StopAsync();break;
+                case "recorded":ghost.EnableTracking(Pocket.Core.GhostSourceKind.Recorded);break;
+            }
+            command="status";
+        }
         switch(command)
         {
+            case "ghost-start": _product!.DesktopGhost.StartControlled();break;
+            case "ghost-practice-ui": _previewResult=await _product!.ExerciseGesturePracticeFixtureAsync();break;
+            case "product-minimize": _product!.WindowState=WindowState.Minimized;break;
+            case "spatial-ui": _previewResult=await _product!.SpatialFixture();break;
+            case "ghost-observation-delivery": _previewResult=await _product!.ExerciseObservationDeliveryFixtureAsync();break;
+            case "ghost-hybrid-source": _previewResult=await _product!.ExerciseHybridSourceFixtureAsync();break;
+            case "ghost-gesture-replay": _product!.DesktopGhost.GestureReplayEvidence=await GhostGestureReplayFixture.RunAsync(_product.DesktopGhost);break;
+            case "ghost-controls": _product!.DesktopGhost.ShowControls();break;
+            case "ghost-controls-place": _product!.DesktopGhost.PositionControlsForAcceptance(900,50);break;
+            case "ghost-pattern-hide": _capturePattern?.Hide();break;
+            case "feedback-open": _product!.OpenFeedbackFixture();break;
+            case "feedback-close": _product!.CloseFeedbackFixture();break;
+            case "ghost-arm": _product!.DesktopGhost.Engine.Arm();break;
+            case "ghost-press": _product!.DesktopGhost.Intent(Pocket.Core.GhostIntent.Press);break;
+            case "ghost-release": _product!.DesktopGhost.Intent(Pocket.Core.GhostIntent.Release);break;
+            case "ghost-activate": _product!.DesktopGhost.Command(Pocket.Core.GhostCommand.Activate);break;
+            case "ghost-pin": _product!.DesktopGhost.Command(Pocket.Core.GhostCommand.Pin);break;
+            case "ghost-unpin": _product!.DesktopGhost.Command(Pocket.Core.GhostCommand.Unpin);break;
+            case "ghost-hide": _product!.DesktopGhost.Command(Pocket.Core.GhostCommand.Hide);break;
+            case "ghost-stop": _product!.DesktopGhost.Stop();break;
+            case "ghost-loss": _product!.DesktopGhost.Engine.Lose("Injected tracking loss — released");break;
+            case "ghost-recorded-preview": _product!.EnableDesktopPreviewFixture();break;
             case "status":break;
             case "product-diagnostic-budget":
                 _diagnosticReservations = ReserveFixtureBudget();
@@ -100,12 +157,17 @@ internal sealed class AcceptanceHost : IDisposable
                 _previewResult = await CameraPreviewFixture.ExerciseAsync();
                 break;
             case "budget-ui-pending":
+            case "budget-ui-performance":
             case "budget-ui-exhausted":
                 if (_tracking is not null) await _tracking.CloseAsync();
                 _tracking = CameraBudgetFixture.CreateBudgetPreview(command[10..]);
                 _tracking.Show();
                 break;
+            case "budget-ui-choose-capture":
+                _tracking!.ChoosePerformanceFixture();break;
             case "budget-targets-series":
+            case "budget-performance-series":
+            case "budget-performance-followup":
             case "budget-amended-series":
             case "budget-series":
             case "budget-corrupt":
@@ -124,7 +186,9 @@ internal sealed class AcceptanceHost : IDisposable
                 source.AddHook(ObserveFixtureShortcut);
                 break;
             case "demo-start":
-                string demoRoot = Path.Combine(Path.GetDirectoryName(Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE"))!, "demo-profile");
+            case "dual-demo-start":
+            case "external-demo-start":
+                string demoRoot = Path.Combine(Path.GetDirectoryName(Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE"))!, command=="external-demo-start"?"external-demo-profile":command=="dual-demo-start"?"dual-demo-profile":"demo-profile");
                 var demoProfile = DemoProfile.Prepare(demoRoot);
                 _capturePattern ??= CreatePocketPattern();
                 _product = new MainWindow(demoProfile, _capturePattern);
@@ -266,6 +330,8 @@ internal sealed class AcceptanceHost : IDisposable
             DiagnosticReservations = _diagnosticReservations, BudgetResult = _budgetResult, PreviewResult = _previewResult,
             TimerScheduled=_simulation.IsScheduled,OverlayVisible=_overlay.IsVisible,Running=_simulation.IsRunning,Events=_simulation.Observations.Count,
             GhostClaim=_overlay.Scene.Pointer(Pocket.Core.PointerOwner.Ghost).Target,Panel=_overlay.Scene.Target("panel"),
+            Windows=Application.Current.Windows.Cast<Window>().Select(w=>new { Type=w.GetType().FullName, w.Title, w.IsVisible,
+                w.WindowState,w.Left,w.Top,w.Width,w.Height,Handle=new WindowInteropHelper(w).Handle.ToInt64() }).ToArray(),
             Native=NativeWindow.Observe() });
     }
 

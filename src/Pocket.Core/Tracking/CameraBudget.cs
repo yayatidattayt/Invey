@@ -19,7 +19,8 @@ public sealed record CameraBudgetEntry([property: JsonRequired] Guid Session,
     [property: JsonRequired] long ChargedMs, [property: JsonRequired] bool Released);
 public sealed record CameraBudgetState([property: JsonRequired] int Version,
     [property: JsonRequired] string Execution, [property: JsonRequired] CameraBudgetEntry[] Sessions, string? Amendment = null,
-    int? Execution18StartCount = null);
+    int? Execution18StartCount = null,
+    [property:JsonIgnore(Condition=JsonIgnoreCondition.WhenWritingNull)] int? PointerStartCount = null);
 
 /// <summary>One durable execution budget. Unfinished reservations fail closed across restarts.</summary>
 public sealed class CameraBudget : IDisposable
@@ -30,9 +31,18 @@ public sealed class CameraBudget : IDisposable
     public const string ContinuationAmendment = "execution-16-continuation-2026-11-08";
     public const string LearningAmendment = "execution-18-user-enabled-2026-11-09";
     public const string LearningTargetsAmendment = "execution-18-two-more-user-enabled-2026-11-09";
+    public const string PointerAmendment = "execution-23-one-user-enabled-pointer-only-2026-11-10";
+    public const string PointerRetestAmendment = "execution-23-one-additional-pointer-retest-2026-11-10";
+    public const string PerformanceAmendment = "execution-25-supervised-raw-conversion-2026-11-10";
+    public const string PerformanceFollowupAmendment = "execution-25-separate-full-pointer-go-ahead-2026-11-10";
+    public const string HybridAmendment="execution-27-approved-baseline-2026-11-10";
+    public const string HybridFollowupAmendment="execution-27-separate-hybrid-go-ahead-2026-11-10";
+    public bool? RequiredVisualBaseline=>_state.Version switch {9=>true,10=>false,_=>null};
+    public bool AllowsVisualBackend(bool baseline)=>RequiredVisualBaseline is not {} required||required==baseline;
     public int SessionLimitMilliseconds => _state.Version >= 2 ? 180_000 : SessionMilliseconds;
-    public int SessionLimitCount => _state.Version >= 2 ? 12 : MaxSessions;
+    public int SessionLimitCount => _state.Version >= 9 ? 16 : _state.Version >= 7 ? 14 : _state.Version >= 2 ? 12 : MaxSessions;
     public int TotalLimitMilliseconds => _state.Version >= 2 ? 1_800_000 : TotalMilliseconds;
+    public string? RequiredPerformanceMode => _state.Version switch { 7 => "capture", 8 or 9 or 10 => "full", _ => null };
     private readonly string _path;
     private readonly FileStream _lock;
     private CameraBudgetState _state;
@@ -61,16 +71,26 @@ public sealed class CameraBudget : IDisposable
             if (stream.Length is <= 0 or > 8192) throw new InvalidDataException("Invalid camera budget size.");
             _state = JsonSerializer.Deserialize<CameraBudgetState>(stream, Schema)
                 ?? throw new InvalidDataException("Invalid camera budget.");
-            if (_state.Sessions is null || (_state.Version is < 1 or > 4) ||
+            if (_state.Sessions is null || (_state.Version is < 1 or > 10) ||
                 (_state.Version == 1 ? _state.Amendment is not null :
                     _state.Version == 2 ? _state.Amendment != ContinuationAmendment :
-                    _state.Version == 3 ? _state.Amendment != LearningAmendment : _state.Amendment != LearningTargetsAmendment) ||
+                    _state.Version == 3 ? _state.Amendment != LearningAmendment :
+                    _state.Version == 4 ? _state.Amendment != LearningTargetsAmendment :
+                    _state.Version == 5 ? _state.Amendment != PointerAmendment :
+                    _state.Version == 6 ? _state.Amendment != PointerRetestAmendment :
+                    _state.Version == 7 ? _state.Amendment != PerformanceAmendment :
+                    _state.Version == 8 ? _state.Amendment != PerformanceFollowupAmendment :
+                    _state.Version == 9 ? _state.Amendment != HybridAmendment : _state.Amendment != HybridFollowupAmendment) ||
                 (_state.Version >= 3 ? _state.Execution18StartCount is not { } start || start < 0 ||
-                    start > _state.Sessions.Length || _state.Sessions.Length - start > (_state.Version == 4 ? 5 : 3) : _state.Execution18StartCount is not null) ||
+                    start > _state.Sessions.Length || (_state.Version>=5?_state.PointerStartCount??-1:_state.Sessions.Length) - start > (_state.Version >= 4 ? 5 : 3) : _state.Execution18StartCount is not null) ||
+                (_state.Version>=5 ? _state.PointerStartCount!=10||_state.Execution18StartCount!=5||
+                    _state.Sessions.Length<(_state.Version>=9?_state.Version==10?15:14:_state.Version>=7?_state.Version==8?13:12:_state.Version==6?11:10)||
+                    _state.Sessions.Length>(_state.Version>=9?_state.Version==10?16:15:_state.Version>=7?_state.Version==8?14:13:_state.Version==6?12:11) : _state.PointerStartCount is not null) ||
                 _state.Execution != "execution-16" || _state.Sessions is null ||
                 _state.Sessions.Length > SessionLimitCount || _state.Sessions.Any(row => row is null || row.Session == Guid.Empty ||
                     row.ChargedMs < 0 || row.ChargedMs > SessionLimitMilliseconds) ||
-                _state.Sessions.Select(row => row.Session).Distinct().Count() != _state.Sessions.Length)
+                _state.Sessions.Select(row => row.Session).Distinct().Count() != _state.Sessions.Length ||
+                _state.Sessions.Sum(row=>row.ChargedMs)>TotalLimitMilliseconds)
                 throw new InvalidDataException("Invalid camera budget values.");
         }
         catch { _lock.Dispose(); throw; }
@@ -80,8 +100,9 @@ public sealed class CameraBudget : IDisposable
     {
         get
         {
-            int used = _state.Version >= 3 ? _state.Sessions.Length - _state.Execution18StartCount!.Value : _state.Sessions.Length;
-            int allowed = _state.Version == 4 ? 5 : _state.Version == 3 ? 3 : SessionLimitCount;
+            int used = _state.Version>=9?_state.Sessions.Length-14:_state.Version>=7?_state.Sessions.Length-12:_state.Version>=5?_state.Sessions.Length-_state.PointerStartCount!.Value:
+                _state.Version >= 3 ? _state.Sessions.Length - _state.Execution18StartCount!.Value : _state.Sessions.Length;
+            int allowed = _state.Version>=9?_state.Version==10?2:1:_state.Version>=7?_state.Version==8?2:1:_state.Version==6?2:_state.Version==5?1:_state.Version == 4 ? 5 : _state.Version == 3 ? 3 : SessionLimitCount;
             int remaining = Math.Max(0, Math.Min(allowed - used, Math.Min(SessionLimitCount - _state.Sessions.Length,
                 (int)((TotalLimitMilliseconds - _state.Sessions.Sum(r => r.ChargedMs)) / SessionLimitMilliseconds))));
             if (_state.Sessions.Any(r => !r.Released))
@@ -121,12 +142,72 @@ public sealed class CameraBudget : IDisposable
 
     public void Reserve(Guid session)
     {
-        if ((_state.Version >= 3 && _state.Sessions.Length - _state.Execution18StartCount!.Value >= (_state.Version == 4 ? 5 : 3)) ||
+        if (!Availability.Available ||
             session == Guid.Empty || _state.Sessions.Any(row => !row.Released || row.Session == session) ||
             _state.Sessions.Length >= SessionLimitCount ||
             _state.Sessions.Sum(row => row.ChargedMs) + SessionLimitMilliseconds > TotalLimitMilliseconds)
             throw new InvalidDataException("The diagnostic camera budget is exhausted or a prior release is unconfirmed.");
         Commit(_state with { Sessions = [.. _state.Sessions, new(session, SessionLimitMilliseconds, false)] });
+    }
+
+    /// <summary>Call only following a separate explicit one-session pointer-only authorization.
+    /// Never called by startup, preview, or Enable. Repeating this cannot replenish a start.</summary>
+    public void AmendPointerQualification()
+    {
+        if(_state.Version>=5)return;
+        if(_state.Version!=4||_state.Execution18StartCount!=5||_state.Sessions.Length!=10||
+            _state.Sessions.Any(r=>!r.Released)||_state.Sessions.Sum(r=>r.ChargedMs)+180_000>TotalLimitMilliseconds)
+            throw new InvalidDataException("Pointer authorization cannot amend this ledger.");
+        Commit(_state with{Version=5,Amendment=PointerAmendment,PointerStartCount=10});
+    }
+
+    /// <summary>Separate explicit approval required; exactly one additional pointer-only retest.</summary>
+    public void AmendPointerRetest()
+    {
+        if(_state.Version>=6)return;
+        if(_state.Version!=5||_state.Sessions.Length!=11||_state.Sessions.Any(r=>!r.Released)||
+            _state.Sessions.Sum(r=>r.ChargedMs)+180_000>TotalLimitMilliseconds)
+            throw new InvalidDataException("Pointer retest requires its prior confirmed release and a separate authorization.");
+        Commit(_state with{Version=6,Amendment=PointerRetestAmendment});
+    }
+
+    /// <summary>Execution25 explicit policy approval only. Unlocks the first of two new starts.
+    /// Followup remains blocked until a separate go-ahead after independently confirmed release.</summary>
+    public void AmendPerformanceCheck()
+    {
+        if (_state.Version >= 7) return;
+        if (_state.Version != 6 || _state.Sessions.Length != 12 || _state.Sessions.Any(r => !r.Released) ||
+            _state.Sessions.Sum(r => r.ChargedMs) + 360_000 > TotalLimitMilliseconds)
+            throw new InvalidDataException("Performance policy requires twelve released historical charges and its explicit approval.");
+        Commit(_state with { Version = 7, Amendment = PerformanceAmendment });
+    }
+
+    public void AmendPerformanceFollowup()
+    {
+        if (_state.Version >= 8) return;
+        if (_state.Version != 7 || _state.Sessions.Length != 13 || _state.Sessions.Any(r => !r.Released) ||
+            _state.Sessions.Sum(r => r.ChargedMs) + 180_000 > TotalLimitMilliseconds)
+            throw new InvalidDataException("Full pointer followup requires first release and a separate go-ahead.");
+        Commit(_state with { Version = 8, Amendment = PerformanceFollowupAmendment });
+    }
+
+    /// <summary>Apply only after explicit Execution27 approval; first baseline start only.
+    /// History and total-time ceiling are unchanged. Followup requires separate release/go-ahead.</summary>
+    public void AmendHybridQualification()
+    {
+        if(_state.Version>=9)return;
+        if(_state.Version!=8||_state.Sessions.Length!=14||_state.Sessions.Any(r=>!r.Released)||
+            _state.Sessions.Sum(r=>r.ChargedMs)+360_000>TotalLimitMilliseconds)
+            throw new InvalidDataException("Hybrid comparison requires fourteen released charges and explicit bounded approval.");
+        Commit(_state with {Version=9,Amendment=HybridAmendment});
+    }
+    public void AmendHybridFollowup()
+    {
+        if(_state.Version==10)return;
+        if(_state.Version!=9||_state.Sessions.Length!=15||_state.Sessions.Any(r=>!r.Released)||
+            _state.Sessions.Sum(r=>r.ChargedMs)+180_000>TotalLimitMilliseconds)
+            throw new InvalidDataException("Hybrid followup requires baseline release and separate creator go-ahead.");
+        Commit(_state with {Version=10,Amendment=HybridFollowupAmendment});
     }
 
     public void ConfirmIndependentlyVerifiedRelease(CameraReleaseEvidence evidence)
@@ -148,6 +229,7 @@ public sealed class CameraBudget : IDisposable
 
     private void Commit(CameraBudgetState next)
     {
+        byte[] original = File.ReadAllBytes(_path);
         string stage = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
@@ -156,7 +238,18 @@ public sealed class CameraBudget : IDisposable
                 JsonSerializer.Serialize(file, next, Schema);
                 file.Flush(true);
             }
-            File.Replace(stage, _path, null);
+            for (int attempt = 0; ; attempt++)
+            {
+                try { File.Replace(stage, _path, null); break; }
+                catch (IOException error) when (attempt < 3 && (error.HResult & 0xffff) is 5 or 32 or 33 or 1175)
+                {
+                    // Retry only an unchanged destination with our still-existing staged file.
+                    // A partial/ambiguous replacement must never be retried or marked committed.
+                    if (!File.Exists(stage) || !original.AsSpan().SequenceEqual(File.ReadAllBytes(_path))) throw;
+                    System.Diagnostics.Trace.TraceWarning("Camera ledger replacement blocked (0x{0:X8}); bounded retry {1}/3.", error.HResult, attempt + 1);
+                    Thread.Sleep(40 * (attempt + 1));
+                }
+            }
             _state = next;
         }
         finally { if (File.Exists(stage)) File.Delete(stage); }

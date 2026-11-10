@@ -1,12 +1,29 @@
+# Execution28 product hierarchy
+
+Invey is the product; Ghost is its core independent interaction system. Pocket and future Cube are features around Ghost. Cube is planned, NOT implemented. Mandatory recurring software/runtime cost target is ₹0; no paid API or cloud backend requirement. Existing Windows/native mouse/privacy and capability gates remain unchanged.
+
 # POCKET × DUAL × GHOST — Product and Engineering Specification v2.0
-**Status:** executable specification for Codex; the application is NOT yet implemented. **Date:** 2026-11-04. **Target:** Windows 11 x64 first, Windows 10 later only if tested. **Cost:** mandatory software/AI subscriptions ₹0; existing Windows computer, webcam and mouse. Developer time, code signing and optional accessories are not included.
+**Status:** experimental implementation exists; this document is the release contract, not a claim of completed physical acceptance. **Date:** 2026-11-04. **Target:** Windows 11 x64 first, Windows 10 later only if tested. **Cost:** mandatory software/AI subscriptions ₹0; existing Windows computer, webcam and mouse. Developer time, code signing and optional accessories are not included.
 
 ## 0. Product in one minute
-POCKET is a native Windows reference utility. A user can temporarily select a visible part of the desktop, save it to a hidden edge shelf, and recall it for quick consultation. DUAL is the simultaneous input architecture: the physical mouse remains the ordinary Windows cursor; a separate webcam-controlled logical pointer can operate POCKET while the mouse works in another app. GHOST is the minimal, animated visual representation of that hand pointer. GHOST may optionally perform *discrete, explicitly supported* third-party UI Automation actions; it is **not** a second globally native Windows mouse.
+POCKET is a native Windows reference utility. A user can temporarily select a visible part of the desktop, save it to a hidden edge shelf, and recall it for quick consultation. DUAL is the simultaneous input architecture: the physical mouse remains the ordinary Windows cursor; a separate webcam-controlled logical pointer can operate POCKET while the mouse works in another app. GHOST is the minimal, animated visual representation of that hand pointer. Cross-application Ghost interaction is a core long-term product objective. The first external path uses *discrete, explicitly supported* UI Automation actions; it is **not** a second globally native Windows mouse.
 
 **Signature demonstration:** In a Windows text editor, begin an ordinary mouse drag (or continue typing with focus in that editor). Without moving the physical mouse, use the other hand to reveal a saved Pocket diagram, move it, scroll its contents, pin it, and dismiss it. Test independently both mouse-drag continuity and keyboard focus (do not infer one from the other). For Pocket Workspace mode, drag one Pocket object with the mouse while GHOST drags a different Pocket object concurrently. External app controls are shown as separately validated compatibility demos.
 
 **User promise:** "Keep useful things one gesture away without putting down the mouse." **Not promised:** universal, simultaneous native drags across arbitrary Windows applications, protected windows, games or UAC surfaces.
+
+## Cross-application destination and present boundary — Execution27
+
+Two independent workflows on one Windows desktop are the strategic destination. Pocket-native control remains the deterministic ownership environment; selected external semantic controls are the first experimental step beyond it. Compatibility expands through measured per-app/per-control gates, never a universal native-mouse claim.
+
+- **Tier A — Pocket-native:** existing controlled pointer/reducer route, with separate Mouse/Ghost ownership. Physical camera gestures remain unqualified.
+- **Tier B — verified semantic capability:** session-only external consent, selected HWND/PID/start lifetime, scoped patterns, supervised MTA worker, current physical-point reachability and one-use short-lived token. External mode is OFF by default. Controlled Ghost activation only; recorded, camera and visual-only sources cannot execute.
+- **Tier C — experimental touch/pen:** research only; no shipped backend or compatibility guarantee. Future independently validated synthetic pointer actions require their own explicit scope and mouse/focus/capture evidence.
+- **Tier D — unsupported:** no eligible semantic capability, covered/hidden/replaced target, protected/password/edit controls, higher-integrity application or unknown provider. No fallback moves or injects the Windows mouse.
+
+Current permitted semantic types: Invoke, Toggle, vertical small-increment Scroll, bounded RangeValue midpoint, ExpandCollapse and SelectionItem, only where an actual provider exposes the allowlisted pattern. User selects a benign application, authorizes one action type, arms and deliberately activates it. Commands with destructive, purchasing, credential or privileged semantics are outside this MVP's permitted use. A visual rectangle alone grants nothing. The benign separate-process demo is not a claim of arbitrary third-party compatibility. See EXECUTION_27_REPORT.md for actual compatibility evidence.
+
+Consent is local and temporary; it is not a saved blanket desktop grant. Window/process/source/session changes revoke it. Uncertain actions block new execution until explicitly reviewed/dismissed; they never automatically retry. External actions can move keyboard focus or change application state. Independent cursor coordinates and keyboard focus are tested separately; simultaneous native drags in arbitrary external applications remain unsupported.
 
 ## 1. Roles and operating modes
 - **Physical mouse:** remains OS-owned, never teleported or simulated in GHOST's name.
@@ -59,7 +76,7 @@ A feature is either `SHIPPED`, `EXPERIMENTAL`, `DEFERRED` or `UNSUPPORTED`. Neve
 
 **No camera:** Shelf via hotkey or tray; normal Pocket window for keyboard/mouse use; snapshot capture and storage still functional.
 
-**External action:** User toggles Experimental External Controls ON in settings with clear notice → GHOST hovers over an accessible supported control → scoped ability icon appears after dwell → user deliberately pinches to invoke; UIA worker executes with timeout → success/failure indicator. Password/sensitive controls, apps at higher integrity and destructive actions are blocked. Never activate merely on hover.
+**External action:** User toggles Experimental External Controls ON in settings with clear notice → GHOST hovers over an accessible supported control → scoped ability icon appears after dwell → user deliberately activates the controlled Ghost action (physically qualified pinch is future gated work); UIA worker executes with timeout → success/failure indicator. Password/sensitive controls, apps at higher integrity and destructive actions are blocked. Never activate merely on hover.
 
 ## 4. The Windows boundary and decisions
 ### Guarantee only what we own

@@ -171,9 +171,17 @@ internal static partial class Program
             var movedBounds = Pocket(moved).GetProperty("ViewerBounds");
             int right = movedBounds.GetProperty("Right").GetInt32(), bottom = movedBounds.GetProperty("Bottom").GetInt32();
             int originalWidth = movedBounds.GetProperty("Width").GetInt32();
-            Input.Move(right - 4, bottom - 4);
+            Input.Move(right - 2, bottom - 2);
             Input.Down();
-            try { Input.Move(right + 76, bottom + 56); }
+            try
+            {
+                await Task.Delay(80);
+                for (int step = 1; step <= 4; step++)
+                {
+                    Input.Move(right - 2 + step * 20, bottom - 2 + step * 14);
+                    await Task.Delay(20);
+                }
+            }
             finally { Input.Up(); }
             await Until(client, s => Pocket(s).GetProperty("ViewerBounds").GetProperty("Width").GetInt32() > originalWidth);
             var hidden = await client.Command("pocket-hide-library");

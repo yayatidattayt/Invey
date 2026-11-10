@@ -21,6 +21,43 @@ class CameraDiagnostics:
                      "startedUnix": time.time(), "stages": {}, "submitted": 0, "processed": 0,
                      "results": {"hand": 0, "partial": 0, "ambiguous": 0, "empty": 0}}
         self.write_failed = False
+        self.mode = None
+        self.mode_started = self.started
+        self.last_publish = 0
+        self.mode_counts = {}
+
+    def begin_mode(self, mode):
+        if mode not in ("raw", "conversion", "full"):
+            raise ValueError("Unknown measurement mode")
+        self.mode = mode
+        self.mode_started = time.perf_counter()
+        self.mode_counts = {}
+        self.data["measurementMode"] = mode
+        self.publish(force=True)
+
+    def end_mode(self, outcome="worker-finished"):
+        self.publish(force=True)
+        if self.mode:
+            self.data["measurementModes"][self.mode]["outcome"] = outcome
+            self.save()
+        self.mode = None
+
+    def publish(self, force=False):
+        now = time.perf_counter()
+        if not force and now - self.last_publish < 1:
+            return
+        self.last_publish = now
+        seconds = max(.001, now - self.mode_started)
+        counts = dict(self.mode_counts)
+        rates = {name: count / seconds for name, count in counts.items()}
+        row = {"elapsedMs": seconds * 1000, "counts": counts, "rates": rates,
+               "selectedNativeFormat": self.data.get("selectedNativeFormat"),
+               "outputFormat": self.data.get("outputFormat"),
+               "outputNegotiation": self.data.get("outputNegotiation")}
+        if self.mode:
+            self.data.setdefault("measurementModes", {})[self.mode] = row
+        self.data["liveMeasurement"] = row
+        self.save()
 
     def elapsed(self):
         return round((time.perf_counter() - self.started) * 1000, 3)
@@ -75,6 +112,7 @@ class CameraDiagnostics:
             self.data["submitted"] += 1
             result = tracker.detect_for_video(image, timestamp)
             self.data["processed"] += 1
+            self.count("inferenceCompleted")
             return result
         return SimpleNamespace(detect_for_video=detect)
 
@@ -87,11 +125,18 @@ class CameraDiagnostics:
         values = self.timings.setdefault(name, [])
         if len(values) < 1500:
             values.append(nanoseconds)
+        if self.mode:
+            phase_values = self.timings.setdefault(self.mode + "." + name, [])
+            if len(phase_values) < 1500:
+                phase_values.append(nanoseconds)
 
-    def count(self, name):
-        self.data[name] = self.data.get(name, 0) + 1
+    def count(self, name, amount=1):
+        self.data[name] = self.data.get(name, 0) + amount
+        self.mode_counts[name] = self.mode_counts.get(name, 0) + amount
 
     def finish(self):
+        if self.mode:
+            self.end_mode()
         self.timings.update(inferenceMs=self.inference, sourceToResultMs=self.age)
         for name, values in self.timings.items():
             if values:

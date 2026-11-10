@@ -5,6 +5,8 @@ import ctypes as c
 import hashlib
 import time
 import uuid
+import os
+from capture_policy import ranked_modes
 
 from frame_pipeline import Frame
 
@@ -198,10 +200,9 @@ def valid_size(width, height):
     return 0 < width <= 1920 and 0 < height <= 1920 and width * height <= MAX_PIXELS
 
 
-def configure(reader, platform, diagnostic=None, live=False):
+def configure(reader, platform, diagnostic=None, live=False, native_only=False, required_mode=None):
     check(call(reader, 4, (U32, I32), ALL_STREAMS, 0))
     check(call(reader, 4, (U32, I32), VIDEO_STREAM, 1), "unsupported-format")
-    candidates = []
     offered = []
     for i in range(256):
         native = PTR()
@@ -213,15 +214,14 @@ def configure(reader, platform, diagnostic=None, live=False):
             size = get_number(native, FRAME_SIZE, U64, 8) or 0
             width, height = size >> 32, size & 0xFFFFFFFF
             rate = get_number(native, FRAME_RATE, U64, 8) or 0
-            fps = (rate >> 32) / max(1, rate & 0xFFFFFFFF)
+            fps = (rate >> 32) / (rate & 0xFFFFFFFF) if rate & 0xFFFFFFFF else None
             subtype = (c.c_ubyte * 16)()
             check(call(native, 10, (PTR, PTR), SUBTYPE, subtype), "unsupported-format")
             kind = uuid.UUID(bytes_le=bytes(subtype))
             offered.append({"width": width, "height": height, "fps": fps, "subtype": str(kind)})
             color = kind.time_low in (20, 21, 22, 0x3231564E, 0x32595559, 0x47504A4D, 0x34363248,
                                      0x59565955, 0x32315659, 0x30323449)
-            if valid_size(width, height) and (color or not live):
-                candidates.append((abs(width - 640) + abs(height - 480), abs(fps - 30), i))
+            offered[-1]["supported"] = color or not live
         finally:
             release(native)
     if diagnostic:
@@ -231,15 +231,43 @@ def configure(reader, platform, diagnostic=None, live=False):
     try:
         set_guid(output, MAJOR_TYPE, VIDEO)
         set_guid(output, SUBTYPE, RGB32)
-        for _, _, i in sorted(candidates):
+        for i in ranked_modes(offered):
+            if required_mode is not None and offered[i] != required_mode:
+                continue
             native = PTR()
             check(call(reader, 5, (U32, U32, OUT), VIDEO_STREAM, i, c.byref(native)), "unsupported-format")
             try:
                 check(call(reader, 7, (U32, PTR, PTR), VIDEO_STREAM, None, native), "unsupported-format")
-                check(call(reader, 7, (U32, PTR, PTR), VIDEO_STREAM, None, output), "unsupported-format")
+                size=get_number(native,FRAME_SIZE,U64,8) or 0
+                rate=get_number(native,FRAME_RATE,U64,8) or 0
+                if native_only:
+                    if diagnostic:
+                        diagnostic.data.update(selectedNativeFormat=offered[i], outputFormat=offered[i],
+                                               outputNegotiation="native-passthrough-no-app-copy")
+                    return size >> 32, size & 0xffffffff, 0
+                check(call(output,22,(PTR,U64),FRAME_SIZE,size),"unsupported-format")
+                check(call(output,22,(PTR,U64),FRAME_RATE,rate),"unsupported-format")
+                negotiation="explicit-native-size-rate"
+                try:
+                    check(call(reader,7,(U32,PTR,PTR),VIDEO_STREAM,None,output),"unsupported-format")
+                except CameraError as error:
+                    if error.code!="unsupported-format":raise
+                    # Preserve the previously qualified subtype-only negotiation as fallback.
+                    check(call(output,19,(PTR,),FRAME_SIZE),"unsupported-format")
+                    check(call(output,19,(PTR,),FRAME_RATE),"unsupported-format")
+                    check(call(reader,7,(U32,PTR,PTR),VIDEO_STREAM,None,output),"unsupported-format")
+                    negotiation="legacy-subtype-fallback"
                 layout = video_layout(reader, platform)
                 if diagnostic:
+                    diagnostic.data["outputNegotiation"]=negotiation
+                    current=PTR()
+                    try:
+                        check(call(reader,6,(U32,OUT),VIDEO_STREAM,c.byref(current)),"unsupported-format")
+                        negotiated_rate=get_number(current,FRAME_RATE,U64,8) or 0
+                        diagnostic.data["negotiatedOutputRate"]={"numerator":negotiated_rate>>32,"denominator":negotiated_rate&0xffffffff}
+                    finally:release(current)
                     diagnostic.data["selectedNativeFormat"] = offered[i]
+                    diagnostic.data["formatPolicy"] = "offered-only-30hz-vga-first-rgb32-fallback"
                     diagnostic.data["outputFormat"] = {"width": layout[0], "height": layout[1],
                                                         "stride": layout[2], "subtype": "RGB32"}
                 return layout
@@ -265,8 +293,21 @@ def copy_bgr(np, width, height, start, length, first, stride):
     data = c.string_at(start + low, high - low)
     return np.ndarray((height, width, 3), np.uint8, data, offset - low, (stride, 4, 1))
 
+def copy_rgb(np, width, height, start, length, first, stride):
+    """Copy directly from a validated locked BGRA buffer into owned contiguous RGB."""
+    if not start or not first or not valid_size(width,height):
+        raise CameraError("unsupported-format")
+    offset=first-start; last=offset+stride*(height-1)
+    low,high=min(offset,last),max(offset,last)+width*4
+    if abs(stride)<width*4 or low<0 or high>length or high-low>16*1024*1024:
+        raise CameraError("unsupported-format")
+    memory=(c.c_ubyte*(high-low)).from_address(start+low)
+    view=np.ndarray((height,width,3),np.uint8,memory,offset-low,(stride,4,1))
+    return np.ascontiguousarray(view[:,:,::-1])
 
-def sample_pixels(sample, np, width, height, default_stride):
+
+def sample_pixels(sample, np, width, height, default_stride, rgb=False):
+    copier=copy_rgb if rgb else copy_bgr
     buffer, two_d = PTR(), PTR()
     check(call(sample, 41, (OUT,), c.byref(buffer)))  # IMFSample::ConvertToContiguousBuffer
     try:
@@ -276,13 +317,13 @@ def sample_pixels(sample, np, width, height, default_stride):
             check(call(two_d, 10, (U32, OUT, c.POINTER(I32), OUT, c.POINTER(U32)),
                        1, c.byref(first), c.byref(stride), c.byref(start), c.byref(length)))
             try:
-                return copy_bgr(np, width, height, start.value, length.value, first.value, stride.value)
+                return copier(np, width, height, start.value, length.value, first.value, stride.value)
             finally:
                 call(two_d, 4, ())  # IMF2DBuffer::Unlock2D
         check(call(buffer, 3, (OUT, PTR, c.POINTER(U32)), c.byref(start), None, c.byref(length)))
         try:
             origin = (start.value or 0) + max(0, -default_stride * (height - 1))
-            return copy_bgr(np, width, height, start.value, length.value, origin, default_stride)
+            return copier(np, width, height, start.value, length.value, origin, default_stride)
         finally:
             call(buffer, 4, ())  # IMFMediaBuffer::Unlock
     finally:
@@ -291,7 +332,7 @@ def sample_pixels(sample, np, width, height, default_stride):
 
 
 class CameraFrameSource:
-    def __init__(self, reader, layout, np, file_source, platform, diagnostic=None):
+    def __init__(self, reader, layout, np, file_source, platform, diagnostic=None, native_only=False):
         self.reader, self.layout, self.np, self.file_source = reader, layout, np, file_source
         self.platform = platform
         self.last_pts = None
@@ -304,6 +345,17 @@ class CameraFrameSource:
         self.last_frame_ms = None
         self.last_sample_at = time.monotonic()
         self.flags = {}
+        self.last_delivery_ns = None
+        self.direct_rgb=os.environ.get("INVEY_RGB_COPY_BASELINE")!="1"
+        self.native_only = native_only
+
+    def enable_conversion(self):
+        # Same reader/source/device and exact offered type. Never opens another camera.
+        selected = self.diagnostic.data.get("selectedNativeFormat") if self.diagnostic else None
+        self.layout = configure(self.reader, self.platform, self.diagnostic, not self.file_source,
+                                required_mode=selected)
+        self.native_only = False
+        self.last_pts = self.last_delivery_ns = self.offset_ns = None
 
     def read(self, stop):
         if self.file_source:
@@ -329,6 +381,8 @@ class CameraFrameSource:
                         return None
                     raise CameraError("device-lost")
                 if flags.value & 0x30:
+                    if self.native_only:
+                        raise CameraError("unsupported-format")  # Do not silently change a measured native mode.
                     try:
                         self.layout = video_layout(self.reader, self.platform)
                     except CameraError as error:
@@ -341,8 +395,18 @@ class CameraFrameSource:
                 self.samples_read += 1
                 if self.last_pts is not None and pts.value <= self.last_pts:
                     self.skipped += 1
+                    if self.diagnostic:self.diagnostic.count("nativeNonMonotonicSamples")
                     continue
+                if self.diagnostic:
+                    if self.last_pts is not None:self.diagnostic.timing("nativeTimestampIntervalMs",(pts.value-self.last_pts)*100)
+                    if self.last_delivery_ns is not None:self.diagnostic.timing("deliveryIntervalMs",delivered-self.last_delivery_ns)
+                    self.diagnostic.data["lastNativeTimestamp100ns"]=pts.value
+                    self.diagnostic.data["lastNativeSequence"]=self.samples_read
                 self.last_pts = pts.value
+                self.last_delivery_ns=delivered
+                self.last_sample_at = time.monotonic()
+                if self.diagnostic:
+                    self.diagnostic.count("uniqueNativeSamples")
                 acquired_ns = delivered
                 if not self.file_source:
                     observed_offset = delivered - pts.value * 100
@@ -350,29 +414,34 @@ class CameraFrameSource:
                     acquired_ns = pts.value * 100 + self.offset_ns
                     if delivered - acquired_ns >= 250_000_000:
                         self.skipped += 1
+                        if self.diagnostic:self.diagnostic.count("nativeStaleSamples")
                         continue
                 else:
                     self.next_frame = delivered / 1e9 + 0.08
+                if self.native_only:
+                    return Frame(None, acquired_ns)
                 try:
-                    pixels = sample_pixels(sample, self.np, *self.layout)
+                    pixels = sample_pixels(sample, self.np, *self.layout, rgb=self.direct_rgb)
                 except CameraError as error:
                     raise CameraError("frame-conversion-failed", error.native_code) from error
                 self.last_sample_at = time.monotonic()
                 self.converted += 1
                 if self.diagnostic:
+                    self.diagnostic.count("convertedFrames")
+                    self.diagnostic.count("ownedPixelBytes", pixels.nbytes)
                     self.diagnostic.timing("nativeCopyMs", time.perf_counter_ns() - delivered)
                     self.last_frame_ms = self.diagnostic.elapsed()
                     if self.converted == 1:
                         self.diagnostic.data["firstFrameMs"] = self.last_frame_ms
                         self.diagnostic.save()
-                return Frame(pixels, acquired_ns, bgr=True)
+                return Frame(pixels, acquired_ns, bgr=not self.direct_rgb)
             finally:
                 release(sample)
         return None
 
 
 @contextmanager
-def open_source(np, device=None, fixture_file=None, diagnostic=None):
+def open_source(np, device=None, fixture_file=None, diagnostic=None, native_only=False):
     """Open a selected camera, or an explicit local test file through the same native reader."""
     stage = diagnostic.stage if diagnostic else lambda _: nullcontext()
     with ExitStack() as stack:
@@ -417,8 +486,8 @@ def open_source(np, device=None, fixture_file=None, diagnostic=None):
                     source, attrs, c.byref(reader)), "source-reader-failed")
         stack.callback(release, reader)
         with stage("IMFSourceReader::SetCurrentMediaType"):
-            layout = configure(reader, platform, diagnostic, fixture_file is None)
-        capture = CameraFrameSource(reader, layout, np, fixture_file is not None, platform, diagnostic)
+            layout = configure(reader, platform, diagnostic, fixture_file is None, native_only=native_only)
+        capture = CameraFrameSource(reader, layout, np, fixture_file is not None, platform, diagnostic, native_only)
         try:
             yield capture
         finally:

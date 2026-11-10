@@ -129,6 +129,26 @@ def practice_fixture(send, stop):
     send("stopped")
 
 
+def hybrid_fixture(send,stop,preview=None):
+    """Generated images, actual optical processing, same production protocol and pointer."""
+    from hybrid_visual import HybridFingerVisual
+    from hybrid_fixtures import image,model
+    tracker=HybridFingerVisual();send("ready")
+    sequence=0
+    while not stop.is_set():
+        cycle=sequence%60
+        x=170+min(max(0,cycle-7),12)
+        pixels=image(x)
+        stamp=time.perf_counter_ns()//1_000_000
+        points,fields=tracker.update(pixels,sequence,stamp,*(model(x) if cycle<8 or cycle>=24 else ([],{})))
+        send("observation",seq=sequence,captureMonoMs=stamp,resultMonoMs=max(stamp,time.perf_counter_ns()//1_000_000),
+             tracked=bool(points),landmarks=points,frame={"width":400,"height":280},**fields)
+        if preview is not None:preview.offer(sequence,pixels)
+        sequence+=1
+        stop.wait(.033)
+    send("stopped")
+
+
 def stream(args, pipe, stop, diagnostic=None):
     def send(kind, **fields):
         line = json.dumps({"v": 1, "kind": kind, "session": args.session, **fields}, allow_nan=False)
@@ -141,14 +161,16 @@ def stream(args, pipe, stop, diagnostic=None):
     if args.fault == "startup-hang":
         stop.wait(30)
         return
-    if args.fault in ("finger-preview", "finger-visual"):
+    if args.fault in ("finger-preview", "finger-visual", "hybrid-preview"):
         if args.camera or args.fixture_file:
             raise ValueError("Pointer fixture requires the recorded source.")
         sys.path.insert(0, str(args.site_packages))
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         from preview_pipeline import PreviewSender
         with PreviewSender(args.preview_pipe) if args.preview_pipe else nullcontext() as preview:
-            if args.fault == "finger-visual":
+            if args.fault == "hybrid-preview":
+                hybrid_fixture(send,stop,preview)
+            elif args.fault == "finger-visual":
                 from precision_fixture import visual_fixture
                 visual_fixture(send, stop, preview)
             else:
@@ -162,6 +184,26 @@ def stream(args, pipe, stop, diagnostic=None):
 
     sys.path.insert(0, str(args.site_packages))
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    if args.performance == "capture":
+        from windows_camera import open_source, CameraError
+        from performance_check import run_capture_check
+        import numpy as np
+        if not args.camera or diagnostic is None:
+            raise ValueError("Capture check requires the selected guarded camera and diagnostics")
+        # The host guardian has already reserved the session before sending start.
+        try:
+            with open_source(np, device=args.camera, diagnostic=diagnostic, native_only=True) as source:
+                run_capture_check(source, stop, send, diagnostic)
+        except CameraError as error:
+            diagnostic.data["error"] = error.code
+            if error.native_code is not None:
+                diagnostic.data["hresult"] = f"0x{error.native_code:08X}"
+            send("error", code=error.code)
+        except (RuntimeError, ValueError, OSError) as error:
+            if isinstance(error, BrokenPipeError):
+                raise
+            send("error", code="runtime-failure")
+        return
     try:
         phase("importing")
         from qualify_hand_landmarker import MODEL_HASH, PHOTO_HASH, checked_bytes, mp, np, Image, ImageOps
@@ -204,6 +246,8 @@ def stream(args, pipe, stop, diagnostic=None):
                     source = resources.enter_context(open_source(np, None, args.fixture_file, diagnostic))
             send("ready")
             phase("ready")
+            if diagnostic:
+                diagnostic.begin_mode("full")
             if args.fault == "crash":
                 os._exit(7)
             if args.fault == "malformed":
@@ -218,8 +262,8 @@ def stream(args, pipe, stop, diagnostic=None):
                     stop.wait(0.9)
 
             measured = diagnostic.measure_tracker(tracker) if diagnostic else tracker
-            from finger_visual import FingerVisual
-            visual = None if os.environ.get("INVEY_LEGACY_POINTER") == "1" else FingerVisual()
+            from visual_backend import create_visual
+            visual = None if os.environ.get("INVEY_LEGACY_POINTER") == "1" else create_visual(diagnostic)
             run_frames(source, stop, measured, mp, np, normalize, send,
                        diagnostic.sample if diagnostic else delay_result if args.fault == "result-gap" else None,
                        diagnostic, preview, visual)
@@ -256,12 +300,13 @@ def main():
     parser.add_argument("--palm", type=Path)
     parser.add_argument("--diagnostics", type=Path)
     parser.add_argument("--preview-pipe")
+    parser.add_argument("--performance", choices=["capture", "full"])
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--camera")
     source.add_argument("--fixture-file", type=Path)
     parser.add_argument("--fault", choices=["startup-hang", "crash", "malformed", "ignore-stop",
                                           "bad-model", "result-gap", "camera-denied", "camera-busy",
-                                          "camera-missing", "calibration-practice", "finger-preview", "finger-visual"])
+                                          "camera-missing", "calibration-practice", "finger-preview", "finger-visual", "hybrid-preview"])
     args = parser.parse_args()
     if not args.list_cameras and not all((args.pipe, args.session, args.site_packages, args.model, args.palm)):
         parser.error("The tracking worker requires a pipe, session, runtime, and asset paths.")

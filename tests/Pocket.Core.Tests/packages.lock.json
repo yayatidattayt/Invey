@@ -93,6 +93,12 @@
           "xunit.extensibility.core": "[2.9.2]"
         }
       },
+      "pocket.automation.client": {
+        "type": "Project",
+        "dependencies": {
+          "Pocket.Automation.Contracts": "[1.0.0, )"
+        }
+      },
       "pocket.automation.contracts": {
         "type": "Project"
       },

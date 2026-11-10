@@ -15,6 +15,7 @@ public partial class MainWindow : Window
     private GhostOverlay? _overlay;
     private SimulationController? _simulation;
     private Window? _settings;
+    private FeedbackWindow? _feedback;
     private FixtureWindow? _fixture;
     private RecordedTrackingWindow? _tracking;
     private PocketWorkspace? _pocket;
@@ -25,6 +26,7 @@ public partial class MainWindow : Window
     private readonly Window? _captureBackground;
     private readonly PocketCards? _cards;
     private bool _exiting, _exitInProgress;
+    internal GhostDesktopHost DesktopGhost { get; } = new();
     internal bool TrayAvailable { get; set; }
     internal event Action<string>? CameraStatusChanged;
     public MainWindow() : this(new(Path.Combine(
@@ -36,25 +38,61 @@ public partial class MainWindow : Window
         if (profile.Available)
         {
             _store = new PocketStore(profile.Root);
-            _cards = new PocketCards(_store, profile.Writable);
+            _cards = new PocketCards(_store, profile.Writable, DesktopGhost);
         }
         InitializeComponent();
         if (profile.Notice?.StartsWith("DEMO PROFILE", StringComparison.Ordinal) == true)
         {
             Title = "Invey · Demo";
-            ProfileNotice.Text = profile.Notice;
+            ProfileNotice.Text = "Demo profile · synthetic samples";
+            ProfileNotice.ToolTip = profile.Notice;
             ProfileNotice.Visibility = Visibility.Visible;
         }
         SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(this);
-        if (profile.Notice is not null) Status.Text = profile.Notice;
+        if (profile.Notice is not null && !profile.Notice.StartsWith("DEMO PROFILE", StringComparison.Ordinal)) Status.Text = profile.Notice;
         CameraStatusChanged += status => GhostState.Text = $"Ghost · {status}";
         Loaded += async (_, _) =>
         {
+            DesktopGhost.RegisterReveal(()=>ShowPocket(activate:false));
             if (_cards is null) return;
             try { await _cards.RestoreAsync(); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException)
             { Status.Text = "Could not restore the Pocket library."; }
         };
+    }
+    internal async Task<object> SpatialFixture()
+    {
+        SystemCommands.MaximizeWindow(this);await Task.Delay(150);UpdateLayout();bool maximized=WindowState==WindowState.Maximized;
+        SystemCommands.RestoreWindow(this);await Task.Delay(150);UpdateLayout();bool restored=WindowState==WindowState.Normal;
+        if(!maximized||!restored)throw new InvalidOperationException("Shell maximize/restore failed.");
+        HomeScroll.ScrollToTop(); UpdateLayout();
+        var timer=System.Diagnostics.Stopwatch.StartNew();
+        var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)ActualWidth,(int)ActualHeight,96,96,System.Windows.Media.PixelFormats.Pbgra32);
+        bitmap.Render(this);timer.Stop();
+        var folder=Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE")!;
+        var image=Path.Combine(Path.GetDirectoryName(folder)!,"spatial-home.png");
+        var encoder=new System.Windows.Media.Imaging.PngBitmapEncoder();encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+        using(var stream=File.Create(image))encoder.Save(stream);
+        ToggleNavigation(this,new());bool compact=Navigation.Width==54;
+        ToggleNavigation(this,new());bool expanded=Navigation.Width==156;
+        return new { Compact=compact,Expanded=expanded,CameraOff=!DesktopGhost.TrackingEnabled,RenderMs=timer.Elapsed.TotalMilliseconds,Image=image };
+    }
+    private void MinimizeShell(object sender,RoutedEventArgs e)=>SystemCommands.MinimizeWindow(this);
+    private void MaximizeShell(object sender,RoutedEventArgs e)
+    {if(WindowState==WindowState.Maximized)SystemCommands.RestoreWindow(this);else SystemCommands.MaximizeWindow(this);}
+    private void CloseShell(object sender,RoutedEventArgs e)=>SystemCommands.CloseWindow(this);
+    private bool _navigationCompact;
+    private void HomeClick(object sender, RoutedEventArgs e) { HomeScroll.ScrollToTop(); HomeScroll.Focus(); }
+    private void ToggleNavigation(object sender, RoutedEventArgs e)
+    {
+        _navigationCompact = !_navigationCompact;
+        Navigation.Width = _navigationCompact ? 54 : 156;
+        foreach (var button in Navigation.Children.OfType<Button>().Skip(1))
+        {
+            button.Tag ??= button.Content;
+            button.Content = _navigationCompact ? button.Tag.ToString()![..1] : button.Tag;
+            System.Windows.Automation.AutomationProperties.SetName(button, button.ToolTip?.ToString() ?? "Navigation");
+        }
     }
     private void EnsureOverlay()
     {
@@ -73,9 +111,9 @@ public partial class MainWindow : Window
         catch(Exception ex) { DisposeOverlay(); Status.Text="Operation failed: "+ex.Message; }
         UpdateButtons();
     }
-    private void ShowOverlay(object sender,RoutedEventArgs e) => Safely(()=>{EnsureOverlay(); _overlay!.Show(); Status.Text=$"Passive styles verified: 0x{_overlay.VerifiedStyles:X}; DPI {_overlay.Dpi}.";});
+    private void ShowOverlay(object sender,RoutedEventArgs e) => Safely(()=>{DesktopGhost.Stop();EnsureOverlay(); _overlay!.Show(); Status.Text=$"Passive styles verified: 0x{_overlay.VerifiedStyles:X}; DPI {_overlay.Dpi}.";});
     private void HideOverlay(object sender,RoutedEventArgs e) => Safely(()=>{_simulation?.Stop(); _overlay?.Hide(); Status.Text="Overlay hidden; GHOST claim canceled.";});
-    private void StartReplay(object sender,RoutedEventArgs e) => Safely(()=>{EnsureOverlay(); _simulation!.Start(); Status.Text="Replay starts in 5 seconds, runs 20 cycles. Focus the test fixture or editor now.";});
+    private void StartReplay(object sender,RoutedEventArgs e) => Safely(()=>{DesktopGhost.Stop();EnsureOverlay(); _simulation!.Start(); Status.Text="Replay starts in 5 seconds, runs 20 cycles. Focus the test fixture or editor now.";});
     private void StopReplay(object sender,RoutedEventArgs e) => Safely(()=>{_simulation?.Stop(); Status.Text="Replay stopped; GHOST claim canceled.";});
     private void UpdateButtons() { StartButton.IsEnabled=_simulation?.IsRunning!=true; StopButton.IsEnabled=_simulation?.IsRunning==true; }
     private void OpenFixture(object sender,RoutedEventArgs e)
@@ -163,6 +201,16 @@ public partial class MainWindow : Window
     }
 
     private void OpenSettings(object sender,RoutedEventArgs e)=>ShowSettings();
+    private void OpenFeedback(object sender,RoutedEventArgs e)
+    {
+        if(_feedback is not null){_feedback.Show();_feedback.Activate();return;}
+        _feedback=new FeedbackWindow(()=>FormFeedbackDiagnostics()){Owner=this};
+        _feedback.Closed+=(_,_)=>_feedback=null;
+        _feedback.Show();_feedback.Activate();
+    }
+    internal void OpenFeedbackFixture()=>OpenFeedback(this,new RoutedEventArgs());
+    internal void CloseFeedbackFixture()=>_feedback?.Close();
+    private string FormFeedbackDiagnostics()=>$"Invey local beta summary\nGhost mode: {DesktopGhost.Engine.Mode}\nPointer source: {DesktopGhost.Engine.Source}\nPointer updates: {DesktopGhost.PointerUpdates}\nLast pointer update (ms): {DesktopGhost.LastMovementMs:F3}\nLast command dispatch (ms): {DesktopGhost.LastDispatchMs:F3}\nCamera: {(DesktopGhost.TrackingEnabled&&DesktopGhost.Engine.Source==Pocket.Core.GhostSourceKind.Camera?"ON":"OFF")}";
     private async void ExportEvidence(object sender,RoutedEventArgs e)
     {
         if(_simulation==null || _overlay==null) { Status.Text="Run a replay first."; return; }
@@ -181,6 +229,13 @@ public partial class MainWindow : Window
             _tracking = new RecordedTrackingWindow(profileSettingsPath: _profile.Available
                 ? Path.Combine(_profile.Root, "calibration.json") : null, profileWritable: _profile.Writable);
             _tracking.CameraStatusChanged += status => CameraStatusChanged?.Invoke(status);
+            _tracking.DesktopStatus=()=>DesktopGhost.Engine.Status+" · "+DesktopGhost.Gestures.Status;
+            _tracking.DesktopUpdateCount=()=>DesktopGhost.PointerUpdates;
+            _tracking.DesktopPosition=()=>DesktopGhost.Engine.Position;
+            _tracking.DesktopMetrics=()=>new { _desktopMapper.ReasonEntries, _desktopMapper.ReasonMilliseconds, _desktopMapper.UiRejectionPolls };
+            _tracking.GesturePracticeReady+=(source,context,calibration)=>DesktopGhost.Gestures.Begin(source,context,calibration);
+            _tracking.DesktopPointerChanged += (snapshot,context,point,model)=>DesktopTracking(snapshot,context,point,model);
+            _tracking.DesktopPreviewChanged += enabled=> { if(enabled){_simulation?.Stop();_overlay?.Hide();DesktopGhost.EnableTracking(Pocket.Core.GhostSourceKind.Recorded);}else DesktopGhost.Stop(); };
             _tracking.Closed += (_, _) => _tracking = null;
         }
         _tracking.Show();
@@ -192,20 +247,20 @@ public partial class MainWindow : Window
     {
         if (_store is null) { Status.Text = _profile.Notice; return null; }
         if (_pocket is not null) return _pocket;
-        var pocket = new PocketWorkspace(_store, PrepareCaptureAsync, _captureBackground, _cards, _profile.Writable);
+        var pocket = new PocketWorkspace(_store, PrepareCaptureAsync, _captureBackground, _cards, _profile.Writable, DesktopGhost);
         pocket.ReferenceDeleted += id => _workspace?.ReferenceDeleted(id);
         pocket.ReferenceRestored += id => _workspace?.ReferenceRestored(id);
         pocket.Closed += (_, _) => _pocket = null;
         return _pocket = pocket;
     }
 
-    public void ShowPocket(bool toggle = false)
+    public void ShowPocket(bool toggle = false, bool activate = true)
     {
         if (_exitInProgress || CaptureInProgress || PocketShelf() is not { } shelf) return;
         if (toggle && shelf.IsVisible && shelf.WindowState != WindowState.Minimized) { shelf.Tuck(); return; }
-        shelf.Show();
+        bool previous=shelf.ShowActivated; shelf.ShowActivated=activate; shelf.Show(); shelf.ShowActivated=previous;
         if (shelf.WindowState == WindowState.Minimized) shelf.WindowState = WindowState.Normal;
-        shelf.Activate();
+        if(activate) shelf.Activate();
     }
 
     public async Task CaptureAsync()
@@ -218,7 +273,7 @@ public partial class MainWindow : Window
         if (_exitInProgress || CaptureInProgress || _store is null) return;
         if (_workspace is null)
         {
-            _workspace = new DualWorkspace(_store);
+            _workspace = new DualWorkspace(_store, DesktopGhost);
             _workspace.Closed += (_, _) => _workspace = null;
         }
         _workspace.Show();
@@ -231,6 +286,7 @@ public partial class MainWindow : Window
     private void PauseClick(object sender, RoutedEventArgs e) => Pause();
     private async Task<bool> PrepareCaptureAsync()
     {
+        DesktopGhost.Stop();
         _simulation?.Stop();
         UpdateButtons();
         return _tracking is null || await _tracking.StopAsync();
@@ -247,6 +303,14 @@ public partial class MainWindow : Window
                 _pocket?.ResumeAfterAbortedExit();
                 return;
             }
+            try { await DesktopGhost.CloseExternalAsync(); }
+            catch(Exception error) when(error is IOException or InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                Status.Text="External cleanup is unconfirmed. Invey remains open; retry Stop/Exit. "+error.GetType().Name;
+                System.Diagnostics.Trace.TraceWarning("External exit cleanup failed: {0}",error.GetType().Name);
+                _pocket?.ResumeAfterAbortedExit();return;
+            }
+            DesktopGhost.Dispose();
             _workspace?.Close();
             if (_cards is not null) await _cards.CloseAsync();
             Application.Current.Shutdown();
@@ -255,11 +319,14 @@ public partial class MainWindow : Window
     }
     internal object TestState() => new
     {
+        DesktopGhost = DesktopGhost.State,
         Handle = new System.Windows.Interop.WindowInteropHelper(this).Handle.ToInt64(),
         Pocket = _pocket?.TestState(), Workspace = _workspace?.TestState(), Camera = GhostState.Text,
         Tracking = _tracking?.TestSnapshot(),
         TrackingHandle = _tracking is null ? 0 : new System.Windows.Interop.WindowInteropHelper(_tracking).Handle.ToInt64(),
         SettingsVisible = _settings?.IsVisible == true,
+        FeedbackVisible = _feedback?.IsVisible == true,
+        FeedbackButtonVisible = FeedbackButton.IsVisible,
         SettingsHandle = _settings is null ? 0 : new System.Windows.Interop.WindowInteropHelper(_settings).Handle.ToInt64(),
         DemoProfile = Title == "Invey · Demo",
         WindowLoaded = IsLoaded,
@@ -280,6 +347,7 @@ public partial class MainWindow : Window
 
     internal async Task CloseAcceptanceAsync()
     {
+        await DesktopGhost.CloseExternalAsync();
         if (_pocket is { } pocket) await pocket.PrepareExitAsync();
         if (_tracking is not null && !await _tracking.CloseAsync()) throw new IOException("Tracking cleanup was not confirmed.");
         if (_cards is not null) await _cards.CloseAsync();
@@ -310,6 +378,7 @@ public partial class MainWindow : Window
     internal bool CaptureInProgress => _pocket?.CaptureInProgress == true;
     public async void Pause()
     {
+        DesktopGhost.Stop();
         _workspace?.StopSimulation();
         _simulation?.Stop();
         _overlay?.Hide();
@@ -323,7 +392,7 @@ public partial class MainWindow : Window
     }
     public void Cleanup()
     {
-        _exiting=true; _shortcuts?.Dispose(); DisposeOverlay(); _workspace?.Close(); _settings?.Close(); _fixture?.Close(); Close();
+        _exiting=true; DesktopGhost.Dispose(); _shortcuts?.Dispose(); DisposeOverlay(); _workspace?.Close(); _settings?.Close(); _fixture?.Close(); Close();
     }
     protected override void OnClosing(CancelEventArgs e)
     {

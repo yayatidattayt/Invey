@@ -13,9 +13,10 @@ using Screen = System.Windows.Forms.Screen;
 
 namespace Pocket.App.References;
 
-internal sealed class PocketCards(PocketStore store, bool writable = true)
+internal sealed class PocketCards(PocketStore store, bool writable = true, GhostDesktopHost? ghost = null)
 {
     private const int MaxCards = 4;
+    private readonly GhostDesktopHost? _ghost=ghost;
     private const long MaxOpenPixels = 24_000_000;
     private readonly Dictionary<Guid, Card> _cards = new();
     private readonly SemaphoreSlim _opening = new(1);
@@ -43,12 +44,12 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
         }
     }
 
-    public async Task OpenAsync(PocketReference item, bool activate = true)
+    public async Task OpenAsync(PocketReference item, bool activate = true, Func<bool>? permitted = null)
     {
         await _opening.WaitAsync();
         try
         {
-            if (_exiting) return;
+            if (_exiting || permitted?.Invoke()==false) return;
             if (_cards.TryGetValue(item.Id, out var existing))
             {
                 _last = item.Id;
@@ -60,7 +61,7 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
                     (long)item.Width * item.Height > MaxOpenPixels)
                 throw new InvalidDataException("Hide a card before opening another reference.");
             var image = await Task.Run(() => ScreenSnapshot.Decode(store.Open(item)));
-            if (_exiting) return;
+            if (_exiting || permitted?.Invoke()==false) return;
             var card = new Card(this, item, image, activate);
             _cards.Add(item.Id, card);
             _last = item.Id;
@@ -154,6 +155,10 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
         private CardPlacement? _lastPlacement;
         private int _zoom;
         private bool _loaded;
+        private IDisposable? _ghostTarget;
+        private HwndSource? _nativeSource;
+        private bool _nativeMoving;
+        private Point _ghostOffset;
         public Guid Id { get; }
         public Window Window { get; }
         public BitmapSource Image { get; }
@@ -199,16 +204,49 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
                 { System.Diagnostics.Trace.TraceWarning("Pocket card positioning failed: 0x{0:X8}", error.HResult); }
                 ApplyZoom();
                 _loaded = true;
+                if(owner._ghost is { } engine)
+                {
+                    _ghostTarget=engine.Register("card:"+Id.ToString("N"),Window,layout,true,
+                        begin:p=>
+                        {
+                            if(_nativeMoving || MouseCaptured()) return false;
+                            var b=ScreenSnapshot.Bounds(new WindowInteropHelper(Window).Handle);
+                            if(b is null)return false;
+                            _ghostOffset=new(p.X-b.Value.X,p.Y-b.Value.Y);return true;
+                        },
+                        move:p=>
+                        {
+                            if(!_loaded || _nativeMoving)return;
+                            var b=ScreenSnapshot.Bounds(new WindowInteropHelper(Window).Handle);
+                            if(b is null)return;
+                            var work=Screen.FromPoint(new((int)p.X,(int)p.Y)).WorkingArea;
+                            int x=(int)Math.Clamp(p.X-_ghostOffset.X,work.Left,Math.Max(work.Left,work.Right-b.Value.Width));
+                            int y=(int)Math.Clamp(p.Y-_ghostOffset.Y,work.Top,Math.Max(work.Top,work.Bottom-b.Value.Height));
+                            ScreenSnapshot.Place(Window,new(x,y,b.Value.Width,b.Value.Height));
+                        },end:_=>{if(_loaded)Save(true);},command:c=>
+                        {
+                            if(!_loaded || _nativeMoving || MouseCaptured())return false;
+                            switch(c){case Pocket.Core.GhostCommand.Pin:_pin.IsChecked=true;return true;
+                                case Pocket.Core.GhostCommand.Unpin:_pin.IsChecked=false;return true;
+                                case Pocket.Core.GhostCommand.Hide:Hide();return true;default:return false;}
+                        },label:"Card · "+(item.Title??"Snapshot"),supportedCommands:[Pocket.Core.GhostCommand.Pin,Pocket.Core.GhostCommand.Unpin,Pocket.Core.GhostCommand.Hide]);
+                    _nativeSource=HwndSource.FromHwnd(new WindowInteropHelper(Window).Handle);
+                    _nativeSource?.AddHook(ObserveMove);
+                }
                 SystemEvents.DisplaySettingsChanged += DisplaysChanged;
                 if (activate) hide.Focus();
             };
             Window.LocationChanged += (_, _) => Schedule();
+            Window.DpiChanged+=(_,_)=>{if(_owner._ghost?.Engine.ActiveTarget=="card:"+Id.ToString("N"))_owner._ghost.Engine.Disarm();};
             Window.SizeChanged += (_, _) => Schedule();
             _pin.Checked += (_, _) => ApplyPin();
             _pin.Unchecked += (_, _) => ApplyPin();
             _placementTimer.Tick += (_, _) => { _placementTimer.Stop(); Save(visible: true); };
             Window.Closed += (_, _) =>
             {
+                _loaded = false;
+                _ghostTarget?.Dispose(); _ghostTarget=null;
+                _nativeSource?.RemoveHook(ObserveMove);_nativeSource=null;
                 _loaded = false;
                 SystemEvents.DisplaySettingsChanged -= DisplaysChanged;
                 _placementTimer.Stop();
@@ -227,6 +265,14 @@ internal sealed class PocketCards(PocketStore store, bool writable = true)
         }
 
         private void Hide() => Window.Close();
+        private bool MouseCaptured() => System.Windows.Input.Mouse.Captured is DependencyObject captured &&
+            System.Windows.Window.GetWindow(captured)==Window;
+        private nint ObserveMove(nint hwnd,int message,nint w,nint l,ref bool handled)
+        {
+            if(message==0x231){_nativeMoving=true;if(_owner._ghost?.Engine.ActiveTarget=="card:"+Id.ToString("N"))_owner._ghost.Engine.Disarm();}
+            if(message==0x232)_nativeMoving=false;
+            return 0;
+        }
 
         private void ApplyPin()
         {
