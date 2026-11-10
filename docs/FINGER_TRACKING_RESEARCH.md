@@ -65,3 +65,6 @@ Microsoft warns that basic Source Reader software color conversion is not optimi
 ## O. Open research
 
 The user reported the index dot disappearing when the wrist left the image in the annotated trial. That trial did not establish reliable continuation. Physical isolated-finger cold acquisition, stable finger-motion accuracy, stationary jitter, selected-hand ownership, physical two-hand detection reliability, sustained thermal performance, native YUY2/NV12/MJPEG conversion alternatives, and VIDEO versus LIVE_STREAM comparison remain distinct evidence requirements. No 60 Hz capability or alternative-model improvement is claimed.
+
+## Execution26 —2026-11-10
+Execution26 adds warm optical support-feature tracking/arbitration with fixed-anchor drift/appearance/reverse checks. Public image motion errors improve on selected paired fixtures; rotation/large motion can still reject. Existing source same, cold detector unchanged,600ms lifetime kept. No new physical evidence and no gesture authority. No camera access or ledger amendment. See EXECUTION_26_REPORT and HYBRID_TRACKING_GUIDE.

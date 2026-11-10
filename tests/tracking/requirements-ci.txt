@@ -1,3 +1,4 @@
 # CPython 3.12 Windows x64 wheel. Unit tests stub model inference and use synthetic frames.
 numpy==2.5.4 --hash=sha256:a7b1b6353e36a7e50de2973a38d705c88ee93adcf120673cee7f45a4a3fa223a
 imageio-ffmpeg==0.6.0 --hash=sha256:02fa47c83703c37df6bfe4896aab339013f62bf02c5ebf2dce6da56af04ffc0a
+opencv-contrib-python==5.0.0.93 --hash=sha256:461622db95c964652d4d8fda171034961c3de270f78a6095aaad31050771774a

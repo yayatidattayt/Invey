@@ -65,8 +65,15 @@ internal static partial class Program
                 for(int cycle=0;cycle<20;cycle++)
                 {
                     s = await Until(client,t=>t.GetProperty("Events").GetInt32()>=cycle*45+2,5000);
-                    Require(s.GetProperty("Native").GetProperty("Foreground").GetInt64()==fixtureHandle &&
-                        s.GetProperty("Fixture").GetProperty("EditorFocused").GetBoolean(), "Typing fixture lost focus before injection.");
+                    bool focused=s.GetProperty("Native").GetProperty("Foreground").GetInt64()==fixtureHandle &&
+                        s.GetProperty("Fixture").GetProperty("EditorFocused").GetBoolean();
+                    if(!focused)
+                        File.WriteAllText(Path.Combine(output,"typing-focus-failure.json"),System.Text.Json.JsonSerializer.Serialize(new {
+                            ExpectedHandle=fixtureHandle,ExpectedPid=Input.ExpectedPid,
+                            Foreground=s.GetProperty("Native").GetProperty("Foreground"),
+                            EditorFocused=s.GetProperty("Fixture").GetProperty("EditorFocused"),
+                            Current=Input.ForegroundDescription(),InjectionSent=false }));
+                    Require(focused, "Typing fixture lost focus before injection; foreground/owner evidence saved.");
                     string text="GHOST "+random.Next(100000,999999)+" "+new string(Enumerable.Range(0,random.Next(12,33)).Select(_=>(char)random.Next(65,91)).ToArray())+".";
                     expected.Append(text);string hash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(expected.ToString())));
                     var watch=Stopwatch.StartNew();Input.Text(text);

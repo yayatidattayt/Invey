@@ -7,6 +7,23 @@ namespace Pocket.Core.Tests;
 
 public sealed class VisualPointerTests
 {
+    [Fact]
+    public void ValidModelVisualHandoffRetainsPreviewWarmupButNeverGrantsActions()
+    {
+        var session=new TrackingSession();var id=session.Enable(TrackingSource.Recorded)!.Value;
+        session.Accept(new TrackerReady(id));var pointer=new FingerPointer();
+        for(int i=0;i<5;i++){session.Accept(Full(id,i));pointer.Observe(session.Read(),HandSide.Right);}
+        for(int i=5;i<12;i++)
+        {
+            session.Accept(Visual(id,i));var snapshot=session.Read();
+            Assert.Equal(0,snapshot.PointerContinuity);
+            var sample=pointer.Observe(snapshot,HandSide.Right);
+            Assert.Equal(FingerPointerState.FingerVisual,sample.State);Assert.NotNull(sample.Position);
+            Assert.False(sample.ActionEligible);Assert.All(sample.Fingers,f=>Assert.False(f.ActionEligible));
+        }
+        session.Accept(Full(id,12));Assert.Equal(FingerPointerState.Stable,pointer.Observe(session.Read(),HandSide.Right).State);
+        session.Stop();Assert.Null(pointer.Observe(session.Read(),HandSide.Right).Position);
+    }
     private static HandObservation Full(Guid id,long seq) => new(id,seq,1000+seq*20,1001+seq*20,
         Enumerable.Repeat(new ImageLandmark(.5,.5,0),21).ToImmutableArray(),HandSide.Right,FrameSize:new(640,480));
     private static HandObservation Visual(Guid id,long seq) => new(id,seq,1000+seq*20,1001+seq*20,[],HandSide.Right,

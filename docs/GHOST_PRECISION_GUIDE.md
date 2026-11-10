@@ -36,3 +36,6 @@ For an engineering comparison only, set `INVEY_LEGACY_POINTER=1` before launch t
 ## Future supervised check
 
 Only after a new explicit bounded authorization, prepare settings with the camera off, then let the participant press Enable. Spend roughly 20 seconds holding still, 20 moving along simple paths, 30 moving the palm out and back while keeping the tip visible, and 20 removing/reintroducing the finger. Stop well before the session limit and verify the indicator, worker exit and guardian release. Record aggregate metrics and participant observations separately; do not save camera imagery or raw landmark streams.
+
+## Execution26 —2026-11-10
+Execution26 uses one final existing precision filter after model/partial/validated optical source selection. No smoothing tuning/interpolation/predicted positions. Recorded selector has a clearly SIMULATED image-motion option using a right-index fixture; choose Right in Calibration. User-reported physical wrist-out failure remains unresolved until separately approved retest. All14 camera starts remain consumed.

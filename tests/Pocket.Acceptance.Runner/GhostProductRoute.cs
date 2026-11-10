@@ -103,6 +103,9 @@ internal static partial class Program
                 var cadence=delivery.GetProperty("PreviewResult").GetProperty("ObservationDelivery");
                 Require(cadence.GetArrayLength()==2,"30/60Hz WPF delivery measurements missing.");
                 File.WriteAllText(Path.Combine(output,"observation-delivery.json"),cadence.GetRawText());
+                var hybrid=await Send("ghost-hybrid-source");
+                Require(hybrid.GetProperty("PreviewResult").GetProperty("SharedPointer").GetBoolean(),"Recorded hybrid optical path did not move the actual shared pointer.");
+                File.WriteAllText(Path.Combine(output,"hybrid-source.json"),hybrid.GetProperty("PreviewResult").GetRawText());
 
                 // Real mouse drag on A with shared Ghost input on B, checking rendered local positions.
                 await FocusTrackingAsync(client,ProductHandle(editorState));AccessKey(0x57);

@@ -169,6 +169,12 @@ internal static partial class Program
                 await ExitAndVerifyAsync(client, host, overlayHandle, fixtureHandle);
                 return Cases.Any(c => c.Status == "FAIL") ? 1 : 0;
             }
+            if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_TYPING_ONLY") == "1")
+            {
+                await TypingSoak(client,fixtureHandle,output);
+                await ExitAndVerifyAsync(client,host,overlayHandle,fixtureHandle);
+                return Cases.Any(c=>c.Status=="FAIL")?1:0;
+            }
             if (PocketOnly)
             {
                 await RunPocketCapture(client, output);

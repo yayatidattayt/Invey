@@ -32,7 +32,8 @@ internal sealed partial class RecordedTrackingWindow : Window
     };
     private readonly RadioButton _recorded = new() { Content = "Rec_orded tracking", IsChecked = true, Margin = new Thickness(0, 0, 12, 0) };
     private readonly Label _recordedLabel = new() { Content = "Recorded se_quence" };
-    private readonly ComboBox _recordedDemo = new() { ItemsSource = new[] { "Recorded model sequence", "SIMULATED calibration practice" }, SelectedIndex = 0, MinHeight = 28 };
+    private readonly ComboBox _recordedDemo = new() { ItemsSource = new[] { "Recorded model sequence", "SIMULATED calibration practice", "SIMULATED model loss · actual image-motion tracking" }, SelectedIndex = 0, MinHeight = 28 };
+    private string RecordedIdentity => _recordedDemo.SelectedIndex switch { 1 => "simulated-practice", 2 => "synthetic-hybrid-images", _ => "recorded-model" };
     private readonly RadioButton _live = new() { Content = "_Live camera" };
     private readonly Button _find = new() { Content = "_Find cameras", MinHeight = 30, Margin = new Thickness(0, 6, 0, 6) };
     private readonly ComboBox _devices = new() { DisplayMemberPath = nameof(CameraDevice.Name), MinHeight = 28 };
@@ -108,7 +109,7 @@ internal sealed partial class RecordedTrackingWindow : Window
         AutomationProperties.SetName(_recordedDemo, "Recorded demonstration");
         _recordedLabel.Target = _recordedDemo;
         _recordedDemo.SelectionChanged += (_, _) => SourceChanged();
-        _start.Click += (_, _) => Start(_recorded.IsChecked == true && _recordedDemo.SelectedIndex == 1 ? "calibration-practice" : null);
+        _start.Click += (_, _) => Start(_recorded.IsChecked == true ? _recordedDemo.SelectedIndex switch { 1 => "calibration-practice", 2 => "hybrid-preview", _ => null } : null);
         _stop.Click += async (_, _) => await StopAsync();
         string? settings = acceptanceHost ? testSettingsPath : profileSettingsPath;
         _calibration = new CalibrationPanel(async () =>
@@ -256,6 +257,7 @@ internal sealed partial class RecordedTrackingWindow : Window
     {
         _startedInMode = false;
         if(_live.IsChecked==true)_showPreview.IsChecked=true;
+        if(_recorded.IsChecked==true&&_recordedDemo.SelectedIndex==2)_showPreview.IsChecked=true;
         Render();
     }
 
@@ -376,7 +378,7 @@ internal sealed partial class RecordedTrackingWindow : Window
         if (snapshot.Observation is { } hand && hand.Sequence != _lastPointerSequence)
         { _lastPointerSequence = hand.Sequence; _freshPointerObservations++; if (_deliveryAges.Count < 1500 && snapshot.HostObservationAge is { } age) _deliveryAges.Add(age.TotalMilliseconds); }
         DesktopPointerChanged?.Invoke(snapshot, _calibration.DesktopContext(snapshot, snapshot.Source == TrackingSource.Camera
-            ? (_devices.SelectedItem as CameraDevice)?.Id ?? "unknown" : _recordedDemo.SelectedIndex == 1 ? "simulated-practice" : "recorded-model"),
+            ? (_devices.SelectedItem as CameraDevice)?.Id ?? "unknown" : RecordedIdentity),
             null, _learning.AcceptedPreviewModel);
     }
 
@@ -436,10 +438,10 @@ internal sealed partial class RecordedTrackingWindow : Window
             _calibration.Visibility == Visibility.Visible ? 25 : 80);
         _calibration.Update(_visible);
         var input = _calibration.LearningInput(_visible, _visible.Source == TrackingSource.Camera
-            ? (_devices.SelectedItem as CameraDevice)?.Id ?? "unknown" : _recordedDemo.SelectedIndex == 1 ? "simulated-practice" : "recorded-model");
+            ? (_devices.SelectedItem as CameraDevice)?.Id ?? "unknown" : RecordedIdentity);
         _learning.Observe(_visible, input.Context, input.Point, _calibration.PracticeHeld, _calibration.LearningSetupIssue);
         _gesturePractice.Update(_visible,_calibration.DesktopContext(_visible,_visible.Source==TrackingSource.Camera
-            ? (_devices.SelectedItem as CameraDevice)?.Id??"unknown" : _recordedDemo.SelectedIndex==1?"simulated-practice":"recorded-model"));
+            ? (_devices.SelectedItem as CameraDevice)?.Id??"unknown" : RecordedIdentity));
         // Polling handles expiry/Stop only; fresh positions arrive independently via the bounded wakeup.
         if (_visible.Observation is null) DeliverDesktopObservation();
         _desktopStatus.Text=_desktopPreview.IsChecked==true ? "Desktop Ghost · "+(DesktopStatus?.Invoke()??"Preview unavailable") : "";
@@ -455,7 +457,7 @@ internal sealed partial class RecordedTrackingWindow : Window
             _visible.Observation is {Partial:true}?"Partial hand · gesture evidence incomplete":
             _visible.Observation is {Tracked:true}?"Full hand observed": "Finger tracking unavailable")+
             " · Pocket actions disabled";
-        string source = !live ? (_recordedDemo.SelectedIndex == 1 ? "simulated practice" : "recorded tracking") : _fixtureFile is not null ? "test video" : "live camera";
+        string source = !live ? (_recordedDemo.SelectedIndex == 1 ? "simulated practice" : _recordedDemo.SelectedIndex==2 ? "simulated image motion" : "recorded tracking") : _fixtureFile is not null ? "test video" : "live camera";
         _start.Content = (_startedInMode ? "_Restart " : "_Enable ") + source;
         string cameraStatus = _visible.Source == TrackingSource.Camera ? _visible.State switch
         {
@@ -468,17 +470,17 @@ internal sealed partial class RecordedTrackingWindow : Window
             _cameraStatus = cameraStatus;
             CameraStatusChanged?.Invoke(cameraStatus);
         }
-        _sourceStatus.Text = (!live ? (_recordedDemo.SelectedIndex == 1 ? "SIMULATED practice" : "Recorded source") : _fixtureFile is not null ? "Native video fixture" : "Live camera")
+        _sourceStatus.Text = (!live ? (_recordedDemo.SelectedIndex == 1 ? "SIMULATED practice" : _recordedDemo.SelectedIndex==2 ? "SIMULATED image motion · no camera or model inference" : "Recorded source") : _fixtureFile is not null ? "Native video fixture" : "Live camera")
             + " · " + cameraStatus;
         string next = _visible.State switch
         {
             TrackingState.Off => live ? "Choose a source and enable it when ready." : "Ready for an explicit start with controlled frames.",
             TrackingState.Starting => "Starting the local tracking runtime…",
-            TrackingState.Ready => "Waiting for a hand observation.",
-            TrackingState.Observing => "Hand detected · 21 landmarks",
-            TrackingState.Lost => "No hand detected. The current observation is clear.",
+            TrackingState.Ready => "Reacquiring · show your full selected hand.",
+            TrackingState.Observing => "Tracking hand",
+            TrackingState.Lost => "Tracking lost · show your full selected hand to reacquire.",
             TrackingState.Partial when _visible.Observation?.Visual is not null => "Tracking visible finger · short visual continuation, preview only.",
-            TrackingState.Partial => "Partial hand. In-frame points may support the experimental finger preview.",
+            TrackingState.Partial => "Tracking visible finger · partial model, preview only.",
             TrackingState.Ambiguous => "Multiple hands detected. Show one hand to continue.",
             TrackingState.Stale => "No recent tracking result. The current observation is clear.",
             TrackingState.Stopping when _visible.CleanupUnconfirmed => "Worker exit is unconfirmed. Restart is held until cleanup completes.",

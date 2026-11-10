@@ -88,4 +88,34 @@ internal sealed partial class RecordedTrackingWindow
         }
         finally { _learningFixture = null; host.Stop(); _refresh.Start(); Render(); }
     }
+    internal async Task<object> ExerciseHybridSourceAsync(GhostDesktopHost host)
+    {
+        AcceptanceHost.ValidateDesktop();
+        bool previousStarted=_startedInMode;bool previousImage=_showPreview.IsChecked==true;
+        int previousSequence=_recordedDemo.SelectedIndex;
+        await StopAsync();_recorded.IsChecked=true;_showPreview.IsChecked=true;EnableDesktopPreviewFixture();
+        long before=host.PointerUpdates;
+        _recordedDemo.SelectedIndex=2;
+        _start.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        if(_controller.Read().SessionId is null)throw new InvalidOperationException("Hybrid recorded source control did not start.");
+        bool visual=false,image=false;
+        try
+        {
+            var timeout=System.Diagnostics.Stopwatch.StartNew();
+            while(timeout.Elapsed<TimeSpan.FromSeconds(4))
+            {
+                var snapshot=_controller.Read();
+                if(snapshot.Observation?.Visual is not null&&host.Engine.Position is not null)visual=true;
+                image|=_liveView.Sequence.HasValue;
+                if(visual&&image)break;
+                await Task.Delay(20);
+            }
+            if(!visual||!image||host.PointerUpdates-before<2)throw new InvalidOperationException("Actual optical packet/image did not reach the shared WPF pointer.");
+            if(host.Engine.Source!=GhostSourceKind.Recorded||host.Engine.Arm()||host.Gestures.LiveQualified)
+                throw new InvalidOperationException("Recorded optical preview gained action authority.");
+            return new { ActualImageProcessing=true,ActualWorkerPipe=true,ActualWpfImage=image,SharedPointer=visual,
+                PointerUpdates=host.PointerUpdates-before,CameraOpened=false,ActionsDenied=true };
+        }
+        finally { await StopAsync();host.Stop();_recordedDemo.SelectedIndex=previousSequence;_startedInMode=previousStarted;_showPreview.IsChecked=previousImage;Render(); }
+    }
 }

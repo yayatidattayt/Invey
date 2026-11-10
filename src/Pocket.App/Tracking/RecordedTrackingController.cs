@@ -458,6 +458,8 @@ internal sealed class RecordedTrackingController
                         string entry = line.ToString().TrimEnd('\r');
                         if (entry == "GHOST_TRACKING_DIAGNOSTICS_WRITE_FAILED")
                             Trace.TraceWarning("Tracking worker could not write diagnostic evidence.");
+                        if (entry == "GHOST_VISUAL_BACKEND_UNAVAILABLE_USING_BASELINE")
+                            Trace.TraceWarning("Optical backend unavailable; using the existing patch tracker. Camera permission is unchanged.");
                         const string NativeCodePrefix = "GHOST_TRACKING_NATIVE_CODE=";
                         if (entry.StartsWith(NativeCodePrefix, StringComparison.Ordinal) &&
                             entry.Length == NativeCodePrefix.Length + 8 &&
