@@ -98,6 +98,33 @@ internal sealed class AcceptanceHost : IDisposable
             if(host.Engine.Position is { } p)host.MoveControlled(new(p.X+int.Parse(values[1]),p.Y+int.Parse(values[2])));
             command="status";
         }
+        if(command.StartsWith("external|",StringComparison.Ordinal))
+        {
+            ValidateDesktop();var v=command.Split('|');var ghost=_product!.DesktopGhost;var external=ghost.External;
+            external.PauseProbingForFixture();
+            switch(v[1])
+            {
+                case "select":
+                    var choice=Pocket.Automation.Contracts.ExternalWindows.List().SingleOrDefault(c=>c.Window==long.Parse(v[2])) ?? throw new InvalidOperationException(Pocket.Automation.Contracts.ExternalWindows.Diagnostic(long.Parse(v[2])));
+                    await external.AuthorizeAsync(choice,v[3]);break;
+                case "rapid":
+                    var rapidChoice=Pocket.Automation.Contracts.ExternalWindows.List().Single(c=>c.Window==long.Parse(v[2]));
+                    var firstConsent=external.AuthorizeAsync(rapidChoice,"Toggle");
+                    var secondConsent=external.AuthorizeAsync(rapidChoice,"Toggle");
+                    await external.StopAsync();await Task.WhenAll(firstConsent,secondConsent);break;
+                case "show":external.Show();break;
+                case "demo-ui":external.OpenDemoThroughUiFixture();break;
+                case "arm":external.Arm();break;
+                case "move":ghost.MoveControlled(new(double.Parse(v[2],System.Globalization.CultureInfo.InvariantCulture),double.Parse(v[3],System.Globalization.CultureInfo.InvariantCulture)));break;
+                case "probe":await external.ProbeAsync();break;
+                case "activate":await external.ActivateAsync();break;
+                case "review":await external.ReviewAsync();break;
+                case "dismiss":await external.DismissAsync();break;
+                case "stop":await external.StopAsync();break;
+                case "recorded":ghost.EnableTracking(Pocket.Core.GhostSourceKind.Recorded);break;
+            }
+            command="status";
+        }
         switch(command)
         {
             case "ghost-start": _product!.DesktopGhost.StartControlled();break;
@@ -158,7 +185,8 @@ internal sealed class AcceptanceHost : IDisposable
                 break;
             case "demo-start":
             case "dual-demo-start":
-                string demoRoot = Path.Combine(Path.GetDirectoryName(Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE"))!, command=="dual-demo-start"?"dual-demo-profile":"demo-profile");
+            case "external-demo-start":
+                string demoRoot = Path.Combine(Path.GetDirectoryName(Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE"))!, command=="external-demo-start"?"external-demo-profile":command=="dual-demo-start"?"dual-demo-profile":"demo-profile");
                 var demoProfile = DemoProfile.Prepare(demoRoot);
                 _capturePattern ??= CreatePocketPattern();
                 _product = new MainWindow(demoProfile, _capturePattern);

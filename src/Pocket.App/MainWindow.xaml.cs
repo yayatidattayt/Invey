@@ -267,6 +267,13 @@ public partial class MainWindow : Window
                 _pocket?.ResumeAfterAbortedExit();
                 return;
             }
+            try { await DesktopGhost.CloseExternalAsync(); }
+            catch(Exception error) when(error is IOException or InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                Status.Text="External cleanup is unconfirmed. Invey remains open; retry Stop/Exit. "+error.GetType().Name;
+                System.Diagnostics.Trace.TraceWarning("External exit cleanup failed: {0}",error.GetType().Name);
+                _pocket?.ResumeAfterAbortedExit();return;
+            }
             DesktopGhost.Dispose();
             _workspace?.Close();
             if (_cards is not null) await _cards.CloseAsync();
@@ -304,6 +311,7 @@ public partial class MainWindow : Window
 
     internal async Task CloseAcceptanceAsync()
     {
+        await DesktopGhost.CloseExternalAsync();
         if (_pocket is { } pocket) await pocket.PrepareExitAsync();
         if (_tracking is not null && !await _tracking.CloseAsync()) throw new IOException("Tracking cleanup was not confirmed.");
         if (_cards is not null) await _cards.CloseAsync();

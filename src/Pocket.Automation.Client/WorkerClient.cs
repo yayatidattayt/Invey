@@ -15,6 +15,7 @@ public sealed class WorkerClient : IAsyncDisposable
     }
 
     private readonly string _dotnet, _worker;
+    private readonly ExternalGrant? _external;
     private readonly int _fixturePid, _deadline;
     private readonly long _fixtureLifetime;
     private readonly Action<Process> _terminate;
@@ -54,6 +55,13 @@ public sealed class WorkerClient : IAsyncDisposable
         _fixtureLifetime = owner.StartTime.ToUniversalTime().Ticks;
     }
 
+    public WorkerClient(string dotnet,string worker,ExternalGrant grant,int deadlineMs=2000)
+        : this(dotnet,worker,grant.ProcessId,deadlineMs)
+    {
+        if(!grant.Valid || !ExternalWindows.Current(grant))throw new ArgumentException("Invalid external consent.",nameof(grant));
+        _external=grant with { Actions=grant.Actions.ToArray() };
+    }
+
     private void Start()
     {
         var info = new ProcessStartInfo(_dotnet)
@@ -65,10 +73,18 @@ public sealed class WorkerClient : IAsyncDisposable
             RedirectStandardError = true
         };
         info.ArgumentList.Add(_worker);
+        if(_external is not null)
+        {
+            info.ArgumentList.Add("--external-grant");
+            info.ArgumentList.Add(JsonSerializer.Serialize(_external));
+        }
+        else
+        {
         info.ArgumentList.Add("--fixture-pid");
         info.ArgumentList.Add(_fixturePid.ToString());
         info.ArgumentList.Add("--lifetime");
         info.ArgumentList.Add(_fixtureLifetime.ToString());
+        }
         _process = Process.Start(info) ?? throw new IOException("Worker did not start.");
         _ = DrainErrors(_process.StandardError);
         Restarts++;
@@ -91,7 +107,8 @@ public sealed class WorkerClient : IAsyncDisposable
             return execute ? reply.WithOutcome(outcome) : reply;
         }
 
-        if (!Protocol.Valid(request) || request.Operation == "Observe") return Reject("Denied", "Invalid request.");
+        if (!Protocol.Valid(request) || request.Operation == "Observe" ||
+            (_external is null ? request.Version!=1 : !_external.Permits(request))) return Reject("Denied", "Invalid request.");
         if (cancellationToken.IsCancellationRequested) return Reject("Canceled");
         if (!await _serial.WaitAsync(0).ConfigureAwait(false)) return Reject("Busy", "One request is already active.");
         try

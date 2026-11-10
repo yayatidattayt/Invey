@@ -1,3 +1,9 @@
+# Execution27 current handoff —2026-11-10
+
+Final local full27017 run20261110T114133058-02dc15accd7c40699ee21e0b4df411be:41PASS/0FAIL/2BLOCKED/1INCONCLUSIVE. Explorer and standard-token Winver blocked; closed-before-launch cursor interval inconclusive (not a product failure). Native E27 scoped action intervals pass. D17 selector fixed from End to Home+Down after reproduced E26 added-option regression; Ready/Held checks retained. Final focused27016 PASS. No code changes after this reviewed native run; publication/CI pending in receipt.
+
+Camera-free external semantic MVP builds on838f02f on existing PR9 branch. Separate v2 grant and existing MTA worker; six patterns verified on a genuine separate synthetic-content WPF process. Controlled Ghost/E key only; camera/recorded remain preview. Mouse coordinates independent; actual held Mouse claim canceled safely when external Toggle changed foreground, so do not promise focus/drag independence. Genuine Windows About test BLOCKED: no linked medium token; no privilege workaround.190 core/config current,50 workers baseline. Final native/CI evidence follows report and artifacts/execution-27/final-delivery.json. Preserve all failed runs, high-IL diagnostics, input-guard/focus failures and pending-result race evidence. Ledgerversion8/14released/1262999ms/0pending/SHA F1A83C4A7CAEE339AE72F7E0863F6A87A271146CCD15E070939A1680269281D4 unchanged. No physical test or allowance amendment authorized/applied.
+
 # Execution26 current handoff —2026-11-10
 
 Published implementation3320ed4163ad4fce46aaaa9f784029a8a5b89c52; exact CI42792835816 SUCCESS. Documentation-only follow-up records32 report sections and delivery evidence. Final follow-up SHA/CI and cleanup in artifacts/execution-26/final-delivery.json. App closed; camera off, exhausted ledger unchanged.

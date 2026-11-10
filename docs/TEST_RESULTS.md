@@ -202,3 +202,8 @@ Execution25 final post-feedback:184 core/config,39 workers; native extended25007
 
 ## Execution26 —2026-11-10
 Execution26 baseline184 core/config and39 workers; final185 core/config,50 workers,0 skips. Full26005 run20261110T092241571-ce0fbf91716f47fba084dddb5165f1d6=40PASS/0FAIL/1Explorer BLOCKED. Focused typing26003 PASS; final actual simulated-selector optical worker/WPF/shared-pointer/denied-actions/product route26006 PASS. Earlier full26004=39PASS/1strict old-label FAIL/1BLOCKED; updated exact assertion to requested Tracking hand text, not removed. Initial product26001 passed optics but later mnemonic failed because fixture did not restore Restart/Enable state; corrected, preserved. Model/photo benchmarks and all failed candidates retained under artifacts/execution-26.
+
+
+## Execution27
+
+Execution27 baseline: Debug/Release185 core/config,50 workers pass. Candidate190 core/config passes; six-pattern external/native route and actual E activation verified. Bounded provider timeout preserves Unknown and stops worker while WPF pointer updates continue. Historical failed native/compilation results preserved; final full/focused native, worker, exact-head CI and cleanup in EXECUTION_27_REPORT and delivery receipt. No physical camera test.

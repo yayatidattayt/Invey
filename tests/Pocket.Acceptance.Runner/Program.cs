@@ -126,6 +126,17 @@ internal static partial class Program
             var initial=await client.Command("status");fixtureHandle=initial.GetProperty("FixtureHandle").GetInt64();overlayHandle=initial.GetProperty("OverlayHandle").GetInt64();
             // Read-only diagnostic: preserve desktop/foreground identity before any test input.
             File.WriteAllText(Path.Combine(output,"foreground-preflight.txt"),Input.ForegroundDescription());
+            if(Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_EXTERNAL_ONLY")=="1")
+            {
+                await RunExternalRoute(client,output);
+                await RunWindowsCompatibility(client,output);
+                var demoUi=await client.Command("external|demo-ui");
+                int ownedDemo=DesktopGhost(demoUi).GetProperty("External").GetProperty("OwnedDemoPid").GetInt32();
+                Require(ProcessExists(ownedDemo),"Actual external demo UI button did not launch its owned process");
+                await ExitAndVerifyAsync(client,host,overlayHandle,fixtureHandle);
+                Require(!ProcessExists(ownedDemo),"UI-owned external demo remained after Exit");
+                return Cases.Any(c=>c.Status=="FAIL")?1:0;
+            }
             if (Environment.GetEnvironmentVariable("INVEY_ACCEPTANCE_LEARNING_CONTROLS_ONLY") == "1")
             {
                 var learningHost = host; var learningClient = client; host = null; client = null;
@@ -315,6 +326,7 @@ internal static partial class Program
             await RunProductIntegration(app, output);
             await RunDemoWorkflow(app, output);
             await RunGhostProductRoute(app, output);
+            await RunExternalSession(app,output);
         }
         catch(Exception ex){Cases.Add(new("SESSION","NATIVE_SOFTWARE_TEST","Complete bounded isolated session",ex.ToString(),"FAIL",0));}
         finally

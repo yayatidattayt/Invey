@@ -15,6 +15,9 @@ namespace Pocket.App;
 /// <summary>Application-owned dispatcher boundary. Never injects Windows input.</summary>
 internal sealed class GhostDesktopHost : IDisposable
 {
+    private ExternalControlsHost? _external;
+    public ExternalControlsHost External => _external??=new(this);
+    public Task CloseExternalAsync()=>_external?.CloseAsync()??Task.CompletedTask;
     public GhostDesktop Engine { get; } = new(()=>Environment.TickCount64);
     public Pocket.Core.Tracking.GhostGestureCoordinator Gestures {get;}
     internal object? GestureReplayEvidence {get;set;}
@@ -169,7 +172,7 @@ internal sealed class GhostDesktopHost : IDisposable
         if(_controls is not null) { _controls.Show(); _controls.Activate(); return; }
         var panel=new StackPanel { Margin=new(18) };
         panel.Children.Add(new TextBlock { Text="Try Ghost · controlled pointer", FontSize=20,FontWeight=FontWeights.SemiBold });
-        panel.Children.Add(new TextBlock { Text="Move this separate pointer over Pocket. It never moves the Windows cursor.",TextWrapping=TextWrapping.Wrap,Margin=new(0,4,0,10) });
+        panel.Children.Add(new TextBlock { Text="Move this separate pointer over Pocket or explicitly selected external controls. It never moves the Windows cursor.",TextWrapping=TextWrapping.Wrap,Margin=new(0,4,0,10) });
         var display=new ComboBox { MinWidth=230,DisplayMemberPath=nameof(DisplayChoice.Label),ItemsSource=System.Windows.Forms.Screen.AllScreens.Select(s=>new DisplayChoice(s.DeviceName,$"{s.DeviceName} · {s.Bounds.Width} × {s.Bounds.Height}")).ToArray() };
         display.SelectedItem=display.Items.OfType<DisplayChoice>().FirstOrDefault(x=>x.Name==System.Windows.Forms.Screen.PrimaryScreen?.DeviceName);
         panel.Children.Add(new TextBlock { Text="Display" });panel.Children.Add(display);
@@ -178,10 +181,12 @@ internal sealed class GhostDesktopHost : IDisposable
         var primary=new WrapPanel{Margin=new(0,8,0,4)};panel.Children.Add(primary);
         AddButton(primary,"Start preview",()=>StartControlled((display.SelectedItem as DisplayChoice)?.Name));
         AddButton(primary,"Stop Ghost",Stop);
+        AddButton(primary,"External controls",()=>External.Show());
+        AddButton(primary,"External action",()=>{_ = External.ActivateFromUiAsync();});
         var armRow=new WrapPanel{Margin=new(0,0,0,8)};panel.Children.Add(armRow);
         AddButton(armRow,"Arm Pocket",()=>Engine.Arm());AddButton(armRow,"Disarm",Engine.Disarm);
         var keyboard=new CheckBox{Content="Enable keyboard steering in this window",Margin=new(2,5,2,5),IsThreeState=false};_keyboardSteering=keyboard;panel.Children.Add(keyboard);
-        panel.Children.Add(new TextBlock{Text="With this panel focused: WASD or arrows move Ghost. Shift makes small adjustments; Ctrl moves farther. Space grabs/releases. Escape stops immediately. Steering handles keys only in this panel.",TextWrapping=TextWrapping.Wrap,Margin=new(0,2,0,8)});
+        panel.Children.Add(new TextBlock{Text="With this panel focused: WASD or arrows move Ghost. Shift makes small adjustments; Ctrl moves farther. Space grabs/releases Pocket; E deliberately activates an armed external action. Escape stops immediately. Steering handles keys only in this panel.",TextWrapping=TextWrapping.Wrap,Margin=new(0,2,0,8)});
         var direction=new Grid{HorizontalAlignment=HorizontalAlignment.Left};
         for(int i=0;i<3;i++){direction.ColumnDefinitions.Add(new(){Width=GridLength.Auto});direction.RowDefinitions.Add(new(){Height=GridLength.Auto});}
         void AddMove(string label,int x,int y,int row,int column){var b=AddButton(direction,label,()=>Step(x,y));Grid.SetRow(b,row);Grid.SetColumn(b,column);}
@@ -204,7 +209,7 @@ internal sealed class GhostDesktopHost : IDisposable
         _controls=new Window {Title="Invey · Try Ghost",Width=460,SizeToContent=SizeToContent.Height,MinWidth=380,Content=panel,WindowStartupLocation=WindowStartupLocation.CenterScreen};
         void Update()
         {
-            status.Text=Engine.Status;
+            status.Text=Engine.Status+(_external is not null?"\nExternal: "+_external.Status:"");
             string target=Engine.HoverTarget is { } id?_labels.GetValueOrDefault(id,id):"No supported Pocket target under Ghost.";
             targetHint.Text=Engine.Mode==GhostControlMode.Holding?"Holding: "+_labels.GetValueOrDefault(Engine.ActiveTarget??"",Engine.ActiveTarget??"target"):
                 Engine.Mode==GhostControlMode.Armed?"Armed · Target under Ghost: "+target:"Aim: "+target;
@@ -232,6 +237,7 @@ internal sealed class GhostDesktopHost : IDisposable
             var delta=e.Key switch{System.Windows.Input.Key.W or System.Windows.Input.Key.Up=>(0,-16),System.Windows.Input.Key.A or System.Windows.Input.Key.Left=>(-16,0),System.Windows.Input.Key.S or System.Windows.Input.Key.Down=>(0,16),System.Windows.Input.Key.D or System.Windows.Input.Key.Right=>(16,0),_=>default};
             int scale=(System.Windows.Input.Keyboard.Modifiers&System.Windows.Input.ModifierKeys.Control)!=0?8:(System.Windows.Input.Keyboard.Modifiers&System.Windows.Input.ModifierKeys.Shift)!=0?1:4;
             if(delta!=(0,0)){Step(delta.Item1*scale,delta.Item2*scale);e.Handled=true;}
+            else if(e.Key==System.Windows.Input.Key.E){if(!e.IsRepeat)_ = External.ActivateFromUiAsync();e.Handled=true;}
             else if(e.Key==System.Windows.Input.Key.Space){if(!e.IsRepeat&&Engine.Mode==GhostControlMode.Armed)Intent(GhostIntent.Press);e.Handled=true;}
         };
         _controls.PreviewKeyUp+=(_,e)=>{if(_controls.IsActive&&keyboard.IsChecked==true&&e.Key==System.Windows.Input.Key.Space&&Engine.Mode==GhostControlMode.Holding){Intent(GhostIntent.Release);e.Handled=true;}};
@@ -256,7 +262,7 @@ internal sealed class GhostDesktopHost : IDisposable
         button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
     }
     private void Step(int x,int y){if(Engine.Position is { } p) MoveControlled(new(p.X+x,p.Y+y));}
-    public object State => new { Mode=Engine.Mode.ToString(), Engine.Position, Engine.Status, Engine.ActiveTarget, Engine.Sequence,
+    public object State => new { External=_external?.State, Mode=Engine.Mode.ToString(), Engine.Position, Engine.Status, Engine.ActiveTarget, Engine.Sequence,
         Generation=Engine.Session,
         WorkArea=System.Windows.Forms.Screen.FromPoint(new((int)(Engine.Position?.X??0),(int)(Engine.Position?.Y??0))).WorkingArea,
         Source=Engine.Source.ToString(), OverlayHandle=_overlay is null?0:new WindowInteropHelper(_overlay).Handle.ToInt64(),

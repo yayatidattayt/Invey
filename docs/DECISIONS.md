@@ -148,3 +148,8 @@ Execution25 final physical evidence: approved raw/conversion check28.606/29.370 
 
 ## Execution26 —2026-11-10
 Use same-frame sparse pyramidal LK as Engine B with original MediaPipe A, no second acquisition. Select model unchanged when qualified, visual v3 only when independently validated and model absent; unresolved conflict cancels, never average. Reject drift using fixed-anchor and current-patch checks. Keep600ms protocol/identity lifetime and unchanged final filter/action gating. Preserve legacy baseline/fallback. No long-timeout, prediction, new model or camera-budget change.
+
+
+## Execution27
+
+Execution27 —2026-11-10: Cross-application interaction is a core long-term objective with a present experimental semantic MVP. Reuse existing worker; v1 fixture and v2 external consent are separate. One selected window/pattern, one shared Ghost, no global mouse injection or camera authority. Provider focus may cancel Mouse ownership; coordinates and focus are separate acceptance dimensions. Same-integrity exception only for exact project-owned synthetic demo; ordinary elevated apps denied. Synthetic pen/touch remains researched/deferred. See EXECUTION_27_REPORT.

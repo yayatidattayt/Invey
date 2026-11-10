@@ -113,3 +113,8 @@ Execution25 final post-feedback:184 core/config,39 workers; native extended25007
 
 ## Execution26 —2026-11-10
 Existing opencv-contrib-python5.0.0.93 used locally; same Windows wheel hash-pinned for CI, no local install. Missing optical package explicitly falls back to original patch tracker. Real-image transformations and generated image tests only; physical wrist-out/cold acquisition/longer continuation remain unqualified. Same capture/conversion/IPC/provenance/selected-hand/display/mirror/personal correction pipeline retained.
+
+
+## Execution27
+
+Execution27: Tier A Pocket controlled route preserved; Tier B six semantic patterns verified on separate Invey.ExternalDemo process, actual counter/checkbox/slider/scroll/expand/selection state and independent native cursor. Toggle during native Mouse hold changed focus and canceled its Workspace claim safely: simultaneous held-drag compatibility NOT SUPPORTED for that case. Genuine winver.exe test BLOCKED before launch because no linked medium token. Calculator/Notepad/browser UNVERIFIED. Tier C pen/touch deferred, Tier D protected/elevated/unsupported targets denied.

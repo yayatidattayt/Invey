@@ -123,8 +123,8 @@ internal static partial class Program
                 AccessKey(0x54);
                 await Until(client, s => DemoTracking(s).GetProperty("State").GetString() == "Stopped");
                 Require(!ProcessExists(workerPid), "Recorded Stop leaked worker.");
-                AccessKey(0x51); Press(0x23); // Explicit simulated-practice choice.
-                await Until(client, s => DemoTracking(s).GetProperty("SourceStatus").GetString()!.Contains("SIMULATED"));
+                AccessKey(0x51); Press(0x24); Press(0x28); // Home then one item: explicit simulated-practice choice, independent of later options.
+                await Until(client, s => DemoTracking(s).GetProperty("SourceStatus").GetString()!.StartsWith("SIMULATED practice",StringComparison.Ordinal));
                 AccessKey(0x45);
                 var simulated = await Until(client, s => DemoTracking(s).GetProperty("State").GetString() == "Observing", 8000);
                 workerPid = DemoTracking(simulated).GetProperty("LastWorkerPid").GetInt32();
