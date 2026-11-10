@@ -43,4 +43,14 @@ public class PreviewRecoveryTests
         mapper.Map(lost with { State=TrackingState.Stale },Context,null);
         clock.Now=130; Assert.Equal(30,mapper.ReasonMilliseconds["Tracking observation expired"]);
     }
+    [Theory]
+    [InlineData(TrackingState.Lost,"No hand detected")]
+    [InlineData(TrackingState.Stale,"Tracking observation expired")]
+    [InlineData(TrackingState.Ambiguous,"Multiple hands detected")]
+    public void Missing_observation_is_not_misreported_as_missing_user_calibration(TrackingState state,string expected)
+    {
+        var mapper=new GhostTrackingMapper();
+        Assert.Null(mapper.Map(Frame(Guid.NewGuid(),0,1000) with { State=state, Observation=null },null,null));
+        Assert.Equal(expected,mapper.Status);
+    }
 }

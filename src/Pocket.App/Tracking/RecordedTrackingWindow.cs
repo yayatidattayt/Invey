@@ -19,6 +19,8 @@ internal sealed partial class RecordedTrackingWindow : Window
     private readonly System.Diagnostics.Stopwatch _pointerClock = new();
     private readonly System.Collections.Generic.List<double> _deliveryAges = [];
     private string? _runningPerformance;
+    private double _lastSessionPreviewFps;
+    private long _lastSessionPreviewFrames;
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 16, 0, 12) };
     private readonly TextBlock _sourceStatus = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
     private readonly TextBlock _budgetStatus = new() { TextWrapping = TextWrapping.Wrap, Margin = new(0, 6, 0, 6) };
@@ -320,6 +322,9 @@ internal sealed partial class RecordedTrackingWindow : Window
                         System.Text.Json.JsonSerializer.Serialize(new { Session = id, Evidence = "UI_OBSERVED_NOT_SENSOR",
                             FreshDeliveries = _freshPointerObservations, PointerUpdates = (DesktopUpdateCount?.Invoke() ?? 0) - _pointerUpdateStart,
                             ElapsedMs = _pointerClock.Elapsed.TotalMilliseconds, _pointerNotification.Notifications,
+                            UniquePreviewPresentedFps = _lastSessionPreviewFps, UniquePreviewPresentedFrames = _lastSessionPreviewFrames,
+                            PresentationMeaning = "Distinct local image sequences observed on WPF rendering callbacks; not optical latency",
+                            MappingScope = "Mapper lifetime in this application; not worker frame counts",
                             _pointerNotification.Coalesced, _pointerNotification.Deliveries,
                             HostReceiveToDispatchMs = _deliveryAges.Count == 0 ? null : new {
                                 Median = _deliveryAges.Order().ElementAt(_deliveryAges.Count / 2),
@@ -365,7 +370,7 @@ internal sealed partial class RecordedTrackingWindow : Window
         if (_closing || _allowClose) return;
         var snapshot = _learningFixture ?? _controller.Read();
         if (snapshot.SessionId.HasValue && _pointerSession != snapshot.SessionId)
-        { _pointerSession = snapshot.SessionId; _lastPointerSequence = -1; _freshPointerObservations = 0; _deliveryAges.Clear(); _pointerUpdateStart = DesktopUpdateCount?.Invoke() ?? 0; _pointerClock.Restart(); }
+        { _pointerSession = snapshot.SessionId; _lastPointerSequence = -1; _freshPointerObservations = 0; _deliveryAges.Clear(); _lastSessionPreviewFps = 0; _lastSessionPreviewFrames = 0; _pointerUpdateStart = DesktopUpdateCount?.Invoke() ?? 0; _pointerClock.Restart(); }
         if (snapshot.State is TrackingState.Stopped or TrackingState.Stopping or TrackingState.Unavailable or TrackingState.Off) _pointerClock.Stop();
         if (_desktopPreview.IsChecked != true) return;
         if (snapshot.Observation is { } hand && hand.Sequence != _lastPointerSequence)
@@ -408,6 +413,8 @@ internal sealed partial class RecordedTrackingWindow : Window
             _visible.State is not (TrackingState.Stopping or TrackingState.Unavailable);
         var frame = showing ? _controller.ReadPreview(_previewTiming.SelectedIndex == 0 ? _visible.Observation?.Sequence : null) : null;
         _liveView.Update(frame, _visible.Observation, _mirrorCamera.IsChecked == true);
+        if (frame is not null)
+        { _lastSessionPreviewFps = _liveView.UniquePresentedFps; _lastSessionPreviewFrames = _liveView.UniquePresentedFrames; }
         _previewStatus.Text = !showing ? (_runningPerformance == "capture" && _visible.SessionId.HasValue ? "Performance check: metadata only · no inference or image preview. See Performance dashboard. Raw 30 s, then conversion 30 s, then automatic release." : simulated ? "SIMULATED landmarks only. No camera image is used." : live&&_showPreview.IsChecked==true?"Camera off · Enable shows the local image here.":"") : _controller.PreviewFailed ?
             "Live view is unavailable. Tracking and Stop remain available." :
             frame is null ? "Waiting for the local camera view…" :

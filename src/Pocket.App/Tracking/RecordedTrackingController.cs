@@ -132,6 +132,7 @@ internal sealed class RecordedTrackingController
         double? firstResultMs = null;
         long lastSequence = -1;
         long rejectedObservations = 0;
+        bool diagnosticCompleted = false;
         try
         {
             stop.ThrowIfCancellationRequested();
@@ -184,7 +185,7 @@ internal sealed class RecordedTrackingController
                 if (stop.IsCancellationRequested) break;
                 if (message is null or TrackerStopped)
                 {
-                    if (message is TrackerStopped && performance == "capture") _session.Stop();
+                    if (message is TrackerStopped && performance == "capture") { diagnosticCompleted = true; _session.Stop(); }
                     else _session.ReportFailure(id, TrackingFailure.WorkerExited);
                     break;
                 }
@@ -295,7 +296,7 @@ internal sealed class RecordedTrackingController
                         State = final.State.ToString(), Failure = final.Failure?.ToString(),
                         ExitConfirmed = !final.SessionId.HasValue, BudgetReleaseConfirmed = budgetGuard?.ReleaseConfirmed,
                         ForcedStop, WorkerPhase, WorkerNativeCode,
-                        Stop = _explicitStop ? "Explicit" : stop.IsCancellationRequested ? "DiagnosticLimit" : "Failure",
+                        Stop = diagnosticCompleted ? "DiagnosticCompleted" : _explicitStop ? "Explicit" : stop.IsCancellationRequested ? "DiagnosticLimit" : "Failure",
                         CleanupMs = clock.Elapsed.TotalMilliseconds - cleanupStartMs, WorkerWorkingSetBytes = workingSet
                     }, new JsonSerializerOptions { WriteIndented = true }));
                 }

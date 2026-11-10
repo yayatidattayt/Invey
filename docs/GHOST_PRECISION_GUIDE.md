@@ -1,3 +1,5 @@
+Execution25 current status: real ASUS capture/conversion/inference measured near29–30Hz; creator confirms smoother motion and improved-but-persistent jitter. Repeated model loss and wrist-out freeze/disappearance remain FAILED. A bounded-anchor retention repair has only camera-free evidence. Four-observation identity warmup and action safety remain unchanged. All14 approved starts are consumed; ledger version8/1262999ms/0pending. No new camera permission. Older session counts below are history; see EXECUTION_25_REPORT.md.
+
 # Ghost precision preview
 
 Open **Invey → Ghost Tracking**. Recorded tracking remains the camera-free demonstration. Open **Calibrate**, choose your display and hand, and enable **Experimental finger pointer preview** to see the logical pointer. Camera-image mirror and horizontal pointer mapping are separate settings.

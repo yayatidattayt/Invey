@@ -89,7 +89,12 @@ class FingerVisual:
                     self.position, self.previous = target, image
                     self.reason = "full-anchor"
                 else:
-                    self.template = None; self.reason = "anchor-texture-or-warmup"
+                    # A weak new patch must not erase a still-valid earlier full-hand anchor.
+                    # Do not renew it or move it using weak pixels; continuation must match
+                    # fresh imagery against the original patch and its original600ms deadline.
+                    if self.template is not None and stamp-self.anchor_ms > self.lifetime_ms:
+                        self.template = self.previous = self.position = None
+                    self.reason = "anchor-texture-or-warmup"
             else:
                 self.position, self.previous = target, image
                 self.reason = "partial-model"

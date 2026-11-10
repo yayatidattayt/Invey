@@ -1,3 +1,5 @@
+FINAL Execution25 hardware state: BOTH approved sessions are complete/released. Version8 ledger14 rows/1262999ms/0 pending, no authorized starts remaining. Actual raw28.606/s, conversion29.370/s, full capture29.492/model29.485/s. Creator reports smoother movement but persistent tracking instability and wrist-out loss. Do not apply another amendment, restart a camera test, or claim the final camera-free anchor repair physically passed. Historical policy/procedure below is not fresh permission.
+
 Current policy update: the creator explicitly approved two additional supervised starts under total cap14 and unchanged1800000ms. Version7 is applied, preserving all12 rows/1054077ms. First RAW->CONVERSION session only is unlocked. Version8/second FULL session requires first safe release and separate creator go-ahead. No camera has opened at this checkpoint. Creator Enable is always required. Older unapproved-policy text below describes the pre-approval state.
 
 # Ghost Camera Performance Check

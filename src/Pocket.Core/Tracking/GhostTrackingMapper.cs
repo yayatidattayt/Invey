@@ -53,10 +53,11 @@ public sealed class GhostTrackingMapper(TimeProvider? clock = null)
             frame.Width!=context.FrameWidth || frame.Height!=context.FrameHeight)
         {
             ResetState();
-            Status = context is null ? "Choose display and hand in Calibration" : snapshot.State switch {
+            Status = snapshot.State switch {
                 TrackingState.Lost => "No hand detected", TrackingState.Stale => "Tracking observation expired",
                 TrackingState.Ambiguous => "Multiple hands detected", TrackingState.Stopping => "Tracking stopping",
                 TrackingState.Stopped or TrackingState.Off or TrackingState.Unavailable => "Tracking off or unavailable",
+                _ when context is null => "Choose display and hand in Calibration",
                 _ => "Finger evidence or calibration context unavailable" };
             return null;
         }

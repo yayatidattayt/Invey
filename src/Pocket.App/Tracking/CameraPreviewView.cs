@@ -27,6 +27,7 @@ internal sealed class CameraPreviewView : Grid
     private long _lastRendered = -1, _renderStarted, _uniqueRendered;
     public double UniquePresentedFps => _renderStarted == 0 ? 0 :
         _uniqueRendered * 1000.0 / Math.Max(1, Environment.TickCount64 - _renderStarted);
+    internal long UniquePresentedFrames => _uniqueRendered;
     private void Presented(object? sender, EventArgs args)
     {
         if (!IsVisible || _frame is not { } frame || frame.Sequence == _lastRendered) return;
