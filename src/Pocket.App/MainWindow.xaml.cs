@@ -196,6 +196,7 @@ public partial class MainWindow : Window
             _tracking.CameraStatusChanged += status => CameraStatusChanged?.Invoke(status);
             _tracking.DesktopStatus=()=>DesktopGhost.Engine.Status+" · "+DesktopGhost.Gestures.Status;
             _tracking.DesktopUpdateCount=()=>DesktopGhost.PointerUpdates;
+            _tracking.DesktopPosition=()=>DesktopGhost.Engine.Position;
             _tracking.DesktopMetrics=()=>new { _desktopMapper.ReasonEntries, _desktopMapper.ReasonMilliseconds, _desktopMapper.UiRejectionPolls };
             _tracking.GesturePracticeReady+=(source,context,calibration)=>DesktopGhost.Gestures.Begin(source,context,calibration);
             _tracking.DesktopPointerChanged += (snapshot,context,point,model)=>DesktopTracking(snapshot,context,point,model);

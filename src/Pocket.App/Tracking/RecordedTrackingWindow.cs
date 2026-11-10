@@ -11,6 +11,10 @@ namespace Pocket.App.Tracking;
 
 internal sealed partial class RecordedTrackingWindow : Window
 {
+    private readonly PointerStillnessMeasurement _stillness=new();
+    private readonly Button _measureStill=new(){Content="Measure 10 seconds still",MinHeight=28};
+    private readonly TextBlock _stillStatus=new(){Text="Stillness not measured",TextWrapping=TextWrapping.Wrap};
+    internal Func<Pocket.Core.DipPoint?>? DesktopPosition {get;set;}
     private readonly RecordedTrackingController _controller = new();
     private readonly DispatcherTimer _refresh = new() { Interval = TimeSpan.FromMilliseconds(80) };
     private readonly LatestNotification _pointerNotification;
@@ -109,6 +113,7 @@ internal sealed partial class RecordedTrackingWindow : Window
         AutomationProperties.SetName(_recordedDemo, "Recorded demonstration");
         _recordedLabel.Target = _recordedDemo;
         _recordedDemo.SelectionChanged += (_, _) => SourceChanged();
+        _measureStill.Click+=(_,_)=>{var sample=_controller.Read();if(sample.Source==TrackingSource.Camera&&sample.SessionId is {} session&&DesktopPosition?.Invoke() is not null)_stillness.Begin(session,Environment.TickCount64);};
         _start.Click += (_, _) => Start(_recorded.IsChecked == true ? _recordedDemo.SelectedIndex switch { 1 => "calibration-practice", 2 => "hybrid-preview", _ => null } : null);
         _stop.Click += async (_, _) => await StopAsync();
         string? settings = acceptanceHost ? testSettingsPath : profileSettingsPath;
@@ -179,7 +184,7 @@ internal sealed partial class RecordedTrackingWindow : Window
                 _showPreview,
                 _desktopPreview,
                 _desktopStatus,
-                new Expander { Header = "Performance dashboard", Content = _performance },
+                new Expander { Header = "Performance dashboard", Content = new StackPanel{Children={_performance,_measureStill,_stillStatus}} },
                 _liveView,
                 _previewStatus,
                 _mirrorCamera,
@@ -305,6 +310,7 @@ internal sealed partial class RecordedTrackingWindow : Window
     private async Task<bool> StopCoreAsync()
     {
         Guid? diagnosticSession = _controller.Read().SessionId;
+        _stillness.Cancel();
         _stopping = true;
         try
         {
@@ -321,7 +327,7 @@ internal sealed partial class RecordedTrackingWindow : Window
                 try
                 {
                     System.IO.File.WriteAllText(System.IO.Path.Combine(directory, id + ".pointer.json"),
-                        System.Text.Json.JsonSerializer.Serialize(new { Session = id, Evidence = "UI_OBSERVED_NOT_SENSOR",
+                        System.Text.Json.JsonSerializer.Serialize(new { Session = id, Evidence = "UI_OBSERVED_NOT_SENSOR", Stillness=_stillness.Read(),
                             FreshDeliveries = _freshPointerObservations, PointerUpdates = (DesktopUpdateCount?.Invoke() ?? 0) - _pointerUpdateStart,
                             ElapsedMs = _pointerClock.Elapsed.TotalMilliseconds, _pointerNotification.Notifications,
                             UniquePreviewPresentedFps = _lastSessionPreviewFps, UniquePreviewPresentedFrames = _lastSessionPreviewFrames,
@@ -377,15 +383,21 @@ internal sealed partial class RecordedTrackingWindow : Window
         if (_desktopPreview.IsChecked != true) return;
         if (snapshot.Observation is { } hand && hand.Sequence != _lastPointerSequence)
         { _lastPointerSequence = hand.Sequence; _freshPointerObservations++; if (_deliveryAges.Count < 1500 && snapshot.HostObservationAge is { } age) _deliveryAges.Add(age.TotalMilliseconds); }
+        long updatesBefore=DesktopUpdateCount?.Invoke()??0;
         DesktopPointerChanged?.Invoke(snapshot, _calibration.DesktopContext(snapshot, snapshot.Source == TrackingSource.Camera
             ? (_devices.SelectedItem as CameraDevice)?.Id ?? "unknown" : RecordedIdentity),
             null, _learning.AcceptedPreviewModel);
+        if(snapshot.Source==TrackingSource.Camera&&snapshot.SessionId is {} session&&snapshot.Observation is {} observation)
+            _stillness.Observe(session,observation.Sequence,Environment.TickCount64,(DesktopUpdateCount?.Invoke()??0)>updatesBefore?DesktopPosition?.Invoke():null);
     }
 
     private void Render()
     {
         _visible = _learningFixture ?? _controller.Read();
         if (_learningFixture is not null) _pointerNotification.Signal();
+        _stillness.Tick(_visible.SessionId,Environment.TickCount64);
+        _measureStill.IsEnabled=_visible.Source==TrackingSource.Camera&&DesktopPosition?.Invoke() is not null&&!_stillness.Running;
+        _stillStatus.Text=_stillness.Running?"Hold the index still for 10 seconds · no actions":"Stillness: "+_stillness.Status;
         bool live = _live.IsChecked == true;
         bool available = !_closing && !_stopping && _scan is null && _controller.CanStart;
         _live.IsEnabled = _recorded.IsEnabled = _find.IsEnabled = available;

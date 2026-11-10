@@ -20,6 +20,16 @@ public partial class App : Application
         base.OnStartup(e);
         try
         {
+            if(e.Args.Length==2&&e.Args[0]=="--amend-camera-budget-hybrid")
+            {
+                using var budget=new Pocket.Core.Tracking.CameraBudget(e.Args[1]);
+                budget.AmendHybridQualification();Shutdown(0);return;
+            }
+            if(e.Args.Length==2&&e.Args[0]=="--amend-camera-budget-hybrid-followup")
+            {
+                using var budget=new Pocket.Core.Tracking.CameraBudget(e.Args[1]);
+                budget.AmendHybridFollowup();Shutdown(0);return;
+            }
             if(e.Args.Length==2&&e.Args[0]=="--amend-camera-budget-performance")
             {
                 using var budget=new Pocket.Core.Tracking.CameraBudget(e.Args[1]);

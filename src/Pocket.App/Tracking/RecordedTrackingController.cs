@@ -58,7 +58,10 @@ internal sealed class RecordedTrackingController
                 return Cache(new(false, 0, 0, 0, "Camera test configuration is unavailable. Camera stays off."));
             using var budget = new CameraBudget(ledger);
             RequiredPerformanceMode = budget.RequiredPerformanceMode;
-            return Cache(budget.Availability);
+            var availability=budget.Availability;
+            if(!budget.AllowsVisualBackend(Environment.GetEnvironmentVariable("INVEY_VISUAL_BASELINE")=="1"))
+                return Cache(availability with{Available=false,Remaining=0,Message="Wrong A/B backend. Use the separately authorized Baseline or Hybrid launcher. Camera stays off."});
+            return Cache(availability);
         }
         catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or JsonException)
         { return Cache(new(false, 0, 0, 0, "Camera allowance cannot be verified. Camera stays off; inspect the saved ledger.")); }

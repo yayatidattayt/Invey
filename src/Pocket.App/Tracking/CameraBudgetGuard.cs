@@ -108,7 +108,7 @@ internal sealed class CameraBudgetGuard : IAsyncDisposable
             using var reader = new StreamReader(connection, Encoding.UTF8, false, 256, true);
             using var writer = new StreamWriter(connection, new UTF8Encoding(false), 256, true) { AutoFlush = true };
             using var budget = new CameraBudget(ledgerPath);
-            if (limitMs > budget.SessionLimitMilliseconds - 2000) return 2;
+            if (limitMs > budget.SessionLimitMilliseconds - 2000 || !budget.AllowsVisualBackend(Environment.GetEnvironmentVariable("INVEY_VISUAL_BASELINE")=="1")) return 2;
             using var job = RecordedWorkerJob.Create();
             RecordedWorkerJob.Assign(job, worker);
             long started = Environment.TickCount64;

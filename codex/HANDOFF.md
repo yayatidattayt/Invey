@@ -1,3 +1,7 @@
+# Execution27 authorized A/B preparation —2026-11-10
+
+Creator explicitly approved2 supervised user-enabled ASUS FHD comparison starts<=180s, cap14→16, max360000ms extra, unchanged1800000ms ceiling, all14 historical rows preserved. Sourcepolicyversion9 unlocks BASELINE only; version10 requires independently confirmed baseline release plus separate go-ahead. Real ledger stillversion8/F1A83C4A7CAEE339AE72F7E0863F6A87A271146CCD15E070939A1680269281D4 during test preparation; actual application of amendment follows audited CLI only. No camera opened yet.195 core/config PASS, isolated guardian-only27019 PASS (closed cursor INCONCLUSIVE). Aggregate-only10s stillness button added; no raw point series. Source tracker/filter unchanged. Next: publish/CI/preflight policy, apply baseline amendment preserving history, launch Baseline camera OFF, let creator select/setup and Enable. Never use the hybrid slot until separate followup authorization. Read latest report addendum and local audit receipts.
+
 # Execution27 current handoff —2026-11-10
 
 Final local full27017 run20261110T114133058-02dc15accd7c40699ee21e0b4df411be:41PASS/0FAIL/2BLOCKED/1INCONCLUSIVE. Explorer and standard-token Winver blocked; closed-before-launch cursor interval inconclusive (not a product failure). Native E27 scoped action intervals pass. D17 selector fixed from End to Home+Down after reproduced E26 added-option regression; Ready/Held checks retained. Final focused27016 PASS. No code changes after this reviewed native run; publication/CI pending in receipt.
