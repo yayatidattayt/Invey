@@ -39,3 +39,8 @@ Only after a new explicit bounded authorization, prepare settings with the camer
 
 ## Execution26 —2026-11-10
 Execution26 uses one final existing precision filter after model/partial/validated optical source selection. No smoothing tuning/interpolation/predicted positions. Recorded selector has a clearly SIMULATED image-motion option using a right-index fixture; choose Right in Calibration. User-reported physical wrist-out failure remains unresolved until separately approved retest. All14 camera starts remain consumed.
+
+
+## Execution27 delivery
+
+Execution27 real A/B: source18.857/19.307s, hybrid creator-designated10s stillness198samples RMS11.834px; baseline motion/uncertainty invalidates a quantitative jitter comparison. Creator still sees jumps/flicker/unstable wrist-out. Worker optical-only handoffs0, so better subjective wrist behavior is not proof of Engine B continuation. Do not extend600ms, weaken identity/drift or reintroduce interpolation to produce a pass. All16 authorized starts released/exhausted; no further capture. Live gesture gates remain closed.

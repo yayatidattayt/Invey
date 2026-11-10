@@ -588,3 +588,8 @@ Physical metadata cannot identify exact pixel-level fallback failure:490 weak/wa
 ## Execution27
 
 Execution27 —2026-11-10: Existing supervised UIA worker expanded by separate explicit external grant. Bounded selected-root traversal avoids global overlay hit testing; native z-order skips only consenting passive host overlays. Actual separate-process six-pattern changes and E-key shared-Ghost route observed; native cursor coordinates stayed independent. External Toggle moved foreground and safely canceled a held Workspace Mouse claim, demonstrating focus is separate from coordinates. Winver standard-token attempt blocked: no linked token, no security workaround. Microsoft synthetic pointer contracts permit TOUCH/PEN, virtual-screen coordinates, primary pointer activation/promotion and implicit capture; no second-native-mouse guarantee, no backend enabled. Details and primary-source links in EXECUTION_27_REPORT.
+
+
+## Execution27 physical outcome
+
+E27 physical qualification2026-11-10: two separately user-enabled bounded trials with explicit staged policy, no saved images/landmarks. Baseline18.857 and hybrid19.307 captures/inferences/s, nominal1080pYUY2/30. Model medians18.648/18.684ms; visual3.296/3.910ms; source-result48.192/48.411ms. Hybrid actual image-flow correspondence952 but optical-only emissions0. Better creator wrist-out impression does not prove Engine B fallback. Candidate held-still198 samples RMS11.834px; baseline165.272px invalid because creator moved/unsure. Fast jumps/flicker remain: physical CHANGES REQUIRED. Native pointer independence/clean release confirmed. All16 charges released,1459827ms,0pending; no more camera permission. Gate/live actions remain closed.

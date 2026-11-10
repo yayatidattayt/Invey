@@ -26,4 +26,6 @@ Select only a benign window and a reversible, understood operation. Purchases, d
 
 ## Physical tracking
 
-Hybrid tracking and live controls remain available, but all14 camera starts are consumed. This execution grants no new camera access. Any future two-session baseline/hybrid comparison requires a separate explicit policy decision and creator Enable; preview only, no live external or Pocket gestures.
+The separately approved E27 baseline/hybrid comparison is complete. Creator reported less jitter and better wrist-out behavior, but fast-motion jumps, flicker and instability persist: **CHANGES REQUIRED**, not stable-pointer acceptance. No image-only handoff was logged; subjective wrist improvement cannot be attributed to optical fallback. Hybrid designated-still RMS11.8px; baseline motion invalidates a numerical jitter-improvement comparison.
+
+Version10 ledger has16 released starts,1459827ms,0 pending. All starts are consumed. No more live tests or quota amendment is authorized. The A/B launcher scripts are retained for reproducibility, not as renewed camera permission. Pocket, Workspace, controlled/recorded Ghost and this camera-free separate-process demo remain available. Camera/recorded/optical sources cannot invoke external actions or physically qualified Pocket gestures.

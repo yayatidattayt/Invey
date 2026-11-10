@@ -1,6 +1,6 @@
 # Execution27 — Ghost beyond Pocket
 
-**Experimental controlled semantic route; physical tracking improvement UNVERIFIED. Camera OFF.**
+**Result: CHANGES REQUIRED for physical Ghost stability. Controlled external semantic MVP READY FOR REVIEW, with explicit compatibility gaps. Both authorized physical sessions are complete/released; camera OFF, Invey closed, all16 starts consumed.**
 
 ## 1. Verified starting commit
 
@@ -76,23 +76,44 @@ Research only; no synthetic pointer device/backend created. Microsoft CreateSynt
 
 ## 19. Hybrid physical qualification readiness
 
-Existing reversible INVEY_VISUAL_BASELINE=1 selects E25; unset selects E26 hybrid. Prepared A/B script: same camera/display/hand/mirror/lighting; labeled stationary interval, tiny/slow/normal/fast moves, brief loss, warm wrist/palm-out<=600ms initially, full-hand return, genuine loss, mouse independence and Stop. Moving data is not stationary jitter ground truth. Capture/result and actual pointer availability, visual-only events, blackouts, conflict/jumps and bounded latency counters remain separate.
+The separately approved baseline/hybrid physical experiment is now completed. Same creator-selected ASUS FHD source, nominal1920×1080 YUY2/30 mode, intended display/hand/mirror configuration. Sessions used different natural movement scripts/durations, not identical recorded frames or randomized motion ground truth. Short and longer wrist/palm-out, stillness, motion, loss/reentry and mouse independence were requested. Do not normalize these whole-session frame counts into false-negative probabilities. The producer/consumer600ms identity limit remains unchanged; long finger-only operation is still outside that continuation window.
 
 ## 20. Actual physical results
 
-NONE in this execution. This prompt is not camera permission. No physical tracking accuracy, wrist-out improvement, gesture bridge, live Pocket or external camera actuation is accepted. A fresh decision is required only after camera-free preflight; future proposal is not permission.
+**Physical qualification: CHANGES REQUIRED.** Creator confirmed real image/dots/separate desktop Ghost in BOTH sessions, native mouse independence, Stop, camera-light-off and Exit. Hybrid was reported less jittery, with better wrist-out behavior than before, but persistent instability, flicker, fast-motion jumps/teleportation and perceived frame loss. This does not pass stable-pointer acceptance.
+
+| Metric | Baseline e70583d3-f139-4031-9b2d-1800ca9c1a74 | Hybrid cf3832b3-71f7-4883-aa09-d9a192ab19b4 |
+|---|---:|---:|
+| Confirmed backend | execution25-patch | hybrid-pyramidal-lk |
+| Charged elapsed |77,125ms|119,703ms|
+| Worker captured / inferred |1,422 /1,422|2,285 /2,285|
+| Host accepted / rejected / superseded |1,421 /0 /0|2,285 /0 /2|
+| Logical pointer updates, including intentional loss periods |1,204|1,758|
+| Measured capture/inference per second |18.857|19.307|
+| Emitted image-only visual handoffs |0|0|
+| Native/host/guardian release |confirmed|confirmed|
+
+**No physical optical-only continuation was logged.** Hybrid current-pixel correspondence was valid on952 frames, but final producer source counters were model1616, partial337, lost332 and visual0. A correspondence measured while MediaPipe still supplies a point is not proof of a successful fallback handoff. The creator's better wrist-out impression is retained as subjective evidence; attribution to Engine B is NOT established. Partial-model observations were338 vs12; changed motion/exposure/duration prevents a causal availability comparison. No camera frames exist for retrospective anatomy/false-match verification.
+
+Hybrid creator-confirmed10s approximately-still interval:198 fresh final-position samples, RMS11.83394px, StdX10.68792px, StdY5.08040px, no fresh observation-without-position in that interval. This includes human motion and mapping/filter behavior; it is not independent sensor-noise ground truth. Baseline198-sample RMS165.27245px is **INVALID AS STATIONARY NOISE** because the creator moved/was unsure. It is preserved, not used to claim a percentage jitter improvement.
+
+Whole-session loss/partial/ambiguity and mapping reasons mix deliberate removal, wrist tests, setup and ordinary motion. Hybrid host gaps/stale0/0, rejected0 and superseded2 do not suggest a large host rejection backlog, but cannot prove optical latency or diagnose every flicker. Worker flow forward/backward rejection492, no-anchor631, coherence105, appearance40, anchor-expiry50, feature-init rejection169, hand-change11 and source-conflict5 provide bounded followup evidence. Do not loosen identity/drift criteria merely to manufacture continuation.
 
 ## 21. Camera ledger state
 
-Version8,14 released rows,total1262999ms,0 pending; all14 starts consumed. SHA256F1A83C4A7CAEE339AE72F7E0863F6A87A271146CCD15E070939A1680269281D4 unchanged. No camera opened or amendment applied. Proposed future A/B: at most2 creator-enabled supervised sessions<=180s, cap14→16, <=360000ms extra, same1800000ms total ceiling (maximum1622999ms with existing history), baseline first and hybrid only after confirmed first release and separate go-ahead. Stop by150s/cooperative170/cutoff178, preview only, no saved images/video/raw landmarks.
+Final durable ledger **Version10,16 released rows,1,459,827ms,0 pending**, SHA256 `496EC1EDFBED1C9F7F7BFC4A0E6D145FA96D16C817F43D7566CD12299A2D1FEF`. All16 starts consumed. Remaining arithmetic time340173ms is NOT permission for another start.
+
+Creator explicitly approved two additional starts, cap14→16, <=360000ms extra, unchanged1800000ms ceiling; baseline first and hybrid only after confirmed baseline release and a separate go-ahead. Version9 applied after tests; all original14 rows remained identical. Baseline used77125ms and independently released. Creator separately said Go ahead; Invey is closed; Version10 applied without changing the first15 rows. Hybrid used119703ms and released. New total196828ms, within approved360000ms. Both native release flags, host exit/cleared observations, guardian confirmations and independent process exit checks passed; creator confirmed indicators OFF and app closed. No saved camera images, video or raw landmark/point series.
+
+Immutable local snapshots, policy receipts and summaries are in ignored artifacts/execution-27: approved-history-v8.json, released-baseline-v9.json, baseline-policy.json, hybrid-policy.json, baseline-summary.json, hybrid-summary.json, final-camera-ledger-audit.json. No further camera session/amendment is authorized. Never reset, renew, refund historical charges or bypass the guardian.
 
 ## 22. Core tests
 
-Baseline185/config passed. Added5 protocol/client authority tests; current190/190 in both configurations,0 skips,0 warnings/errors. Locked restore passed with the local client project reference and empty demo-project package lock. Existing protocol, reducer, calibration, visual provenance, gestures and persistence tests retained.
+Baseline185/185 per configuration passed before modification. External MVP190/190 Debug/Release and exact-head CI1af44c1 passed. Approved staged A/B policy and aggregate-only measurement add5 tests, for final195/195 in Debug and Release,0 skips. Both builds have0 warnings/errors. Exact-head CI533b699 passed the full195/core and50 worker suite. New tests cover grant separation, source/window/generation/pattern scope, fixture denial, staged baseline/hybrid caps and backend enforcement, pending-release/time-ceiling denial, history preservation/restart exhaustion, and bounded aggregate math/dedup/cancellation without raw point storage.
 
 ## 23. Worker tests
 
-Baseline50/50 Python worker tests passed; tracker and worker Python files unchanged. Final camera-free worker result is recorded in the delivery addendum/receipt, with native generated MP4 fixtures. No camera tests or new model/dependency installation.
+Final50/50 Python worker tests pass, no skips. E26 tracker/worker Python implementation unchanged throughout E27. Native generated MP4 fixtures, low-texture/identity/optical drift/reacquisition negatives and explicit fallback tests remain. No new camera model, Python dependency, second camera path or interpolation layer.
 
 ## 24. Native tests
 
@@ -100,7 +121,11 @@ External focused route includes six actual patterns, keyboard E, WPF highlight, 
 
 ## 25. Performance
 
-UIA is not coupled to camera-frame arrivals. One worker, one in-flight operation,250ms discovery interval,32 capability cache entries,256-node/depth10 current-point traversal,300ms tokens,2s supervised request timeout and bounded histories. Per-probe/execute counters and latency are exposed in test diagnostics; no unbounded content log. Slow-provider test observes continuing actual WPF pointer updates. No new smoothing, image pipeline or camera FPS claim.
+UIA remains independent of capture:250ms discovery schedule, one pending request, bounded256-node/depth10 scope,32 capabilities,300ms tokens and2s supervised deadline. Six fixture cold probes249–284ms; execute round trips62–93ms in the full run. A2053ms blocked-provider case terminated its worker and preserved Unknown while actual WPF Ghost updates continued. These are fixture timings, not camera/compositor FPS.
+
+Actual physical baseline/hybrid model median18.648/18.684ms (p9522.130/22.731); visual stage median3.296/3.910ms (p954.208/7.957). Source-to-result median48.192/48.411ms, p9553.806/57.320ms, not optical motion-to-photon latency. Nominal input mode stayed1080p YUY2/30, but native timestamp intervals were median48.033/48.034ms and measured capture/inference18.857/19.307/s. The historical E25~29.5/s is not reproduced in these current physical conditions. Neither current run qualifies sustained30Hz; no cause is assigned to lighting, driver, CPU or a specific code component without a controlled experiment.
+
+Reported worker CPU60.172s/76.959s elapsed vs98.094s/119.523s elapsed (~0.782 vs0.821 core equivalents), working-set snapshot196554752B vs203075584B, not peak whole-system RSS. No frame interpolation, new final filter or unbounded queue was introduced. All diagnostics are bounded aggregates; there is no retained image or point trace.
 
 ## 26. Preserved failures
 
@@ -116,7 +141,9 @@ Only synthetic second-process controls are verified here; genuine installed-app 
 
 ## 29. Next product milestone
 
-After separately authorized physical A/B qualification, use measured failure evidence to decide whether hybrid stability is acceptable. In parallel, qualify specific benign medium-integrity third-party controls in an eligible session and publish their per-control focus/ownership compatibility. Only later qualify deliberate real gestures for separately permitted targets. No universal second native mouse claim or automatic live-action gate opening.
+First address stable warm-index continuation and fast-motion/flicker using the recorded rejection reasons and camera-free negatives; determine why current image correspondence never becomes a valid image-only handoff when model evidence disappears. Validate drift/identity safety before considering any longer continuation window. Treat current~19Hz delivery vs nominal30 as a measured open issue; do not substitute another broad camera-pipeline rewrite for tracking quality work. A later physical retest needs a fresh separately approved policy because all16 starts are spent.
+
+Separately qualify specific benign medium-integrity third-party controls in an eligible Windows session, with per-control focus/held-mouse semantics. Physical gestures must not gain Pocket/external authority until their own qualification. No synthetic touch/pen backend or universal native-mouse claim.
 
 ## Official sources
 
@@ -162,3 +189,15 @@ Working A/B launcher: scripts/Start-Invey-HybridComparison.ps1 -Mode Baseline (o
 Audited CLI applied explicit approval after195 core/config and synthetic-guardian checks. Actual version9; all14 original rows and1262999ms identical,0 pending. New SHA256EC6B988F39F60039A70F2E9CE9B0BFDCDA92BFCA81AA5C2074F05A56C398F1DB; previous immutable snapshot in ignored approved-history-v8.json. Exactly ONE baseline start unlocked, second hybrid still locked. No physical session started.
 
 Launcher composition review found the older Beta→DualCursor normal launch would replace the outer diagnostic execution/directory. The A/B script now uses Beta CheckOnly for verified commit/hash/runtime, then launches the existing Demo launcher directly under the intended A/B environment. No duplicate app, camera selection or automatic Enable. The preflight run before this correction started no app and consumed no charge.
+
+## Final physical evidence and delivery recommendation
+
+The physical experiment completed with a negative stability result; it is not pending or an unperformed synthetic test. Image/dots/desktop Ghost and ordinary-mouse independence were creator-confirmed. Both sessions stopped explicitly, native/host/guardian releases and independent exit passed, no unresolved reservation remains, and Invey is closed. Overall physical result **CHANGES REQUIRED**; controlled external semantic MVP **READY FOR REVIEW WITH GAPS**. Genuine installed-app compatibility remains BLOCKED, and external provider focus can cancel an ongoing native Mouse drag. B1/Gate A/M02 and live gesture actuation are not accepted.
+
+The initial complete E27 MVP was published at1af44c16accc8116dbb72cacb8760f39d28c4cbc, exact CI42810588895 SUCCESS. The approved staged policy/launcher source is533b6997f155f8de4a50b705c3d627b2f41c9ccb, exact CI42812959022 SUCCESS. Final documentation/cleanup delivery head and actual CI are captured in final-delivery.json and the final response; no PR merge or metadata workaround.
+
+## Final post-A/B full regression
+
+After the approved policy/stillness UI source and both real sessions, full isolated run seed27020 `20261110T123910021-189a834ba65d4030a68279f8ac5828c6` completed **42PASS,0FAIL,2BLOCKED,0INCONCLUSIVE**. All original Pocket/Dual/recorded/preview/practice cases and the E27 external/UI-owned demo/Exit route pass on this final functional source. The two blocks remain A10 private-desktop Explorer unavailable and genuine Windows About no linked standard-user token. The actual exhausted camera-ledger SHA was asserted identical before/after this CAMERA-FREE full run; no new physical start occurred.
+
+Earlier41PASS/2BLOCKED/1INCONCLUSIVE full27017 and D17-failing full27014 remain preserved; the final quiet pre-launch cursor interval does not erase or retroactively turn earlier inconclusive intervals into passes. Core195/config and50 worker checks remain healthy, and exact final documentation-head CI is verified at delivery. No functional source changes after the final run.

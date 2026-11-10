@@ -207,3 +207,8 @@ Execution26 baseline184 core/config and39 workers; final185 core/config,50 worke
 ## Execution27
 
 Execution27 baseline: Debug/Release185 core/config,50 workers pass. Candidate190 core/config passes; six-pattern external/native route and actual E activation verified. Bounded provider timeout preserves Unknown and stops worker while WPF pointer updates continue. Historical failed native/compilation results preserved; final full/focused native, worker, exact-head CI and cleanup in EXECUTION_27_REPORT and delivery receipt. No physical camera test.
+
+
+## Execution27 physical outcome
+
+E27 final source195 core/config,50 workers, CI533b699 success. Baseline sessione70583d3-f139-4031-9b2d-1800ca9c1a74=77125ms; hybridcf3832b3-71f7-4883-aa09-d9a192ab19b4=119703ms; both native/host/guardian/process release and creator light-off confirmed. Original14 rows/15th charge immutable. Finalversion10/16released/1459827ms/0pending, allstarts exhausted. Physical quality CHANGES REQUIRED, not synthetic-only/UNVERIFIED: live tested and failed stable-pointer qualification.195-core stage policy/stillness tests and guardian27019 pass. Final post-A/B full native/delivery evidence appended in report/receipt.

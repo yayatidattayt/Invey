@@ -118,3 +118,8 @@ Existing opencv-contrib-python5.0.0.93 used locally; same Windows wheel hash-pin
 ## Execution27
 
 Execution27: Tier A Pocket controlled route preserved; Tier B six semantic patterns verified on separate Invey.ExternalDemo process, actual counter/checkbox/slider/scroll/expand/selection state and independent native cursor. Toggle during native Mouse hold changed focus and canceled its Workspace claim safely: simultaneous held-drag compatibility NOT SUPPORTED for that case. Genuine winver.exe test BLOCKED before launch because no linked medium token. Calculator/Notepad/browser UNVERIFIED. Tier C pen/touch deferred, Tier D protected/elevated/unsupported targets denied.
+
+
+## Execution27 physical outcome
+
+E27 physical A/B complete: both sources displayed real image/dots/Ghost, mouse independence and clean release confirmed. Hybrid stability CHANGES REQUIRED; wrist-out reportedly better but unstable, fast jumps/flicker, zero image-only handoffs. Capture/inference18.857 baseline/19.307 hybrid, not sustained30. No gesture/Pocket/external camera authority. All16 starts consumed. Genuine Windows About compatibility still blocked (no linked medium token); six synthetic second-process semantic patterns verified; external focus may cancel native held Mouse claim.

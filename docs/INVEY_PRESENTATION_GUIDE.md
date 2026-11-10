@@ -18,3 +18,8 @@ Execution25 final physical evidence: approved raw/conversion check28.606/29.370 
 
 ## Execution26 —2026-11-10
 Camera-free optical demonstration: Ghost Tracking -> Recorded -> SIMULATED model loss / actual image-motion tracking. Choose Right hand/display in Calibration and Desktop Ghost preview, then Enable. Generated imagery and scripted primary loss are labelled; optical correspondence and shared pointer movement are real. Stop ends the recorded worker; Exit cleans up. It is not webcam or physical wrist-out acceptance. Existing recorded model/practice/controlled Pocket routes remain available.
+
+
+## Execution27 delivery
+
+Execution27 adds a camera-free separate-process semantic demo: Try Ghost Beta → Start preview → External controls → Open synthetic external demo. Explicitly enable, select window/pattern, authorize and arm; keyboard steering/E in its focused panel activates a supported control. Real counter/checkbox/slider/scroll/details/selection changes, not a webcam pinch. External focus may change and cancel a physical drag. See GHOST_EXTERNAL_CONTROLS_GUIDE.md. Real camera stability remains CHANGES REQUIRED after live A/B; all16 starts consumed, no additional live demo authorization. Recorded and controlled routes remain available.

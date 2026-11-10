@@ -112,3 +112,8 @@ Execution25 final physical evidence: approved raw/conversion check28.606/29.370 
 
 ## Execution26 —2026-11-10
 F06 same timestamped frame/worker/camera guardian, bounded optional optical processing, explicit counters. F07/current shared Ghost: model/partial/v3 visual arbitration with strict clock/identity/lifetime and single final filter. Actual generated-image source reaches existing WPF shared pointer, Recorded cannot Arm. Pocket/Dual regressions preserved. Canonical B1/Gate A/M02 and live gesture acceptance not promoted by camera-free evidence.
+
+
+## Execution27 delivery
+
+E27: external v2 grant/protocol195-core authority tests; actual E27_EXTERNAL_SHARED_GHOST demonstrates six patterns via same shared pointer, source Camera/Recorded denied, expired/moved/closed/restarted tokens rejected, sensitive point/parent Scroll denied, Unknown/reconciliation/no replay, WPF responsive at provider timeout. Genuine app compatibility BLOCKED; Mouse held during external Toggle loses focus and safely cancels. Physical A/B2sessions observed image/dots/Ghost and native mouse independence, clean release; stability CHANGES REQUIRED, visual-only emissions0. Gate A/M02/B1/live gesture authority remain unaccepted. Final full27020=42PASS/0FAIL/2BLOCKED, earlier failures/inconclusive preserved.

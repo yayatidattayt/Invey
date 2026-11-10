@@ -153,3 +153,8 @@ Use same-frame sparse pyramidal LK as Engine B with original MediaPipe A, no sec
 ## Execution27
 
 Execution27 —2026-11-10: Cross-application interaction is a core long-term objective with a present experimental semantic MVP. Reuse existing worker; v1 fixture and v2 external consent are separate. One selected window/pattern, one shared Ghost, no global mouse injection or camera authority. Provider focus may cancel Mouse ownership; coordinates and focus are separate acceptance dimensions. Same-integrity exception only for exact project-owned synthetic demo; ordinary elevated apps denied. Synthetic pen/touch remains researched/deferred. See EXECUTION_27_REPORT.
+
+
+## Execution27 physical outcome
+
+E27 physical result is CHANGES REQUIRED. Keep source/gesture gates closed and do not label optical-only wrist-out qualified: logged image-only handoffs0 despite creator-reported improvement. Preserve baseline invalid-stationary aggregate and never claim its difference as a jitter percentage. No threshold weakening, interpolation or last-minute unverified tracker rewrite. All16 authorized starts consumed; future hardware requires a new explicit decision. Retain verified controlled external semantic MVP with honest focus and genuine-app gaps.
