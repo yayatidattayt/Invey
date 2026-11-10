@@ -11,7 +11,10 @@ try {
     [Environment]::SetEnvironmentVariable('INVEY_VISUAL_BASELINE',$(if($Mode -eq 'Baseline'){'1'}else{$null}),'Process')
     New-Item -ItemType Directory -Force -Path $env:INVEY_CAMERA_DIAGNOSTICS|Out-Null
     # Never applies an amendment, selects a device or presses Enable. Guardian enforces the staged backend.
-    & "$PSScriptRoot/Start-Invey-Beta.ps1" -CheckOnly:$CheckOnly
+    # Beta validates commit/hash/runtime, but its normal launch delegates to the older
+    # DualCursor wrapper, which would overwrite this execution's diagnostic directory.
+    & "$PSScriptRoot/Start-Invey-Beta.ps1" -CheckOnly
+    if(-not $CheckOnly){& "$PSScriptRoot/Start-Invey-Demo.ps1" -DemoProfile}
 } finally {
     foreach($name in $names){[Environment]::SetEnvironmentVariable($name,$previous[$name],'Process')}
 }
