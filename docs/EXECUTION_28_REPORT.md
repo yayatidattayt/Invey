@@ -24,3 +24,6 @@ UI brief prepares Execution29 only: Invey product, Ghost core, Pocket/future Cub
 
 ## Delivery and next acceptance
 Same branch/PR9, no merge. Exact published SHA/CI in receipt/final response. Physical acceptance needs fresh policy, creator Enable, true optical-only output/identity correctness, matched stillness/motion, loss/reacquisition/step response, cadence and mouse independence plus native/guardian release. No new hardware permission exists. The600ms long-continuation ceiling and stable physical pointer remain open; camera-free repairs are not physical qualification.
+
+## Final native outcome
+Full seed28001 run20261110T133742833-44d77fc3d58e458fa6c93727fd0e8f9d:42PASS/0FAIL/2BLOCKED. Explorer absent and genuine-app standard-user token unavailable remain blocked. WPF shared pointer, Pocket/Dual and external semantic regression pass. Camera-off launcher passes; all owned processes closed and ledger unchanged. Exact final head/CI in artifacts/execution-28/final-delivery.json. The long partial-chain600ms limit is deliberately retained, not described as repaired.
