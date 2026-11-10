@@ -35,8 +35,11 @@ class CameraDiagnostics:
         self.data["measurementMode"] = mode
         self.publish(force=True)
 
-    def end_mode(self):
+    def end_mode(self, outcome="worker-finished"):
         self.publish(force=True)
+        if self.mode:
+            self.data["measurementModes"][self.mode]["outcome"] = outcome
+            self.save()
         self.mode = None
 
     def publish(self, force=False):

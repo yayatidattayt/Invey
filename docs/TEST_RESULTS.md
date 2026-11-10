@@ -189,3 +189,5 @@ Direct RGB copy synthetic1080p7.90→6.16ms, identical pixels; offered-only30Hz 
 
 ## Execution25 —2026-11-10
 176/176 core Debug/Release;36/36 workers/native MP4,0 skips. WPF run20261110T051544808-68f6f30bccb34ca69a30ccee5b7fef24 passed product route and polling-independent30/60Hz delivery (27 updates/1004.3ms,60/981.5ms). First timeout retained; cadence moved to separate bounded command without increasing timeout. Final full regression/CI and failures: EXECUTION_25_REPORT.md. Hardware NOT TESTED; ledger unchanged/exhausted. See docs/EXECUTION_25_REPORT.md for full evidence.
+
+Execution25 CI correction:42762095884 failed finite H.264 raw→RGB transition after consuming initial keyframe; locally reproduced. Positive same-reader transition uses its own bounded all-keyframe synthetic fixture; shared CI fixture untouched. Empty phase now fails NoFrames with source-ended outcome.37/37 workers pass locally against original CI fixture; failed evidence retained. No hardware acquisition.
