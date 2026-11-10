@@ -102,6 +102,7 @@ internal sealed class AcceptanceHost : IDisposable
         {
             case "ghost-start": _product!.DesktopGhost.StartControlled();break;
             case "ghost-practice-ui": _previewResult=await _product!.ExerciseGesturePracticeFixtureAsync();break;
+            case "ghost-observation-delivery": _previewResult=await _product!.ExerciseObservationDeliveryFixtureAsync();break;
             case "ghost-gesture-replay": _product!.DesktopGhost.GestureReplayEvidence=await GhostGestureReplayFixture.RunAsync(_product.DesktopGhost);break;
             case "ghost-controls": _product!.DesktopGhost.ShowControls();break;
             case "ghost-controls-place": _product!.DesktopGhost.PositionControlsForAcceptance(900,50);break;

@@ -114,6 +114,7 @@ def run_frames(source, stop, tracker, mp, np, normalize, send, sample=None, diag
             raise
         if diagnostic:
             diagnostic.timing("pipeWriteMs", time.perf_counter_ns() - finished)
+            diagnostic.publish()
         if preview is not None:
             preview_at = time.perf_counter_ns()
             preview.offer(sequence, pixels)

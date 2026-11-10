@@ -186,3 +186,6 @@ Second separately approved session127297ms released; ledger12 released,total1054
 ## Execution24 camera-free capture candidate —2026-11-10
 
 Direct RGB copy synthetic1080p7.90→6.16ms, identical pixels; offered-only30Hz format policy with explicit size/rate negotiation and legacy fallback; bounded PTS/delivery diagnostics. No inference resizing adopted: larger still fixtures lost detection, retained as negative evidence. Core171/config,workers32,native focused product PASS; broader Pocket native blocked by service foreground,3 failures preserved. No physical30FPS/live improvement claim, no camera or ledger change. Presentation wrapper and guide supplied. See EXECUTION_24_REPORT.md; camera cap remains exhausted.
+
+## Execution25 —2026-11-10
+176/176 core Debug/Release;36/36 workers/native MP4,0 skips. WPF run20261110T051544808-68f6f30bccb34ca69a30ccee5b7fef24 passed product route and polling-independent30/60Hz delivery (27 updates/1004.3ms,60/981.5ms). First timeout retained; cadence moved to separate bounded command without increasing timeout. Final full regression/CI and failures: EXECUTION_25_REPORT.md. Hardware NOT TESTED; ledger unchanged/exhausted. See docs/EXECUTION_25_REPORT.md for full evidence.

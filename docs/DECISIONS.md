@@ -138,3 +138,6 @@ Second separately approved session127297ms released; ledger12 released,total1054
 ## Execution24 camera-free capture candidate —2026-11-10
 
 Direct RGB copy synthetic1080p7.90→6.16ms, identical pixels; offered-only30Hz format policy with explicit size/rate negotiation and legacy fallback; bounded PTS/delivery diagnostics. No inference resizing adopted: larger still fixtures lost detection, retained as negative evidence. Core171/config,workers32,native focused product PASS; broader Pocket native blocked by service foreground,3 failures preserved. No physical30FPS/live improvement claim, no camera or ledger change. Presentation wrapper and guide supplied. See EXECUTION_24_REPORT.md; camera cap remains exhausted.
+
+## Execution25 —2026-11-10
+Use bounded accepted-message dispatcher wakeup instead of label polling for desktop positions; current-session reads preserve coalesced Stop/continuity. Raw/native→RGB phases retain exact offered type on same reader, no model/images/actions. Preserve filters, safety warmup, shared pointer and action gates. No new backend or camera-cap amendment; hardware requires explicit policy decision. See docs/EXECUTION_25_REPORT.md for full evidence.

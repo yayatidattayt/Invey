@@ -1,0 +1,16 @@
+# Ghost Camera Performance Check
+
+The existing allowance is exhausted: 12 released sessions, 1,054,077 ms, no pending reservation. This guide and launcher grant no camera permission. An explicitly approved policy amendment and creator Enable are required before a physical experiment. No amendment has been applied by Execution25's camera-free preparation.
+
+From the repository folder, `.\scripts\Start-Invey-PerformanceCheck.cmd` opens the existing isolated demo profile with the camera OFF and the original durable guardian. `-CheckOnly` checks prerequisites without opening Invey. It never renews the allowance or changes global PowerShell policy.
+
+Open Ghost Tracking → Live camera → Find cameras → select ASUS FHD. Expand **Ghost Camera Performance Check**. Stop stays in the fixed footer; **Performance dashboard** is in the scrollable middle. Choose a mode before Enable. With the exhausted ledger, Enable stays blocked.
+
+* **Raw → conversion:** one source/reader lifetime. About30 seconds of offered-native samples without application pixel copy or inference, then about30 seconds of RGB conversion without inference, followed by automatic release. The exact offered native type must remain available for the transition; failure stops the check. No preview image or pointer is generated. Raw passthrough uses the existing MF backend, including source/driver scheduling; it is not a direct electrical sensor measurement.
+* **Full pointer:** normal guarded capture, latest-frame handoff, model, calibration and the shared desktop preview. Select display/hand in Calibration and check Desktop Ghost preview plus the local image before deliberately enabling. Pocket actions remain unqualified/disabled. Stop by150 seconds; cooperative cancellation170 seconds, independent cutoff178 seconds, approved ceiling180 seconds.
+
+No images, video or raw landmark streams are saved. Bounded metadata overwrites one worker file, then final host/pointer summaries. Local image preview exists only in memory in full tracking. Rate fields distinguish native samples, converted frames, completed inference, host accepted observations, accepted logical pointer updates and unique local-preview presentations. None is optical-to-display latency. Rates are observed averages, not nominal camera metadata. Pointer updates do not require label polling or Tracking focus; no artificial intermediate positions are generated.
+
+For a future supervised comparison, keep selected device/mode, hand/display mapping and working distance consistent. If the creator agrees, note ordinary/even-light intervals explicitly in both phases; do not change global exposure. Observe PTS intervals and native read-completion intervals separately. Confirm native shutdown, independent worker exit, guardian release and indicator OFF before considering any second authorized session. An uncertain release blocks continuation.
+
+Interpretation: raw≈10/s implicates source/driver/MF-native delivery before app copy; raw≈30 but conversion≈10 implicates output processing/copy; converted≈30 but inference≈10 implicates model/scheduling; worker≈30 but pointer≈10 implicates host/presentation. Multiple causes can coexist. Advertised30Hz alone proves none of these.

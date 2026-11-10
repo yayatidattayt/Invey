@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -98,6 +99,10 @@ internal static partial class Program
                 Require(image.GetProperty("PreviewResult").GetProperty("RepeatedImagePollsDeduplicated").GetBoolean(),"WPF preview repeated-image regression failed.");
                 var practice=await Send("ghost-practice-ui");
                 Require(practice.GetProperty("PreviewResult").GetProperty("GuidedLesson").GetBoolean(),"Tracking UI gesture lesson failed.");
+                var delivery=await Send("ghost-observation-delivery");
+                var cadence=delivery.GetProperty("PreviewResult").GetProperty("ObservationDelivery");
+                Require(cadence.GetArrayLength()==2,"30/60Hz WPF delivery measurements missing.");
+                File.WriteAllText(Path.Combine(output,"observation-delivery.json"),cadence.GetRawText());
 
                 // Real mouse drag on A with shared Ghost input on B, checking rendered local positions.
                 await FocusTrackingAsync(client,ProductHandle(editorState));AccessKey(0x57);

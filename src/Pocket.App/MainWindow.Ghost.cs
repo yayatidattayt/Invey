@@ -34,6 +34,11 @@ public partial class MainWindow
         DesktopGhost.Gestures.Observe(hand,context,hand.ResultMonoMs+(long)(snapshot.HostObservationAge?.TotalMilliseconds??150));
     }
     internal void EnableDesktopPreviewFixture()=>_tracking?.EnableDesktopPreviewFixture();
+    internal async System.Threading.Tasks.Task<object> ExerciseObservationDeliveryFixtureAsync()
+    {
+        AcceptanceHost.ValidateDesktop(); OpenTrackingLab(this,new RoutedEventArgs());
+        return await _tracking!.ExerciseObservationDeliveryAsync(DesktopGhost);
+    }
     internal async System.Threading.Tasks.Task<object> ExerciseGesturePracticeFixtureAsync()
     {
         AcceptanceHost.ValidateDesktop();OpenTrackingLab(this,new RoutedEventArgs());

@@ -103,3 +103,6 @@ Second separately approved session127297ms released; ledger12 released,total1054
 ## Execution24 camera-free capture candidate —2026-11-10
 
 Direct RGB copy synthetic1080p7.90→6.16ms, identical pixels; offered-only30Hz format policy with explicit size/rate negotiation and legacy fallback; bounded PTS/delivery diagnostics. No inference resizing adopted: larger still fixtures lost detection, retained as negative evidence. Core171/config,workers32,native focused product PASS; broader Pocket native blocked by service foreground,3 failures preserved. No physical30FPS/live improvement claim, no camera or ledger change. Presentation wrapper and guide supplied. See EXECUTION_24_REPORT.md; camera cap remains exhausted.
+
+## Execution25 —2026-11-10
+Native-file raw→RGB conversion verified on same MF reader. Raw includes native reader/driver scheduling. Actual ASUS cadence/negotiation, mixed-DPI, stationary jitter and finger-only acceptance UNVERIFIED. WPF event delivery independent of label/image polling; no ordinary-desktop input/live action issuer. See docs/EXECUTION_25_REPORT.md for full evidence.

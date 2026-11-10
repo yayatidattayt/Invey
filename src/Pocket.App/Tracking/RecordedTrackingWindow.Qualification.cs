@@ -54,6 +54,38 @@ internal sealed partial class RecordedTrackingWindow
             if(host.Gestures.Last?.Transition!=GhostGestureTransition.Stopped)throw new InvalidOperationException("Source change did not invalidate gesture context.");
             return new{ActualTrackingUi=true,GuidedLesson=true,CameraProtocolFixture=true,CameraOpened=false,SharedPointer=true,PinchProposal=true,ReleaseProposal=true,ProductionActionsDenied=true,SourceReplacementCanceled=true};
         }
-        finally {_learningFixture=null;host.Stop();Render();}
+        finally {_learningFixture=null;host.Stop();_refresh.Start();Render();}
+    }
+
+    internal async Task<object> ExerciseObservationDeliveryAsync(GhostDesktopHost host)
+    {
+        AcceptanceHost.ValidateDesktop();
+        EnableDesktopPreviewFixture();
+        Guid source = Guid.NewGuid(); long sequence = 0;
+        try
+        {
+            var delivery = new System.Collections.Generic.List<object>();
+            _refresh.Stop(); // Prove that label/image polling is not driving the shared pointer.
+            foreach (int hz in new[] { 30, 60 })
+            {
+                long before = host.PointerUpdates;
+                var elapsed = System.Diagnostics.Stopwatch.StartNew();
+                for (int i = 0; i < hz; i++)
+                {
+                    long now = Environment.TickCount64;
+                    var sample = _calibration.LearningFixtureObservation(source, sequence, new(.5 + .03 * Math.Sin(i * .1), .5));
+                    _learningFixture = sample with { Source = TrackingSource.Recorded, Observation = sample.Observation! with {
+                        Sequence = sequence++, CaptureMonoMs = now, ResultMonoMs = now } };
+                    _pointerNotification.Signal();
+                    await Task.Delay(TimeSpan.FromMilliseconds(1000d / hz));
+                }
+                long updates = host.PointerUpdates - before;
+                if (updates < hz * .8) throw new InvalidOperationException($"{hz}Hz fixture delivered only {updates} positions with label polling disabled.");
+                delivery.Add(new { NominalInputHz = hz, Updates = updates, ElapsedMs = elapsed.Elapsed.TotalMilliseconds,
+                    ActualPointerUpdatesPerSecond = updates / elapsed.Elapsed.TotalSeconds, LabelPolling = false, CameraOpened = false });
+            }
+            return new { Evidence = "SYNTHETIC_OBSERVATIONS_ACTUAL_WPF_SHARED_POINTER", ObservationDelivery = delivery };
+        }
+        finally { _learningFixture = null; host.Stop(); _refresh.Start(); Render(); }
     }
 }

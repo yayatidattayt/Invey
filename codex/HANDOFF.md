@@ -1,3 +1,9 @@
+# Execution25 current handoff —2026-11-10
+
+Camera-free preparation on existing PR9 from421376cb4efc3f4ed402e8cd39699fc003e91706. Guarded raw-native→conversion (same reader/type, no inference) and full-pointer diagnostics accessible in Tracking; camera-off launcher scripts/Start-Invey-PerformanceCheck.ps1. Old12-start cap still EXHAUSTED, version6/12 released/1054077ms/0pending, SHA E578B2FE328B260AE02277E318BAFA66DE8525A7B1B3CAC34459B0CC15A59486. No amendment or physical authorization. Read docs/EXECUTION_25_REPORT.md and docs/GHOST_CAMERA_PERFORMANCE_CHECK.md.
+
+Desktop callback was tied to Render (80ms default,16ms with image,25ms calibration). Accepted-message bounded dispatcher wakeup now drives fresh positions independently. Actual WPF labels-off fixtures delivered27/30 and60/60 injected positions.176 core/config,36 workers,0 skips. No webcam/compositor FPS claim. Reason entries/durations differ from UI polls and worker events. Filter, warmup and action gates unchanged; no interpolation/live issuer. Historical physical quality FAILED; source30FPS and physical improvement UNVERIFIED. Final regression/delivery/cleanup follow in report addendum and artifacts/execution-25/final-delivery.json. Preserve every failure and parent PR.
+
 # Execution24 current handoff —2026-11-10
 
 Camera-free capture candidate on existing PR9 branch, starting031fad31c1867a50ad80e15242f72ee0f4e1655a. Direct owned RGB copy reduces synthetic1080p median conversion7.90→6.16ms, pixels equal, signed-stride/ownership tested. Offered-only mode ranking prioritizes>=30Hz VGA/720p; explicit native size/rate RGB negotiation retains subtype-only fallback. Original copy path viaINVEY_RGB_COPY_BASELINE=1. New native PTS/delivery/blocking/output-rate and handoff-age diagnostics are bounded. No inference resize, advanced processor, GPU, new backend, interpolation, gesture authority or warmup relaxation.

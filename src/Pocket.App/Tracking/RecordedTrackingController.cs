@@ -69,16 +69,19 @@ internal sealed class RecordedTrackingController
         _root = root ?? Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
 
     public TrackingSnapshot Read() => _session.Read();
+    // Raised on the reader thread. Subscribers may only enqueue bounded dispatcher work.
+    internal event Action? SnapshotChanged;
     public int? LastWorkerPid => _lastPid > 0 ? _lastPid : null;
     public bool ForcedStop => _forcedStop;
     public string? WorkerPhase => _workerPhase;
     public string? WorkerNativeCode => _workerNativeCode;
     public bool CanStart => _run.IsCompleted && _session.Tick() is TrackingState.Off or TrackingState.Stopped or TrackingState.Unavailable;
 
-    public bool Start(CameraDevice? device, string? fixtureFile = null, string? testFault = null, bool preview = false)
+    public bool Start(CameraDevice? device, string? fixtureFile = null, string? testFault = null, bool preview = false, string? performance = null)
     {
         var source = device is null || fixtureFile is not null ? TrackingSource.Recorded : TrackingSource.Camera;
         bool boundedCamera = source == TrackingSource.Camera && testFault is null && HasDiagnostics;
+        if (performance is not null && (!boundedCamera || performance is not ("capture" or "full"))) return false;
         if (!CanStart || (boundedCamera && !DiagnosticBudget(refresh: true).Available) || _session.Enable(source) is not { } id) return false;
         _stop?.Dispose();
         _stop = new CancellationTokenSource();
@@ -90,7 +93,7 @@ internal sealed class RecordedTrackingController
         _workerPhase = null;
         _workerNativeCode = null;
         var token = _stop.Token;
-        _run = Task.Run(() => RunAsync(id, device, fixtureFile, testFault, diagnostics, preview, token));
+        _run = Task.Run(() => RunAsync(id, device, fixtureFile, testFault, diagnostics, preview, performance, token));
         return true;
     }
 
@@ -98,6 +101,7 @@ internal sealed class RecordedTrackingController
     {
         if (_stop?.IsCancellationRequested == false) _explicitStop = true;
         _session.Stop(); // Invalidate the observation before awaiting worker cleanup.
+        SnapshotChanged?.Invoke();
         _stop?.Cancel();
         await _run;
         if (_unconfirmedWorker is { } worker && await WaitForExitAsync(worker, TimeSpan.FromMilliseconds(500)))
@@ -110,7 +114,7 @@ internal sealed class RecordedTrackingController
     }
 
     private async Task RunAsync(Guid id, CameraDevice? device, string? fixtureFile, string? testFault,
-        string? diagnostics, bool preview, CancellationToken stop)
+        string? diagnostics, bool preview, string? performance, CancellationToken stop)
     {
         Process? worker = null;
         CameraBudgetGuard? budgetGuard = null;
@@ -129,6 +133,8 @@ internal sealed class RecordedTrackingController
         {
             stop.ThrowIfCancellationRequested();
             var start = TrackingStartInfo(id, device, fixtureFile, testFault);
+            if (performance is not null)
+            { start.ArgumentList.Add("--performance"); start.ArgumentList.Add(performance); }
             if (diagnostics is not null)
             {
                 start.ArgumentList.Add("--diagnostics");
@@ -175,10 +181,12 @@ internal sealed class RecordedTrackingController
                 if (stop.IsCancellationRequested) break;
                 if (message is null or TrackerStopped)
                 {
-                    _session.ReportFailure(id, TrackingFailure.WorkerExited);
+                    if (message is TrackerStopped && performance == "capture") _session.Stop();
+                    else _session.ReportFailure(id, TrackingFailure.WorkerExited);
                     break;
                 }
                 bool accepted = _session.Accept(message);
+                if (accepted) SnapshotChanged?.Invoke();
                 if (message is HandObservation observation)
                 {
                     if (accepted)
@@ -267,6 +275,7 @@ internal sealed class RecordedTrackingController
             }
             if (budgetGuard is not null) await budgetGuard.DisposeAsync();
             _budgetReadAt = 0;
+            SnapshotChanged?.Invoke();
             if (diagnostics is not null)
             {
                 var final = _session.Read();
@@ -291,6 +300,36 @@ internal sealed class RecordedTrackingController
                 { Trace.TraceWarning("Tracking diagnostic write failed: 0x{0:X8}", ex.HResult); }
             }
         }
+    }
+
+    private Guid? _performanceSession;
+    private long _performanceReadAt;
+    private string _performanceText = "Native / model rates: waiting for diagnostic metadata";
+    public string PerformanceSummary(TrackingSnapshot snapshot)
+    {
+        if (_performanceSession != snapshot.SessionId)
+        { _performanceSession = snapshot.SessionId; _performanceReadAt = 0; _performanceText = "Native / model rates: not measured"; }
+        if (Environment.TickCount64 - _performanceReadAt < 1000) return _performanceText;
+        _performanceReadAt = Environment.TickCount64;
+        if (_diagnostics is null || snapshot.SessionId is not { } id) return _performanceText;
+        try
+        {
+            var path = Path.Combine(_diagnostics, id + ".worker.json");
+            if (!File.Exists(path) || new FileInfo(path).Length > 128 * 1024) return _performanceText;
+            using var document = JsonDocument.Parse(File.ReadAllText(path));
+            var root = document.RootElement;
+            if (!root.TryGetProperty("session", out var session) || session.GetString() != id.ToString()) return _performanceText;
+            string mode = root.TryGetProperty("measurementMode", out var m) ? m.GetString() ?? "tracking" : "tracking";
+            if (!root.TryGetProperty("liveMeasurement", out var measurement)) return _performanceText;
+            var rates = measurement.GetProperty("rates");
+            string Rate(string key) => rates.TryGetProperty(key, out var value) ? value.GetDouble().ToString("F1") : "—";
+            string format = root.TryGetProperty("selectedNativeFormat", out var f)
+                ? $"{f.GetProperty("width")}×{f.GetProperty("height")} nominal {f.GetProperty("fps")} Hz" : "format unavailable";
+            _performanceText = $"{mode} · {format}\nNative {Rate("uniqueNativeSamples")} / converted {Rate("convertedFrames")} / model {Rate("inferenceCompleted")} frames/s";
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException or KeyNotFoundException)
+        { _performanceText = "Diagnostic metadata unavailable · Stop remains available"; }
+        return _performanceText;
     }
 
     private ProcessStartInfo WorkerStartInfo()

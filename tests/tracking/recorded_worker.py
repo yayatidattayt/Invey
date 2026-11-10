@@ -162,6 +162,26 @@ def stream(args, pipe, stop, diagnostic=None):
 
     sys.path.insert(0, str(args.site_packages))
     sys.path.insert(0, str(Path(__file__).resolve().parent))
+    if args.performance == "capture":
+        from windows_camera import open_source, CameraError
+        from performance_check import run_capture_check
+        import numpy as np
+        if not args.camera or diagnostic is None:
+            raise ValueError("Capture check requires the selected guarded camera and diagnostics")
+        # The host guardian has already reserved the session before sending start.
+        try:
+            with open_source(np, device=args.camera, diagnostic=diagnostic, native_only=True) as source:
+                run_capture_check(source, stop, send, diagnostic)
+        except CameraError as error:
+            diagnostic.data["error"] = error.code
+            if error.native_code is not None:
+                diagnostic.data["hresult"] = f"0x{error.native_code:08X}"
+            send("error", code=error.code)
+        except (RuntimeError, ValueError, OSError) as error:
+            if isinstance(error, BrokenPipeError):
+                raise
+            send("error", code="runtime-failure")
+        return
     try:
         phase("importing")
         from qualify_hand_landmarker import MODEL_HASH, PHOTO_HASH, checked_bytes, mp, np, Image, ImageOps
@@ -204,6 +224,8 @@ def stream(args, pipe, stop, diagnostic=None):
                     source = resources.enter_context(open_source(np, None, args.fixture_file, diagnostic))
             send("ready")
             phase("ready")
+            if diagnostic:
+                diagnostic.begin_mode("full")
             if args.fault == "crash":
                 os._exit(7)
             if args.fault == "malformed":
@@ -256,6 +278,7 @@ def main():
     parser.add_argument("--palm", type=Path)
     parser.add_argument("--diagnostics", type=Path)
     parser.add_argument("--preview-pipe")
+    parser.add_argument("--performance", choices=["capture", "full"])
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--camera")
     source.add_argument("--fixture-file", type=Path)

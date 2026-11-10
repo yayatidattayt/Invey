@@ -13,9 +13,17 @@ internal sealed partial class RecordedTrackingWindow : Window
 {
     private readonly RecordedTrackingController _controller = new();
     private readonly DispatcherTimer _refresh = new() { Interval = TimeSpan.FromMilliseconds(80) };
+    private readonly LatestNotification _pointerNotification;
+    private long _freshPointerObservations, _lastPointerSequence = -1;
+    private Guid? _pointerSession;
+    private readonly System.Diagnostics.Stopwatch _pointerClock = new();
+    private readonly System.Collections.Generic.List<double> _deliveryAges = [];
+    private string? _runningPerformance;
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 16, 0, 12) };
     private readonly TextBlock _sourceStatus = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
     private readonly TextBlock _budgetStatus = new() { TextWrapping = TextWrapping.Wrap, Margin = new(0, 6, 0, 6) };
+    private readonly ComboBox _performanceMode = new() { ItemsSource = new[] { "Normal tracking", "Performance check · raw → conversion (30 s each)", "Performance check · full pointer (no actions)" }, SelectedIndex = 0, MinHeight = 28 };
+    private readonly TextBlock _performance = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBlock _inventoryStatus = new()
     {
         TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0)
@@ -60,6 +68,9 @@ internal sealed partial class RecordedTrackingWindow : Window
     internal event Action<Guid,LearningContext,GhostGestureCalibration>? GesturePracticeReady;
     private readonly CheckBox _desktopPreview=new(){Content="Desktop Ghost preview · no live actions"};
     internal Func<string>? DesktopStatus { get; set; }
+    internal Func<long>? DesktopUpdateCount { get; set; }
+    internal Func<object>? DesktopMetrics { get; set; }
+    private long _pointerUpdateStart;
     private readonly TextBlock _desktopStatus=new(){TextWrapping=TextWrapping.Wrap};
     private readonly TextBlock _qualification=new(){TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,6,0,6)};
     private readonly ScrollViewer _trackingScroll=new(){VerticalScrollBarVisibility=ScrollBarVisibility.Visible,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,CanContentScroll=false};
@@ -68,6 +79,8 @@ internal sealed partial class RecordedTrackingWindow : Window
         string? testSettingsPath = null, bool acceptanceHost = false, string? profileSettingsPath = null,
         bool profileWritable = true)
     {
+        _pointerNotification = new LatestNotification(
+            action => Dispatcher.BeginInvoke(DispatcherPriority.Input, action), DeliverDesktopObservation);
         _fixtureFile = fixtureFile;
         _gesturePractice.Ready+=(source,context,calibration)=>GesturePracticeReady?.Invoke(source,context,calibration);
         _fixtureCameraFault = fixtureCameraFault;
@@ -134,6 +147,8 @@ internal sealed partial class RecordedTrackingWindow : Window
         SystemEvents.UserPreferenceChanged += UserPreferenceChanged;
         Closed += (_, _) =>
         {
+            _controller.SnapshotChanged -= _pointerNotification.Signal;
+            _pointerNotification.Dispose();
             DesktopPreviewChanged?.Invoke(false);
             SystemEvents.DisplaySettingsChanged -= DisplaySettingsChanged;
             SystemEvents.UserPreferenceChanged -= UserPreferenceChanged;
@@ -144,6 +159,9 @@ internal sealed partial class RecordedTrackingWindow : Window
         _deviceOptions.Children.Add(new Label { Content = "_Device", Target = _devices, Padding = new Thickness(0, 0, 0, 4) });
         _deviceOptions.Children.Add(_devices);
         _deviceOptions.Children.Add(_inventoryStatus);
+        AutomationProperties.SetName(_performanceMode, "Ghost Camera Performance Check");
+        _deviceOptions.Children.Add(new Expander { Header = "Ghost Camera Performance Check", Content = new StackPanel { Children = {
+            new TextBlock { Text = "Choose a check, then Enable yourself. Raw and conversion share one camera start. No images are saved; Pocket actions stay disabled.", TextWrapping = TextWrapping.Wrap }, _performanceMode } } });
         var setup=new StackPanel {Margin=new Thickness(20,16,20,8),Children={
             new TextBlock{Text="Ghost Tracking",FontSize=20,FontWeight=FontWeights.SemiBold},
             new TextBlock{Text="1. Choose a source. Camera stays off until you press Enable.",TextWrapping=TextWrapping.Wrap},
@@ -158,6 +176,7 @@ internal sealed partial class RecordedTrackingWindow : Window
                 _showPreview,
                 _desktopPreview,
                 _desktopStatus,
+                new Expander { Header = "Performance dashboard", Content = _performance },
                 _liveView,
                 _previewStatus,
                 _mirrorCamera,
@@ -178,6 +197,7 @@ internal sealed partial class RecordedTrackingWindow : Window
         Height=Math.Min(760,MaxHeight);
         Loaded+=(_,_)=>_trackingScroll.ScrollToTop();
         _visible = _learningFixture ?? _controller.Read();
+        _controller.SnapshotChanged += _pointerNotification.Signal;
         _inventoryStatus.Text = "Find connected cameras, then choose one to enable.";
         Render();
         _refresh.Tick += (_, _) => Render();
@@ -219,10 +239,12 @@ internal sealed partial class RecordedTrackingWindow : Window
     {
         bool live = _live.IsChecked == true;
         var device = _devices.SelectedItem as CameraDevice;
+        string? performance = live ? _performanceMode.SelectedIndex switch { 1 => "capture", 2 => "full", _ => null } : null;
         bool started = !_stopping && !_closing && _scan is null && (!live || device is not null) &&
             _controller.Start(live ? device : null, live ? _fixtureFile : null,
-                live ? _fixtureCameraFault : fixtureFault, _showPreview.IsChecked == true && fixtureFault != "calibration-practice");
+                live ? _fixtureCameraFault : fixtureFault, _showPreview.IsChecked == true && fixtureFault != "calibration-practice" && performance != "capture", performance);
         _startedInMode |= started;
+        if (started) _runningPerformance = performance;
         if(started&&live){_calibrationDetails.IsExpanded=false;_trackingScroll.ScrollToTop();}
         Render();
         return started;
@@ -278,6 +300,7 @@ internal sealed partial class RecordedTrackingWindow : Window
 
     private async Task<bool> StopCoreAsync()
     {
+        Guid? diagnosticSession = _controller.Read().SessionId;
         _stopping = true;
         try
         {
@@ -289,6 +312,23 @@ internal sealed partial class RecordedTrackingWindow : Window
         {
             _stopping = false;
             Render();
+            if (diagnosticSession is { } id && RecordedTrackingController.DiagnosticDirectory is { } directory)
+            {
+                try
+                {
+                    System.IO.File.WriteAllText(System.IO.Path.Combine(directory, id + ".pointer.json"),
+                        System.Text.Json.JsonSerializer.Serialize(new { Session = id, Evidence = "UI_OBSERVED_NOT_SENSOR",
+                            FreshDeliveries = _freshPointerObservations, PointerUpdates = (DesktopUpdateCount?.Invoke() ?? 0) - _pointerUpdateStart,
+                            ElapsedMs = _pointerClock.Elapsed.TotalMilliseconds, _pointerNotification.Notifications,
+                            _pointerNotification.Coalesced, _pointerNotification.Deliveries,
+                            HostReceiveToDispatchMs = _deliveryAges.Count == 0 ? null : new {
+                                Median = _deliveryAges.Order().ElementAt(_deliveryAges.Count / 2),
+                                P95 = _deliveryAges.Order().ElementAt((int)Math.Ceiling(.95 * _deliveryAges.Count) - 1) },
+                            Mapping = DesktopMetrics?.Invoke() }));
+                }
+                catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException)
+                { System.Diagnostics.Trace.TraceWarning("Pointer diagnostic write failed: 0x{0:X8}", error.HResult); }
+            }
         }
     }
 
@@ -320,13 +360,30 @@ internal sealed partial class RecordedTrackingWindow : Window
         await CloseAsync();
     }
 
+    private void DeliverDesktopObservation()
+    {
+        if (_closing || _allowClose) return;
+        var snapshot = _learningFixture ?? _controller.Read();
+        if (snapshot.SessionId.HasValue && _pointerSession != snapshot.SessionId)
+        { _pointerSession = snapshot.SessionId; _lastPointerSequence = -1; _freshPointerObservations = 0; _deliveryAges.Clear(); _pointerUpdateStart = DesktopUpdateCount?.Invoke() ?? 0; _pointerClock.Restart(); }
+        if (snapshot.State is TrackingState.Stopped or TrackingState.Stopping or TrackingState.Unavailable or TrackingState.Off) _pointerClock.Stop();
+        if (_desktopPreview.IsChecked != true) return;
+        if (snapshot.Observation is { } hand && hand.Sequence != _lastPointerSequence)
+        { _lastPointerSequence = hand.Sequence; _freshPointerObservations++; if (_deliveryAges.Count < 1500 && snapshot.HostObservationAge is { } age) _deliveryAges.Add(age.TotalMilliseconds); }
+        DesktopPointerChanged?.Invoke(snapshot, _calibration.DesktopContext(snapshot, snapshot.Source == TrackingSource.Camera
+            ? (_devices.SelectedItem as CameraDevice)?.Id ?? "unknown" : _recordedDemo.SelectedIndex == 1 ? "simulated-practice" : "recorded-model"),
+            null, _learning.AcceptedPreviewModel);
+    }
+
     private void Render()
     {
         _visible = _learningFixture ?? _controller.Read();
+        if (_learningFixture is not null) _pointerNotification.Signal();
         bool live = _live.IsChecked == true;
         bool available = !_closing && !_stopping && _scan is null && _controller.CanStart;
         _live.IsEnabled = _recorded.IsEnabled = _find.IsEnabled = available;
         _devices.IsEnabled = available;
+        _performanceMode.IsEnabled = available && _controller.HasDiagnostics;
         bool simulated = !live && _recordedDemo.SelectedIndex == 1;
         _showPreview.IsEnabled = available && !simulated;
         _showPreview.ToolTip = simulated ? "Simulated practice uses landmarks only, with no video." : null;
@@ -343,11 +400,11 @@ internal sealed partial class RecordedTrackingWindow : Window
         if (!budgetAvailable) _start.ToolTip = budget!.Message;
         else _start.ToolTip = null;
         _stop.IsEnabled = !_stopping && _visible.SessionId.HasValue;
-        bool showing = !simulated && _showPreview.IsChecked == true && _visible.SessionId.HasValue &&
+        bool showing = _runningPerformance != "capture" && !simulated && _showPreview.IsChecked == true && _visible.SessionId.HasValue &&
             _visible.State is not (TrackingState.Stopping or TrackingState.Unavailable);
         var frame = showing ? _controller.ReadPreview(_previewTiming.SelectedIndex == 0 ? _visible.Observation?.Sequence : null) : null;
         _liveView.Update(frame, _visible.Observation, _mirrorCamera.IsChecked == true);
-        _previewStatus.Text = !showing ? (simulated ? "SIMULATED landmarks only. No camera image is used." : live&&_showPreview.IsChecked==true?"Camera off · Enable shows the local image here.":"") : _controller.PreviewFailed ?
+        _previewStatus.Text = !showing ? (_runningPerformance == "capture" && _visible.SessionId.HasValue ? "Performance check: metadata only · no inference or image preview. See Performance dashboard. Raw 30 s, then conversion 30 s, then automatic release." : simulated ? "SIMULATED landmarks only. No camera image is used." : live&&_showPreview.IsChecked==true?"Camera off · Enable shows the local image here.":"") : _controller.PreviewFailed ?
             "Live view is unavailable. Tracking and Stop remain available." :
             frame is null ? "Waiting for the local camera view…" :
             $"Preview: {_liveView.UniquePresentedFps:F1} unique frames/s · local frame age: {Environment.TickCount64 - frame.ReceivedMs} ms. " +
@@ -372,10 +429,13 @@ internal sealed partial class RecordedTrackingWindow : Window
         _learning.Observe(_visible, input.Context, input.Point, _calibration.PracticeHeld, _calibration.LearningSetupIssue);
         _gesturePractice.Update(_visible,_calibration.DesktopContext(_visible,_visible.Source==TrackingSource.Camera
             ? (_devices.SelectedItem as CameraDevice)?.Id??"unknown" : _recordedDemo.SelectedIndex==1?"simulated-practice":"recorded-model"));
-        if(_desktopPreview.IsChecked==true)
-            DesktopPointerChanged?.Invoke(_visible,_calibration.DesktopContext(_visible,_visible.Source==TrackingSource.Camera
-                ? (_devices.SelectedItem as CameraDevice)?.Id??"unknown" : _recordedDemo.SelectedIndex==1?"simulated-practice":"recorded-model"),null,_learning.AcceptedPreviewModel);
+        // Polling handles expiry/Stop only; fresh positions arrive independently via the bounded wakeup.
+        if (_visible.Observation is null) DeliverDesktopObservation();
         _desktopStatus.Text=_desktopPreview.IsChecked==true ? "Desktop Ghost · "+(DesktopStatus?.Invoke()??"Preview unavailable") : "";
+        _performance.Text = _controller.PerformanceSummary(_visible) +
+            $"\nHost accepted {_visible.AcceptedObservations} · pointer {((DesktopUpdateCount?.Invoke() ?? 0) - _pointerUpdateStart) / Math.Max(.001, _pointerClock.Elapsed.TotalSeconds):F1} updates/s · preview {_liveView.UniquePresentedFps:F1} unique/s" +
+            $"\nAge {_visible.HostObservationAge?.TotalMilliseconds:F0} ms · {_visible.State} · {_cameraStatus} · {(_stopping ? "Stop requested" : "Stop available during run")}" +
+            $"\n{(_desktopPreview.IsChecked == true ? DesktopStatus?.Invoke() : "Desktop preview off")} · coalesced {_pointerNotification.Coalesced}";
         var selectedContext=_calibration.DesktopContext(_visible,(_devices.SelectedItem as CameraDevice)?.Id??"recorded");
         _qualification.Text=$"{(_devices.SelectedItem as CameraDevice)?.Name??"No camera selected"} · "+
             (selectedContext is {} configured?$"Display {configured.Display.Number} · {(configured.Hand==1?"Left":"Right")} hand · Mirror {(configured.Mirror?"on":"off")}":"Choose display and hand in Calibration")+

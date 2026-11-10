@@ -1,7 +1,7 @@
 namespace Pocket.Core.Tracking;
 
 /// <summary>Raw validated observation → calibration → compatible personal correction → one filter → physical desktop.</summary>
-public sealed class GhostTrackingMapper
+public sealed class GhostTrackingMapper(TimeProvider? clock = null)
 {
     private FingerPointer _eligibility = new(false);
     private readonly PrecisionPointFilter _filter=new();
@@ -12,18 +12,57 @@ public sealed class GhostTrackingMapper
     public GhostProvenance Provenance { get; private set; }
     private string _status="Pointer preview off";
     private readonly Dictionary<string,long> _rejectionPolls=[];
+    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
+    private readonly Dictionary<string,long> _reasonEntries = [];
+    private readonly Dictionary<string,double> _reasonMilliseconds = [];
+    private long? _reasonSince;
+    public IReadOnlyDictionary<string,long> ReasonEntries => _reasonEntries;
+    public IReadOnlyDictionary<string,double> ReasonMilliseconds
+    {
+        get
+        {
+            var result = new Dictionary<string,double>(_reasonMilliseconds);
+            if (_reasonSince is { } start)
+                result[_status] = result.GetValueOrDefault(_status) + _clock.GetElapsedTime(start).TotalMilliseconds;
+            return result;
+        }
+    }
     /// <summary>UI-observed rejection polls, not worker frames; bounded reason vocabulary.</summary>
     public IReadOnlyDictionary<string,long> UiRejectionPolls=>_rejectionPolls;
-    public string Status {get=>_status;private set{_status=value;if(!value.StartsWith("Pointer preview active",StringComparison.Ordinal))_rejectionPolls[value]=_rejectionPolls.GetValueOrDefault(value)+1;}}
-    public void Reset(){_eligibility=new(false);_filter.Reset();_context=null;_session=null;_sequence=-1;_position=null;}
+    public string Status
+    {
+        get => _status;
+        private set
+        {
+            if (!value.StartsWith("Pointer preview active",StringComparison.Ordinal))
+                _rejectionPolls[value] = _rejectionPolls.GetValueOrDefault(value) + 1;
+            if (value == _status && _reasonSince.HasValue) return;
+            long now = _clock.GetTimestamp();
+            if (_reasonSince is { } start)
+                _reasonMilliseconds[_status] = _reasonMilliseconds.GetValueOrDefault(_status) + _clock.GetElapsedTime(start, now).TotalMilliseconds;
+            _status = value; _reasonSince = now;
+            _reasonEntries[value] = _reasonEntries.GetValueOrDefault(value) + 1;
+        }
+    }
+    private void ResetState(){_eligibility=new(false);_filter.Reset();_context=null;_session=null;_sequence=-1;_position=null;}
+    public void Reset(){ResetState();Status="Pointer preview off";_reasonSince=null;}
     public DipPoint? Map(TrackingSnapshot snapshot,LearningContext? context,PersonalModel? model)
     {
         if(context is not { IsValid:true } c || snapshot.SessionId is null || snapshot.Observation is not { } hand ||
             context.Source!=snapshot.Source?.ToString() || hand.FrameSize is not { } frame ||
-            frame.Width!=context.FrameWidth || frame.Height!=context.FrameHeight) { Reset();Status=context is null?"Choose display and hand in Calibration":"Finger evidence or calibration context unavailable";return null; }
+            frame.Width!=context.FrameWidth || frame.Height!=context.FrameHeight)
+        {
+            ResetState();
+            Status = context is null ? "Choose display and hand in Calibration" : snapshot.State switch {
+                TrackingState.Lost => "No hand detected", TrackingState.Stale => "Tracking observation expired",
+                TrackingState.Ambiguous => "Multiple hands detected", TrackingState.Stopping => "Tracking stopping",
+                TrackingState.Stopped or TrackingState.Off or TrackingState.Unavailable => "Tracking off or unavailable",
+                _ => "Finger evidence or calibration context unavailable" };
+            return null;
+        }
         var accepted=model is { IsValid:true } && model.Context==c ? model : null;
         if(c!=_context || snapshot.SessionId!=_session || accepted?.Id!=_model)
-        { Reset();_context=c;_session=snapshot.SessionId;_model=accepted?.Id; }
+        { ResetState();_context=c;_session=snapshot.SessionId;_model=accepted?.Id; }
         var sample=_eligibility.ObserveDesktopPreview(snapshot,c.Hand==1?HandSide.Left:HandSide.Right);
         if(sample.Position is null){Status=sample.State==FingerPointerState.WrongHand?"Selected hand not detected":$"Finger preview · {sample.State}";_position=null;_filter.Reset();return null;}
         if(hand.Sequence==_sequence)return _position;
