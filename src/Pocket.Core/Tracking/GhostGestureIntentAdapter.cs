@@ -56,6 +56,7 @@ public sealed class GhostGestureIntentAdapter
     public GhostGestureTransition Transition => _transition;
     public bool LiveActionsEnabled => false;
     public bool IsHolding => _held;
+    internal object DiagnosticState => new { Sequence=_sequence,CaptureMs=_lastCapture,NeutralSeen=_neutralSeen,CandidateSince=_candidateSince,Held=_held };
 
     public GhostGestureResult Begin(Guid session, GhostGestureCalibration calibration)
     {

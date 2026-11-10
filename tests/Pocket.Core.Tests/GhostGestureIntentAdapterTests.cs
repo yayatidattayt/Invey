@@ -6,6 +6,19 @@ namespace Pocket.Core.Tests;
 
 public sealed class GhostGestureIntentAdapterTests
 {
+    [Theory]
+    [InlineData(250,false)]
+    [InlineData(251,true)]
+    public void Capture_gap_boundary_requires_a_new_open_hand_after_reset(int gap,bool resets)
+    {
+        var adapter=new GhostGestureIntentAdapter();var session=Guid.NewGuid();adapter.Begin(session,Calibration());
+        Observe(adapter,session,0,1000,false);
+        var next=Observe(adapter,session,1,1000+gap,true);
+        Assert.Equal(resets?GhostGestureTransition.TrackingLost:GhostGestureTransition.PinchCandidate,next.Transition);
+        if(resets){var blocked=Observe(adapter,session,2,1040+gap,true);Assert.Equal(GhostGestureTransition.Neutral,blocked.Transition);Assert.Equal("Open your hand before starting a new pinch.",blocked.Reason);Assert.False(adapter.IsHolding);}
+        Assert.False(next.MayExecute);
+    }
+
     [Fact]
     public void FullFreshSelectedHandProducesDwelledTransitionsButNeverDispatches()
     {

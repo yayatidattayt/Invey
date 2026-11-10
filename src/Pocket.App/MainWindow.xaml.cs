@@ -60,8 +60,11 @@ public partial class MainWindow : Window
             { Status.Text = "Could not restore the Pocket library."; }
         };
     }
-    internal object SpatialFixture()
+    internal async Task<object> SpatialFixture()
     {
+        SystemCommands.MaximizeWindow(this);await Task.Delay(150);UpdateLayout();bool maximized=WindowState==WindowState.Maximized;
+        SystemCommands.RestoreWindow(this);await Task.Delay(150);UpdateLayout();bool restored=WindowState==WindowState.Normal;
+        if(!maximized||!restored)throw new InvalidOperationException("Shell maximize/restore failed.");
         HomeScroll.ScrollToTop(); UpdateLayout();
         var timer=System.Diagnostics.Stopwatch.StartNew();
         var bitmap=new System.Windows.Media.Imaging.RenderTargetBitmap((int)ActualWidth,(int)ActualHeight,96,96,System.Windows.Media.PixelFormats.Pbgra32);
@@ -74,6 +77,10 @@ public partial class MainWindow : Window
         ToggleNavigation(this,new());bool expanded=Navigation.Width==156;
         return new { Compact=compact,Expanded=expanded,CameraOff=!DesktopGhost.TrackingEnabled,RenderMs=timer.Elapsed.TotalMilliseconds,Image=image };
     }
+    private void MinimizeShell(object sender,RoutedEventArgs e)=>SystemCommands.MinimizeWindow(this);
+    private void MaximizeShell(object sender,RoutedEventArgs e)
+    {if(WindowState==WindowState.Maximized)SystemCommands.RestoreWindow(this);else SystemCommands.MaximizeWindow(this);}
+    private void CloseShell(object sender,RoutedEventArgs e)=>SystemCommands.CloseWindow(this);
     private bool _navigationCompact;
     private void HomeClick(object sender, RoutedEventArgs e) { HomeScroll.ScrollToTop(); HomeScroll.Focus(); }
     private void ToggleNavigation(object sender, RoutedEventArgs e)

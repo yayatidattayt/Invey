@@ -18,6 +18,7 @@ public sealed class GhostGestureCoordinator
     private GhostDesktopTarget? _candidate;
     private GhostTargetGeometry? _candidateGeometry;
     private bool _armed, _neutral;
+    internal Action<object>? Diagnostic {get;set;}
     public GhostGestureResult? Last {get;private set;}
     public bool LiveQualified => false;
     public string Status => Last?.Reason??"Gesture practice off · Pocket interaction disabled";
@@ -44,7 +45,9 @@ public sealed class GhostGestureCoordinator
             hand.FrameSize is not {} frame||frame.Width!=context?.FrameWidth||frame.Height!=context?.FrameHeight||
             _desktop.Mode is GhostControlMode.Off or GhostControlMode.Paused or GhostControlMode.Lost)
         {Stop();return Last;}
+        var before=Diagnostic is null?null:_adapter.DiagnosticState;
         Last=_adapter.Observe(hand,now);
+        if(Diagnostic is {} trace)trace(new {hand.Sequence,hand.CaptureMonoMs,hand.ResultMonoMs,NowMs=now,Ratio=GhostGestureIntentAdapter.TryPinchRatio(hand,out var ratio)?ratio:(double?)null,Before=before,After=_adapter.DiagnosticState,Result=Last});
         if(Last.Transition is GhostGestureTransition.TrackingLost or GhostGestureTransition.Ambiguous or GhostGestureTransition.Paused or GhostGestureTransition.Stopped)
         {Cancel();return Last;}
         if(!_armed||!_controlledReplay||_desktop.Source!=GhostSourceKind.Controlled)return Last;

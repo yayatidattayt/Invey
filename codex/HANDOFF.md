@@ -1,3 +1,7 @@
+# Execution29 gesture fixture recovery — latest
+
+Deterministic lesson clock/explicit consumer injection replaces wall-clock full-sequence assumptions; separate queued delivery test retained. Production gesture behavior unchanged. Boundary250/251 tests pass against baseline and current core;201/config,52workers; full29027=42PASS/2BLOCKED. Original failures preserved; exact historical reset not captured. WindowChrome/inertia retained, shell screenshot/maxrestore verified, dedicated native chrome/tesseract qualification still pending. Execution29 PARTIAL; follow latest checkpoint/receipt. No camera/ledger change or merge.
+
 # Execution29 restraint refinement — latest
 
 Applied creator minimalism directly: Home tesseract/two Ghost actions, rail navigation, collapsed help, no slogans/repeated descriptions; Tracking preview precedes secondary controls and uses shared dark style. Alt+W/P/S/B preserved after native regression caught removed Workspace mnemonic. Final seed29005=41PASS/0FAIL/2BLOCKED/1closed-before-launch cursor INCONCLUSIVE;199core/config;52workers before presentation refinement. Read latest report and receipt for exact final CI. Execution29 remains PARTIAL; continue same checkpoint, no camera/ledger changes, no merge.

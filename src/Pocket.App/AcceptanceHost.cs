@@ -130,7 +130,7 @@ internal sealed class AcceptanceHost : IDisposable
             case "ghost-start": _product!.DesktopGhost.StartControlled();break;
             case "ghost-practice-ui": _previewResult=await _product!.ExerciseGesturePracticeFixtureAsync();break;
             case "product-minimize": _product!.WindowState=WindowState.Minimized;break;
-            case "spatial-ui": _previewResult=_product!.SpatialFixture();break;
+            case "spatial-ui": _previewResult=await _product!.SpatialFixture();break;
             case "ghost-observation-delivery": _previewResult=await _product!.ExerciseObservationDeliveryFixtureAsync();break;
             case "ghost-hybrid-source": _previewResult=await _product!.ExerciseHybridSourceFixtureAsync();break;
             case "ghost-gesture-replay": _product!.DesktopGhost.GestureReplayEvidence=await GhostGestureReplayFixture.RunAsync(_product.DesktopGhost);break;

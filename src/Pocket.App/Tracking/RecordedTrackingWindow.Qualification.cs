@@ -22,15 +22,22 @@ internal sealed partial class RecordedTrackingWindow
             throw new InvalidOperationException("Tracking source controls, scrollbar or fixed Stop are unreachable at compact height.");
         _recorded.IsChecked=true;Height=previousHeight;_trackingScroll.ScrollToTop();
         EnableDesktopPreviewFixture();
-        Guid source=Guid.NewGuid();long sequence=0;
+        Guid source=Guid.NewGuid();long sequence=0;long fixtureTime=1000;
+        var trace=new System.Collections.Generic.List<object>();
+        host.Gestures.Diagnostic=row=>{if(trace.Count<160)trace.Add(row);};
         async Task Sample(bool pinch,TrackingSource kind=TrackingSource.Camera)
         {
             var sample=_calibration.LearningFixtureObservation(source,sequence,new(.5,.5));
             var points=sample.Observation!.Landmarks.ToArray();
             points[4]=new(pinch?.532:.58,.5,0);points[5]=new(.42,.5,0);points[17]=new(.58,.5,0);
-            long now=Environment.TickCount64;
+            long now=fixtureTime;fixtureTime+=40;
             _learningFixture=sample with { Source=kind,Observation=sample.Observation with{Sequence=sequence++,CaptureMonoMs=now,ResultMonoMs=now,HandednessScore=.98,Landmarks=points.ToImmutableArray()} };
-            Render();await Task.Delay(40);
+            Render();
+            // This lesson checks a complete synthetic sequence, not latest-only queue delivery.
+            // Queue cadence/coalescing remains covered by ExerciseObservationDeliveryAsync.
+            DeliverDesktopObservation();
+            await Task.Delay(40);
+
         }
         try
         {
@@ -41,8 +48,10 @@ internal sealed partial class RecordedTrackingWindow
             _gesturePractice.AdvanceFixture();for(int i=0;i<14;i++)await Sample(false);
             _gesturePractice.AdvanceFixture();
             if(_gesturePractice.Stage!=4)throw new InvalidOperationException("Actual guided practice controls did not accept eligible separate samples.");
-            await Sample(false);for(int i=0;i<7;i++)await Sample(true);
-            if(host.Gestures.Last?.Transition is not (GhostGestureTransition.Hold or GhostGestureTransition.PinchConfirmed))throw new InvalidOperationException("Gesture proposal did not reach production coordinator.");
+            await Sample(false);
+            if(int.TryParse(Environment.GetEnvironmentVariable("INVEY_GESTURE_FIXTURE_GAP_MS"),out int injectedGap)&&injectedGap is >=250 and <=400)await Task.Delay(injectedGap);
+            for(int i=0;i<7;i++)await Sample(true);
+            if(host.Gestures.Last?.Transition is not (GhostGestureTransition.Hold or GhostGestureTransition.PinchConfirmed))throw new InvalidOperationException("Gesture proposal did not reach production coordinator: "+System.Text.Json.JsonSerializer.Serialize(new{host.Gestures.Last,host.Gestures.Status,host.Engine.Mode,host.Engine.Source,host.Engine.Session,trace}));
             if(host.Engine.Arm()||host.Engine.ActiveTarget is not null||host.Gestures.LiveQualified)throw new InvalidOperationException("Unqualified camera acquired action authority.");
             for(int i=0;i<7;i++)await Sample(false);
             var transition=host.Gestures.Last?.Transition;
@@ -54,7 +63,11 @@ internal sealed partial class RecordedTrackingWindow
             if(host.Gestures.Last?.Transition!=GhostGestureTransition.Stopped)throw new InvalidOperationException("Source change did not invalidate gesture context.");
             return new{ActualTrackingUi=true,GuidedLesson=true,CameraProtocolFixture=true,CameraOpened=false,SharedPointer=true,PinchProposal=true,ReleaseProposal=true,ProductionActionsDenied=true,SourceReplacementCanceled=true};
         }
-        finally {_learningFixture=null;host.Stop();_refresh.Start();Render();}
+        finally {
+            host.Gestures.Diagnostic=null;
+            var folder=System.IO.Path.GetDirectoryName(Environment.GetEnvironmentVariable("GHOST_TEST_POCKET_STORE"))!;
+            System.IO.File.WriteAllText(System.IO.Path.Combine(folder,"gesture-observation-trace.json"),System.Text.Json.JsonSerializer.Serialize(trace));
+            _learningFixture=null;host.Stop();_refresh.Start();Render();}
     }
 
     internal async Task<object> ExerciseObservationDeliveryAsync(GhostDesktopHost host)
@@ -119,3 +132,4 @@ internal sealed partial class RecordedTrackingWindow
         finally { await StopAsync();host.Stop();_recordedDemo.SelectedIndex=previousSequence;_startedInMode=previousStarted;_showPreview.IsChecked=previousImage;Render(); }
     }
 }
+
