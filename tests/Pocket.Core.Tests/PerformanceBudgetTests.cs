@@ -68,7 +68,7 @@ public class PerformanceBudgetTests
         finally {File.Delete(path);File.Delete(path+".lock");}
     }
     [Fact]
-    public async Task Temporary_delete_sharing_conflict_can_recover_without_losing_rows()
+    public void Temporary_delete_sharing_conflict_can_recover_without_losing_rows()
     {
         var rows=Enumerable.Range(0,12).Select(_=>new CameraBudgetEntry(Guid.NewGuid(),80000,true)).ToArray();
         string path=Ledger(rows);
@@ -76,8 +76,11 @@ public class PerformanceBudgetTests
         {
             using var budget=new CameraBudget(path);
             using var blocker=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read);
-            var release=Task.Run(async()=>{await Task.Delay(70);blocker.Dispose();});
-            budget.AmendPerformanceCheck();await release;
+            using var started=new ManualResetEventSlim();
+            var release=new Thread(()=>{started.Set();Thread.Sleep(70);blocker.Dispose();}) { IsBackground=true };
+            release.Start();Assert.True(started.Wait(TimeSpan.FromSeconds(2)));
+            try { budget.AmendPerformanceCheck(); }
+            finally { Assert.True(release.Join(TimeSpan.FromSeconds(2))); }
             Assert.Equal(rows,budget.Read().Sessions);Assert.Equal(7,budget.Read().Version);
         }
         finally {File.Delete(path);File.Delete(path+".lock");}
