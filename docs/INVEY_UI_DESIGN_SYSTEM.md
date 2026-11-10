@@ -13,3 +13,6 @@ Ghost cursor has transparent fill in both desktop and legacy overlays. Existing 
 Remaining design work: seamless WindowChrome shell, bounded inertia, animated rail transitions, complete control templates including dropdown/list states, feature-window hardcoded surface audit, substantial Ghost layout/status redesign, responsive preview height, accessibility/high-contrast review, per-monitor DPI and visual state qualification. Detachable preview deferred pending ownership review. This is a foundation, not the completed design system.
 
 Native chrome reference reviewed: https://learn.microsoft.com/en-us/dotnet/api/system.windows.shell.windowchrome?view=windowsdesktop-10.0 . Existing native chrome retained until replacement is tested.
+
+## Restraint requirement applied
+Primary Home removes marketing copy, section slogans and repeated feature descriptions. Pocket navigation lives in the rail; Home retains only Tracking and Keyboard preview actions. The synthetic profile label is concise, with detail in a tooltip. Help and diagnostics are collapsed; Pause remains in the rail. Tracking places the existing camera image before secondary controls, moves desktop diagnostic text into Performance, and removes numbered instructional headings. Explicit source labels, no-action qualification, errors, camera consent and Stop remain intact.

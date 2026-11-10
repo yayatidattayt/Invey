@@ -93,7 +93,8 @@ internal sealed partial class RecordedTrackingWindow : Window
         _fixtureCameraFault = fixtureCameraFault;
         if (fixtureFile is not null) _live.Content = "_Local video fixture";
         Title = "Invey · Tracking lab";
-        Width = 520;
+        SetResourceReference(StyleProperty, typeof(Window));
+        Width = 700;
         MinWidth = 360;
         SizeToContent = SizeToContent.Manual;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -171,26 +172,24 @@ internal sealed partial class RecordedTrackingWindow : Window
         _deviceOptions.Children.Add(new Expander { Header = "Ghost Camera Performance Check", Content = new StackPanel { Children = {
             new TextBlock { Text = "Choose a check, then Enable yourself. Raw and conversion share one camera start. No images are saved; Pocket actions stay disabled.", TextWrapping = TextWrapping.Wrap }, _performanceMode } } });
         var setup=new StackPanel {Margin=new Thickness(20,16,20,8),Children={
-            new TextBlock{Text="Ghost Tracking",FontSize=20,FontWeight=FontWeights.SemiBold},
-            new TextBlock{Text="1. Choose a source. Camera stays off until you press Enable.",TextWrapping=TextWrapping.Wrap},
+            new TextBlock{Text="Ghost",FontSize=18,FontWeight=FontWeights.SemiBold},
+            new TextBlock{Text="Camera starts only with Enable.",TextWrapping=TextWrapping.Wrap},
             sources,_recordedLabel,_recordedDemo,_deviceOptions,_sourceStatus,_budgetStatus}};
         _trackingScroll.Content = new StackPanel
         {
             Margin = new Thickness(20,8,20,16),
             Children =
             {
-                new TextBlock { Text = "2. Set up your pointer", FontWeight = FontWeights.SemiBold },
                 _status,
-                _showPreview,
-                _desktopPreview,
-                _desktopStatus,
-                new Expander { Header = "Performance dashboard", Content = new StackPanel{Children={_performance,_measureStill,_stillStatus}} },
                 _liveView,
                 _previewStatus,
+                _showPreview,
+                _desktopPreview,
+                new Expander { Header = "Performance dashboard", Content = new StackPanel{Children={_desktopStatus,_performance,_measureStill,_stillStatus}} },
                 _mirrorCamera,
                 _qualification,
                 _calibrationDetails,
-                new TextBlock{Text="3. Optional practice · Pocket actions stay disabled",FontWeight=FontWeights.SemiBold,Margin=new Thickness(0,12,0,8)},
+                new TextBlock{Text="Practice · Pocket actions disabled",FontWeight=FontWeights.SemiBold,Margin=new Thickness(0,12,0,8)},
                 _gesturePractice,
                 _learning,
                 new Expander{Header="Preview options and diagnostics",Margin=new Thickness(0,12,0,0),Content=new StackPanel{Children={_previewTiming,_overlayMode}}}

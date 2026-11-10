@@ -1,3 +1,7 @@
+# Execution29 restraint refinement — latest
+
+Applied creator minimalism directly: Home tesseract/two Ghost actions, rail navigation, collapsed help, no slogans/repeated descriptions; Tracking preview precedes secondary controls and uses shared dark style. Alt+W/P/S/B preserved after native regression caught removed Workspace mnemonic. Final seed29005=41PASS/0FAIL/2BLOCKED/1closed-before-launch cursor INCONCLUSIVE;199core/config;52workers before presentation refinement. Read latest report and receipt for exact final CI. Execution29 remains PARTIAL; continue same checkpoint, no camera/ledger changes, no merge.
+
 # Execution29 staged UI delivery — PARTIAL
 
 Shared resources, Ghost-first rail, interactive16/32 tesseract, transparent Ghost center and enlarged preview implemented. Debug/Release199/config,52workers; full seed29002=42PASS/2BLOCKED after explicit external-fixture shell minimization. First external failure and visual style/clipping findings retained; final visual corrections passed focused29003. Read EXECUTION_29_REPORT.md, INVEY_UI_DESIGN_SYSTEM.md and EXECUTION_29_RESUME.md. Custom chrome, inertia, complete Ghost/feature UI and accessibility/DPI/input/performance qualification remain unfinished. Camera OFF,16starts exhausted, ledger unchanged. Same branch/PR9; no merge. Final SHA/CI in artifacts/execution-29/final-delivery.json.

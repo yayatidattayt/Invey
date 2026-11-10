@@ -30,7 +30,7 @@ public sealed class GhostOverlay : Window
             BorderBrush=SystemColors.WindowTextBrush, Background=SystemColors.WindowBrush,
             Child=new StackPanel { Margin=new(20), Children={
                 new TextBlock { Text="POCKET",FontSize=15,FontWeight=FontWeights.SemiBold,Foreground=SystemColors.WindowTextBrush },
-                new TextBlock { Text="Simulated reference Â· Gate A1",Margin=new(0,12,0,8),Foreground=SystemColors.WindowTextBrush },
+                new TextBlock { Text="Simulated reference · Gate A1",Margin=new(0,12,0,8),Foreground=SystemColors.WindowTextBrush },
                 new TextBlock { Text="Your mouse passes through this panel.",TextWrapping=TextWrapping.Wrap,Foreground=SystemColors.WindowTextBrush }
             }} };
         _ghost=new Ellipse { Width=18,Height=18,Stroke=SystemColors.HighlightBrush,StrokeThickness=3,Fill=Brushes.Transparent };

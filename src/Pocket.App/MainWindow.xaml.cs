@@ -44,11 +44,12 @@ public partial class MainWindow : Window
         if (profile.Notice?.StartsWith("DEMO PROFILE", StringComparison.Ordinal) == true)
         {
             Title = "Invey · Demo";
-            ProfileNotice.Text = profile.Notice;
+            ProfileNotice.Text = "Demo profile · synthetic samples";
+            ProfileNotice.ToolTip = profile.Notice;
             ProfileNotice.Visibility = Visibility.Visible;
         }
         SourceInitialized += (_, _) => ScreenSnapshot.DisableNativeTransitions(this);
-        if (profile.Notice is not null) Status.Text = profile.Notice;
+        if (profile.Notice is not null && !profile.Notice.StartsWith("DEMO PROFILE", StringComparison.Ordinal)) Status.Text = profile.Notice;
         CameraStatusChanged += status => GhostState.Text = $"Ghost · {status}";
         Loaded += async (_, _) =>
         {
