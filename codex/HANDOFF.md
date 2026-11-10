@@ -1,5 +1,7 @@
 # Execution26 current handoff —2026-11-10
 
+Published implementation3320ed4163ad4fce46aaaa9f784029a8a5b89c52; exact CI42792835816 SUCCESS. Documentation-only follow-up records32 report sections and delivery evidence. Final follow-up SHA/CI and cleanup in artifacts/execution-26/final-delivery.json. App closed; camera off, exhausted ledger unchanged.
+
 Camera-free hybrid candidate on existing PR9 branch fromab8d72bd4bb9c6ab69de1ebddaa5f88e79f28aa9. Existing OpenCV5.0.0 sparse pyramidal LK/support-feature tracker plus conservative model/visual arbitration now feeds the SAME v3 preview and shared desktop pointer. Original FingerVisual preserved viaINVEY_VISUAL_BASELINE=1; missing OpenCV explicitly falls back. No interpolation, gesture issuer, new camera path or longer protocol lifetime. Production full-anchor deadline remains600ms; offline1200ms ablation is NOT integrated.
 
 Paired generated low-texture availability0->16/16, no added false continuations in tested negatives; public-domain Fingers.jpg transformed relative error~0.98->0.05px, both16/16. Original cropped-palm still remains negative0/0 and has no visible fingertips. Natural hand motion/wrist-out improvement UNVERIFIED. Real-camera~29.5FPS baseline remains historical, not new-device acceptance.185 core/config,50 workers; full native26005=40PASS/0FAIL/1Explorer BLOCKED, focused typing26003 PASS and final recorded-selector/product26006 PASS. Preserve initial temp errors, expensive flow timings, rotation losses, fixture mnemonic contamination and strict-label mismatch failures.

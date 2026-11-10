@@ -98,11 +98,23 @@ Generated images pass through an actual worker and same protocol pipe to the exi
 
 No change to LiveQualified/MayExecute, controlled replay issuer, full-hand pinch geometry, target ownership or cancellation. V3 contains no invented thumb. Camera and recorded image-only preview cannot Arm Pocket. No OS input injection or native cursor movement in tracking code. All automated native input remains in the existing guarded private-desktop test runner.
 
-## 25–28. Tests, native focus and preserved failures
+## 25. Core tests
 
-Baseline184 core/configuration and39 workers; candidate185 core/configuration and50 workers,0 skips. Both build configurations0 warnings/errors. Native MP4, original patch negatives, new low texture/flow/identity/partial/conflict/drift/occlusion/expiry/fallback tests retained. Labels-off30/60Hz delivery and guided practice stay in the product route. Final exact source runs and native full results are appended before delivery.
+Baseline184/configuration; candidate185/185 in both Debug and Release, no skips. Both build configurations pass with zero warnings/errors. New full-to-visual-to-full regression preserves warmup, denies visual action eligibility and clears on Stop. Existing selected-hand, calibration, pointer delivery, gesture authority and reducer invariants remain covered.
 
-Execution25 focus failure is not ignored: added read-only pre-injection HWND/PID/owner/focus snapshot on failure, preserving the exact existing guard. A bounded typing-only fresh-desktop run26003 passed typing/cursor/cleanup. Earlier failure remains; no root-cause attribution to GameInput/service or harmlessness without evidence. No service killed, focus assertion weakened or ordinary desktop targeted. Native product26002 passed; initial26001 fixture-contamination failure preserved. Original cropped-photo negative, rotation/coherence losses, first expensive flow benchmark and temp-directory failures all remain.
+## 26. Worker tests
+
+Baseline39 workers; final delivery run50/50, no skips (artifacts/execution-26/delivery-worker.log). Existing native MP4/color fixtures and original patch negatives remain. Added low-texture, optical flow, identity, sparse-partial advancement, source conflict, drift, occlusion, anchor expiry and explicit missing-backend fallback checks. Two deterministic seeds are paired against unchanged baseline pixels. No physical-camera acquisition.
+
+## 27. Native tests
+
+Typing-only26003 PASS; full26005=40PASS/0FAIL/1Explorer BLOCKED. Final selector/product26006 PASS after the small selector addition, including actual worker/image/protocol/shared pointer, denied actions and cleanup. Labels-off30/60Hz delivery, guided practice, Pocket and Dual remain in the actual isolated product route. Exact run IDs and chronology are preserved below. Environment audit reports Default; independent process inspection finds no Invey-owned workers. Both camera-off launcher preflights pass. Explorer and physical hardware acceptance are not manufactured.
+
+Execution25 focus failure is not ignored: read-only pre-injection HWND/PID/owner/focus snapshot is now saved on failure, preserving the exact existing guard. A bounded typing-only fresh-desktop run26003 passed typing/cursor/cleanup. Earlier failure remains; no root-cause attribution to GameInput/service or harmlessness without evidence. No service killed, focus assertion weakened or ordinary desktop targeted.
+
+## 28. Preserved failures
+
+Initial restricted baseline worker run failed six temporary-file operations; unchanged local-TEMP rerun passed. Original cropped-photo negative, rotation/coherence losses and first expensive flow benchmark remain. Native26001 passed optical checks but later failed because the fixture left Restart instead of Enable; restored UI mode/mnemonic then product26002 passed. Full26004 failed the old21-landmarks copy assertion; exact Tracking hand assertion now matches the intended observed state, and26005 passed. All failed logs/results remain. No failed test was removed, skipped or reclassified as a pass.
 
 ## 29. Camera ledger
 
@@ -113,6 +125,10 @@ Version8,14 released rows,total1262999ms,zero pending. SHA256 F1A83C4A7CAEE339AE
 At most two creator-supervised, creator-enabled preview-only sessions<=180s each, if separately explicitly approved:14→16 total starts,<=360000ms new charges, unchanged1800000ms total cap (maximum1622999ms with current history). First baseline vs second hybrid, identical source/display/hand/mirror/lighting where possible. Each: labeled stationary interval, tiny/slow/normal/fast movement, warm wrist-out/palm-out<=600ms initially, return, genuine loss, mouse independence, Stop by150s; cooperative170s/cutoff178s. Aggregate jitter requires explicitly labeled stationary samples; moving intervals cannot count as stationary noise. No images/video/raw landmarks or Pocket actions. Native shutdown/independent exit/guardian release and indicator-off required before second test. No version9 policy, allowance or physical startup is implemented/applied by this proposal.
 
 ## 31. Delivery
+
+Implementation commit `3320ed4163ad4fce46aaaa9f784029a8a5b89c52` is published to [PR9](https://github.com/yayatidattayt/Invey/pull/9). [Exact implementation-head Windows CI42792835816](https://github.com/yayatidattayt/Invey/actions/runs/42792835816) completed SUCCESS, including both core configurations and all worker tests. A documentation-only follow-up separates required test sections and records this result; its own final exact-head check is recorded in artifacts/execution-26/final-delivery.json and the delivery response. No source/test changes after the verified implementation commit.
+
+Committed-source Release rebuild passed0 warnings/errors. Invey.exe SHA25642CC159DADB47FF8B93C2F667815EDD3630E4BA637EFC9C15EBE3A173FCDBAF5; Invey.dll SHA256E06C39BDCA66816E7A15CA0A98F8087B5DDDF7DDCE988D65D4993CCCCDC4849B. Presentation/Beta and Performance CheckOnly preflights passed with optional tracking available, camera off and zero running instances. Independent process/desktop audit found no Invey-owned process and input desktop Default. Ledger hash unchanged. Working launcher: scripts/Start-Invey-Presentation.cmd; source instructions: docs/HYBRID_TRACKING_GUIDE.md. Status: camera-free implementation READY FOR REVIEW; physical improvement UNVERIFIED, B1 not accepted.
 
 Continue same PR9 branch; do not merge. Existing Presentation launcher remains camera off, normal profile preserved. `INVEY_VISUAL_BASELINE=1` is the reversible comparison, not camera authorization. CI installs the hash-pinned matching OpenCV for deterministic tests; runtime gracefully falls back if unavailable. Exact final commit, executable hash and successful CI are verified in final delivery receipt/response. All PR metadata restrictions respected.
 
